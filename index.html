@@ -268,7 +268,7 @@ var trkName = '', trkId = '', editIdx = -1, duration = 0;
 // Waveform — 3-band frequency peaks (Rekordbox style)
 var cv, cx, cvW = 1, cvH = 1;
 var vStart = 0, vEnd = 30;
-var NPKS = 6000;
+var NPKS = 12000;
 var pkLow = null, pkMid = null, pkHigh = null; // per-band amplitude [0..1]
 var pkMin = null, pkMax = null; // overall min/max for shape
 
@@ -639,7 +639,8 @@ function animLoop() {
     var t = audTime();
     var len = vEnd - vStart;
     var px = (t - vStart) / len;
-    if (px > 0.85 || px < 0) {
+    // Only auto-scroll when loop is OFF — let user browse freely during loop playback
+    if (!loopOn && (px > 0.85 || px < 0)) {
       vStart = Math.max(0, Math.min(duration - len, t - len * 0.2));
       vEnd = vStart + len;
     }
@@ -713,23 +714,26 @@ function drawWave() {
       }
       if (cnt > 0) { bL /= cnt; bM /= cnt; bH /= cnt; }
 
-      // Color from frequency mix: blue=bass, green=mid, magenta=high
+      // Color from dominant frequency band — Rekordbox-style vivid coloring
       var total = bL + bM + bH;
       var r, g, bl;
       if (total > 0.001) {
-        // Bass = blue(40,80,220), Mid = green(40,200,80), High = magenta(200,60,200)
-        var wL = bL/total, wM = bM/total, wH = bH/total;
-        r = Math.round(40*wL + 40*wM + 220*wH);
-        g = Math.round(80*wL + 220*wM + 60*wH);
-        bl = Math.round(220*wL + 80*wM + 200*wH);
-        // Brightness scales with amplitude
+        // Exaggerate differences: square the weights to make dominant band pop more
+        var wL = (bL*bL), wM = (bM*bM), wH = (bH*bH);
+        var wT = wL + wM + wH;
+        wL /= wT; wM /= wT; wH /= wT;
+        // Bass = deep blue(50,100,255), Mid = vivid green(50,255,100), High = hot pink(255,70,230)
+        r = Math.round(50*wL + 50*wM + 255*wH);
+        g = Math.round(100*wL + 255*wM + 70*wH);
+        bl = Math.round(255*wL + 100*wM + 230*wH);
+        // Brightness: higher floor so quiet parts are still clearly colored
         var amp = Math.max(Math.abs(mn), Math.abs(mx));
-        var bright = 0.4 + 0.6 * Math.min(1, amp * 2);
-        r = Math.round(r * bright);
-        g = Math.round(g * bright);
-        bl = Math.round(bl * bright);
+        var bright = 0.55 + 0.45 * Math.min(1, amp * 2.5);
+        r = Math.min(255, Math.round(r * bright));
+        g = Math.min(255, Math.round(g * bright));
+        bl = Math.min(255, Math.round(bl * bright));
       } else {
-        r = 30; g = 50; bl = 100;
+        r = 25; g = 40; bl = 80;
       }
       cx.fillStyle = 'rgb(' + r + ',' + g + ',' + bl + ')';
 
@@ -997,7 +1001,7 @@ function esc(s) {
 // ══════════════════════════════════════════════════════════════════════════════
 initCanvas();
 renderLibrary();
-log('Boot OK v3');
+log('Boot OK v4');
 </script>
 </body>
 </html>
