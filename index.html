@@ -48,6 +48,7 @@ h1{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:var
 .speed-x{font-size:22px;color:var(--dim)}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;background:var(--sur2);border-radius:3px;outline:none;margin-bottom:14px}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:14px;background:var(--acc);box-shadow:0 2px 6px rgba(0,0,0,.5)}
+input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .presets{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .pbtn{background:var(--sur2);color:var(--dim);border:none;border-radius:9px;padding:9px 11px;font-size:13px;font-weight:500;cursor:pointer;touch-action:manipulation;min-width:46px;text-align:center}
 .pbtn.on{background:var(--acc);color:#fff}
@@ -84,6 +85,27 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
 .labtn:active{opacity:.6}
 .la-load{color:var(--acc)}.la-edit{color:var(--grn)}.la-del{color:var(--red)}
 .empty{text-align:center;color:#444;font-size:13px;padding:10px 0}
+/* Grid / BPM card */
+.grid-info{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.grid-bpm{font-size:22px;font-weight:700;color:var(--yel);font-variant-numeric:tabular-nums}
+.grid-ts{font-size:16px;font-weight:600;color:var(--dim);margin-left:2px}
+.grid-edit-btn{margin-left:auto;font-size:12px;padding:8px 14px;background:var(--yel);color:#000;border-radius:10px;font-weight:700}
+.grid-edit-btn.active{background:var(--grn)}
+.grid-panel{margin-top:14px;display:none}
+.grid-panel.show{display:block}
+.grid-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.grid-lbl{font-size:12px;font-weight:600;color:var(--dim);min-width:55px}
+.grid-inp{background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:10px;padding:10px 12px;font-size:15px;font-weight:600;width:90px;text-align:center;font-variant-numeric:tabular-nums}
+.grid-inp:focus{outline:none;border-color:var(--yel)}
+.grid-sel{background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:10px;padding:10px 12px;font-size:15px;font-weight:600;-webkit-appearance:none;appearance:none;min-width:70px;text-align:center}
+.grid-sel:focus{outline:none;border-color:var(--yel)}
+.tap-btn{background:var(--yel);color:#000;font-size:16px;font-weight:800;padding:14px 24px;border-radius:14px;min-width:70px;letter-spacing:1px}
+.tap-btn:active{opacity:.7;transform:scale(0.95)}
+.tap-bpm-val{font-size:15px;font-weight:600;color:var(--yel);margin-left:4px;font-variant-numeric:tabular-nums}
+.tap-apply{background:var(--grn);color:#000;font-size:13px;font-weight:700;padding:10px 14px;border-radius:10px}
+.grid-hint{font-size:11px;color:var(--dim);text-align:center;margin:6px 0 10px;font-style:italic}
+.grid-done{background:var(--acc);color:#fff;width:100%;padding:13px;border-radius:12px;font-size:14px;font-weight:600}
+/* Log */
 .log-toggle{display:block;width:100%;background:none;border:1px solid var(--brd);color:var(--dim);border-radius:13px;padding:12px;font-size:12px;cursor:pointer;margin-top:20px;text-align:center}
 .log-toggle:active{opacity:.6}
 #logPanel{display:none;margin-top:6px;background:var(--sur);border-radius:12px;padding:12px;max-height:300px;overflow-y:auto}
@@ -113,6 +135,42 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
       <button class="zbtn" onclick="doZoom(2)">&#8722;</button>
       <button class="zbtn" onclick="doZoom(0.5)">+</button>
     </div>
+  </div>
+</div>
+<!-- Grid / BPM card -->
+<div class="card" id="gridCard" style="display:none">
+  <div class="grid-info">
+    <span class="grid-bpm" id="gridBpmDisp">-- BPM</span>
+    <span class="grid-ts" id="gridTsDisp">4/4</span>
+    <button class="cbtn grid-edit-btn" id="gridEditBtn" onclick="toggleGridEdit()">Edit Grid</button>
+  </div>
+  <div class="grid-panel" id="gridPanel">
+    <div class="grid-row">
+      <span class="grid-lbl">BPM</span>
+      <input type="number" class="grid-inp" id="gridBpmInp" step="0.1" min="20" max="300" inputmode="decimal" onchange="onBpmInput(this.value)">
+    </div>
+    <div class="grid-row">
+      <span class="grid-lbl">Time Sig</span>
+      <select class="grid-sel" id="gridTsSel" onchange="onTsChange()">
+        <option value="2/4">2/4</option>
+        <option value="3/4">3/4</option>
+        <option value="4/4" selected>4/4</option>
+        <option value="5/4">5/4</option>
+        <option value="6/4">6/4</option>
+        <option value="3/8">3/8</option>
+        <option value="6/8">6/8</option>
+        <option value="7/8">7/8</option>
+        <option value="9/8">9/8</option>
+        <option value="12/8">12/8</option>
+      </select>
+    </div>
+    <div class="grid-row">
+      <button class="cbtn tap-btn" id="tapBtn" onclick="tapTempo()">TAP</button>
+      <span class="tap-bpm-val" id="tapBpmVal">--</span>
+      <button class="cbtn tap-apply" onclick="applyTapBpm()">Apply</button>
+    </div>
+    <div class="grid-hint">Drag waveform left/right to align grid</div>
+    <button class="cbtn grid-done" onclick="toggleGridEdit()">Done</button>
   </div>
 </div>
 <div class="card" id="ctrlCard" style="display:none">
@@ -269,31 +327,67 @@ var trkName = '', trkId = '', editIdx = -1, duration = 0;
 var cv, cx, cvW = 1, cvH = 1;
 var vStart = 0, vEnd = 30;
 var NPKS = 12000;
-var pkLow = null, pkMid = null, pkHigh = null; // per-band amplitude [0..1]
-var pkMin = null, pkMax = null; // overall min/max for shape
+var pkLow = null, pkMid = null, pkHigh = null;
+var pkMin = null, pkMax = null;
 
 // Loop lane height for saved loops on timeline
 var LOOP_LANE_H = 5;
 var LOOP_LANE_GAP = 1;
-var LOOP_LANES_ZONE = 0; // computed from saved loop count
+var LOOP_LANES_ZONE = 0;
 
 // Touch
-var drgType = null; // 'in'|'out'|'pan'|'pinch'|'playhead'
+var drgType = null; // 'in'|'out'|'pan'|'pinch'|'playhead'|'gridshift'
 var drgX0 = 0, drgVS0 = 0, drgVE0 = 0, drgMoved = false;
 var pnDist0 = null, pnLen0 = null, pnCtr0 = null;
+var drgGridOff0 = 0; // initial gridOffset at drag start
 
-// Loop colors palette (distinct, visible on dark bg)
+// Loop colors palette
 var LOOP_COLORS = [
   '#ff6b6b','#ffa94d','#ffd43b','#69db7c','#38d9a9',
   '#4dabf7','#748ffc','#da77f2','#f783ac','#e599f7',
   '#63e6be','#74c0fc','#a9e34b','#ff8787','#66d9e8'
 ];
 
+// Grid / BPM
+var gridBPM = 0, gridOffset = 0;
+var gridTimeSigTop = 4, gridTimeSigBot = 4;
+var gridEditMode = false;
+var tapTimes = [];
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  iOS Silent Mode Fix
+// ══════════════════════════════════════════════════════════════════════════════
+var silentUnlocked = false;
+function unlockSilentMode() {
+  if (silentUnlocked) return;
+  silentUnlocked = true;
+  // Create a tiny silent WAV and play via <audio> to override iOS silent switch
+  var sr = 44100, len = sr; // 1 second of silence
+  var buf = new ArrayBuffer(44 + len * 2);
+  var dv = new DataView(buf);
+  function ws(off, s) { for (var i = 0; i < s.length; i++) dv.setUint8(off + i, s.charCodeAt(i)); }
+  ws(0,'RIFF'); dv.setUint32(4, 36 + len * 2, true); ws(8,'WAVE');
+  ws(12,'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true);
+  dv.setUint16(22, 1, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true);
+  dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  ws(36,'data'); dv.setUint32(40, len * 2, true);
+  var blob = new Blob([buf], { type: 'audio/wav' });
+  var a = document.createElement('audio');
+  a.src = URL.createObjectURL(blob);
+  a.loop = true;
+  a.volume = 0.001;
+  a.play().catch(function(e){ log('Silent unlock: ' + e.message); });
+  log('Silent mode unlock attempted');
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 //  AudioContext + Web Audio playback
 // ══════════════════════════════════════════════════════════════════════════════
 function ensureCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    unlockSilentMode();
+  }
   if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
@@ -400,11 +494,27 @@ function decodeAndLoad(name, size, arrayBuf, saveToLib) {
     pkLow = null; pkMid = null; pkHigh = null; pkMin = null; pkMax = null;
     resetEditor(); updLoopUI(); updPlayBtn();
     document.getElementById('trackName').textContent = name;
-    ['waveCard','ctrlCard','speedCard','loopCard','savedCard'].forEach(function(id) {
+    ['waveCard','gridCard','ctrlCard','speedCard','loopCard','savedCard'].forEach(function(id) {
       document.getElementById(id).style.display = 'block';
     });
     vStart = 0; vEnd = duration;
     computePeaks(buf);
+
+    // Load saved grid or auto-detect BPM
+    var savedGrid = loadGridSettings();
+    if (savedGrid) {
+      gridBPM = savedGrid.bpm;
+      gridOffset = savedGrid.offset;
+      gridTimeSigTop = savedGrid.tsTop;
+      gridTimeSigBot = savedGrid.tsBot;
+    } else {
+      var detected = detectBPM(buf);
+      gridBPM = detected.bpm;
+      gridOffset = detected.offset;
+      gridTimeSigTop = 4; gridTimeSigBot = 4;
+    }
+    updateGridDisplay();
+
     setTimeout(function() {
       resizeCanvas();
       document.getElementById('waveTime').textContent = '0:00 / ' + fmt(duration);
@@ -423,7 +533,7 @@ function decodeAndLoad(name, size, arrayBuf, saveToLib) {
     renderLoops();
     setStatus('Ready - tap play!', 'ok');
     setTimeout(function(){ setStatus(''); }, 2000);
-    log('Loaded: ' + name + ' (' + duration.toFixed(1) + 's)');
+    log('Loaded: ' + name + ' (' + duration.toFixed(1) + 's) BPM=' + gridBPM);
   }, function(err) {
     log('Decode failed: ' + (err ? err.message || err : '?'));
     setStatus('Could not decode audio.', 'err');
@@ -443,7 +553,10 @@ function deleteFromLibrary(id, e) {
   if (!confirm('Delete this track from library?')) return;
   deleteTrackFromDB(id).catch(function(){});
   var lib = getLibrary(), entry = lib.find(function(x){ return x.id === id; });
-  if (entry) try { localStorage.removeItem('loops__' + entry.name); } catch(ex) {}
+  if (entry) {
+    try { localStorage.removeItem('loops__' + entry.name); } catch(ex) {}
+    try { localStorage.removeItem('grid__' + entry.name); } catch(ex) {}
+  }
   saveLibrary(lib.filter(function(x) { return x.id !== id; }));
   renderLibrary();
 }
@@ -486,7 +599,6 @@ function setIn() {
   if (!duration) return;
   loopIn = audTime();
   document.getElementById('inTime').textContent = fmt(loopIn);
-  // Auto-activate loop when both points are set
   if (loopOut !== null && loopIn < loopOut) {
     loopOn = true;
     updLoopUI();
@@ -499,7 +611,6 @@ function setOut() {
   if (!duration) return;
   loopOut = audTime();
   document.getElementById('outTime').textContent = fmt(loopOut);
-  // Auto-activate loop when both points are set
   if (loopIn !== null && loopIn < loopOut) {
     loopOn = true;
     updLoopUI();
@@ -542,7 +653,7 @@ function computePeaks(buf) {
   var ch0 = buf.getChannelData(0);
   var ch1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : null;
   var N = ch0.length;
-  var spb = N / NPKS; // samples per bin
+  var spb = N / NPKS;
 
   pkMin = new Float32Array(NPKS);
   pkMax = new Float32Array(NPKS);
@@ -550,12 +661,10 @@ function computePeaks(buf) {
   pkMid = new Float32Array(NPKS);
   pkHigh = new Float32Array(NPKS);
 
-  // Simple 3-band split using exponential moving average filters
-  // Bass cutoff ~250Hz, Mid cutoff ~2500Hz
   var alphaLow = Math.min(1, 2 * Math.PI * 250 / sampleRate);
   var alphaMid = Math.min(1, 2 * Math.PI * 2500 / sampleRate);
 
-  var lpLow = 0, lpMid = 0; // filter state
+  var lpLow = 0, lpMid = 0;
 
   for (var i = 0; i < NPKS; i++) {
     var s0 = Math.floor(i * spb), s1 = Math.min(N, Math.floor((i + 1) * spb));
@@ -568,9 +677,7 @@ function computePeaks(buf) {
       if (v < mn) mn = v;
       if (v > mx) mx = v;
 
-      // Low-pass for bass
       lpLow += alphaLow * (v - lpLow);
-      // Low-pass for bass+mid
       lpMid += alphaMid * (v - lpMid);
 
       var bass = Math.abs(lpLow);
@@ -591,7 +698,6 @@ function computePeaks(buf) {
     }
   }
 
-  // Normalize band peaks to [0..1]
   var maxL = 0, maxM = 0, maxH = 0;
   for (var i = 0; i < NPKS; i++) {
     if (pkLow[i] > maxL) maxL = pkLow[i];
@@ -603,6 +709,174 @@ function computePeaks(buf) {
   if (maxH > 0) for (var i = 0; i < NPKS; i++) pkHigh[i] /= maxH;
 
   log('Peaks computed: ' + NPKS + ' bins, 3-band, sr=' + sampleRate);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  BPM Detection (onset autocorrelation)
+// ══════════════════════════════════════════════════════════════════════════════
+function detectBPM(buf) {
+  var sr = buf.sampleRate;
+  var data = buf.getChannelData(0);
+  var ch1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : null;
+
+  // Energy in ~23ms windows
+  var winSize = 1024;
+  var nWins = Math.floor(data.length / winSize);
+  var energy = new Float32Array(nWins);
+
+  for (var i = 0; i < nWins; i++) {
+    var sum = 0, off = i * winSize;
+    for (var j = 0; j < winSize; j++) {
+      var v = ch1 ? (data[off + j] + ch1[off + j]) * 0.5 : data[off + j];
+      sum += v * v;
+    }
+    energy[i] = sum / winSize;
+  }
+
+  // Onset strength (positive energy derivative)
+  var onset = new Float32Array(nWins);
+  for (var i = 1; i < nWins; i++) {
+    onset[i] = Math.max(0, energy[i] - energy[i - 1]);
+  }
+
+  // Autocorrelation for 60-200 BPM range
+  var wps = sr / winSize; // windows per second
+  var minLag = Math.floor(wps * 60 / 200);
+  var maxLag = Math.ceil(wps * 60 / 60);
+  var useWins = Math.min(nWins, Math.floor(wps * 30)); // analyze up to 30s
+
+  var bestLag = minLag, bestCorr = 0;
+  for (var lag = minLag; lag <= maxLag; lag++) {
+    var corr = 0;
+    for (var i = 0; i < useWins - lag; i++) {
+      corr += onset[i] * onset[i + lag];
+    }
+    if (corr > bestCorr) { bestCorr = corr; bestLag = lag; }
+  }
+
+  var bpm = Math.round((wps * 60 / bestLag) * 10) / 10;
+
+  // Find best phase offset (align grid to onsets)
+  var beatDur = 60 / bpm;
+  var nBeats = Math.floor(duration / beatDur);
+  var steps = 48;
+  var bestOff = 0, bestScore = 0;
+  for (var s = 0; s < steps; s++) {
+    var off = (s / steps) * beatDur;
+    var score = 0;
+    for (var bi = 0; bi < Math.min(nBeats, 200); bi++) {
+      var t = off + bi * beatDur;
+      var wi = Math.floor(t * wps);
+      // Check a small window around the beat position
+      for (var d = -2; d <= 2; d++) {
+        var idx = wi + d;
+        if (idx >= 0 && idx < nWins) score += onset[idx];
+      }
+    }
+    if (score > bestScore) { bestScore = score; bestOff = off; }
+  }
+
+  log('BPM detected: ' + bpm + ', offset: ' + bestOff.toFixed(3) + 's');
+  return { bpm: bpm, offset: bestOff };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Grid settings persistence
+// ══════════════════════════════════════════════════════════════════════════════
+function gridKey() { return 'grid__' + trkName; }
+function saveGridSettings() {
+  try {
+    localStorage.setItem(gridKey(), JSON.stringify({
+      bpm: gridBPM, offset: gridOffset, tsTop: gridTimeSigTop, tsBot: gridTimeSigBot
+    }));
+  } catch(e) {}
+}
+function loadGridSettings() {
+  try {
+    var s = localStorage.getItem(gridKey());
+    return s ? JSON.parse(s) : null;
+  } catch(e) { return null; }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Grid UI
+// ══════════════════════════════════════════════════════════════════════════════
+function updateGridDisplay() {
+  var disp = gridBPM > 0 ? gridBPM.toFixed(1) + ' BPM' : '-- BPM';
+  document.getElementById('gridBpmDisp').textContent = disp;
+  document.getElementById('gridTsDisp').textContent = gridTimeSigTop + '/' + gridTimeSigBot;
+  document.getElementById('gridBpmInp').value = gridBPM > 0 ? gridBPM.toFixed(1) : '';
+  document.getElementById('gridTsSel').value = gridTimeSigTop + '/' + gridTimeSigBot;
+  drawWave();
+}
+
+function toggleGridEdit() {
+  gridEditMode = !gridEditMode;
+  var panel = document.getElementById('gridPanel');
+  var btn = document.getElementById('gridEditBtn');
+  if (gridEditMode) {
+    panel.classList.add('show');
+    btn.textContent = 'Done';
+    btn.classList.add('active');
+  } else {
+    panel.classList.remove('show');
+    btn.textContent = 'Edit Grid';
+    btn.classList.remove('active');
+    saveGridSettings();
+  }
+}
+
+function onBpmInput(val) {
+  var v = parseFloat(val);
+  if (v >= 20 && v <= 300) {
+    gridBPM = Math.round(v * 10) / 10;
+    updateGridDisplay();
+    saveGridSettings();
+  }
+}
+
+function onTsChange() {
+  var val = document.getElementById('gridTsSel').value;
+  var parts = val.split('/');
+  gridTimeSigTop = parseInt(parts[0]);
+  gridTimeSigBot = parseInt(parts[1]);
+  updateGridDisplay();
+  saveGridSettings();
+}
+
+function tapTempo() {
+  var now = performance.now();
+  // Reset if more than 2.5s since last tap
+  if (tapTimes.length > 0 && now - tapTimes[tapTimes.length - 1] > 2500) {
+    tapTimes = [];
+  }
+  tapTimes.push(now);
+  if (tapTimes.length > 8) tapTimes.shift(); // keep last 8 taps
+
+  if (tapTimes.length >= 2) {
+    var total = 0;
+    for (var i = 1; i < tapTimes.length; i++) {
+      total += tapTimes[i] - tapTimes[i - 1];
+    }
+    var avgMs = total / (tapTimes.length - 1);
+    var bpm = Math.round(60000 / avgMs * 10) / 10;
+    document.getElementById('tapBpmVal').textContent = bpm.toFixed(1) + ' BPM';
+  } else {
+    document.getElementById('tapBpmVal').textContent = 'tap...';
+  }
+}
+
+function applyTapBpm() {
+  var text = document.getElementById('tapBpmVal').textContent;
+  var m = text.match(/([\d.]+)/);
+  if (m) {
+    gridBPM = parseFloat(m[1]);
+    updateGridDisplay();
+    saveGridSettings();
+    tapTimes = [];
+    document.getElementById('tapBpmVal').textContent = 'Applied!';
+    setTimeout(function() { document.getElementById('tapBpmVal').textContent = '--'; }, 1000);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -664,8 +938,8 @@ function drawWave() {
   // Compute loop lanes zone height
   var loops = getLoops();
   LOOP_LANES_ZONE = loops.length > 0 ? loops.length * (LOOP_LANE_H + LOOP_LANE_GAP) + 4 : 0;
-  var waveH = H - LOOP_LANES_ZONE; // waveform area height
-  var waveTop = 0; // waveform starts at top
+  var waveH = H - LOOP_LANES_ZONE;
+  var waveTop = 0;
 
   // Draw saved loop lanes at bottom
   if (loops.length > 0) {
@@ -676,7 +950,6 @@ function drawWave() {
       var laneY = H - LOOP_LANES_ZONE + 4 + li * (LOOP_LANE_H + LOOP_LANE_GAP);
       cx.fillStyle = color;
       cx.fillRect(x1, laneY, Math.max(1, x2 - x1), LOOP_LANE_H);
-      // Thin border
       cx.strokeStyle = color;
       cx.lineWidth = 0.5;
       cx.strokeRect(x1, laneY, Math.max(1, x2 - x1), LOOP_LANE_H);
@@ -688,7 +961,6 @@ function drawWave() {
     cx.fillStyle = 'rgba(255,255,255,0.18)';
     cx.fillRect(t2x(loopIn), 0, t2x(loopOut) - t2x(loopIn), waveH);
   } else if (loopIn !== null && loopOut !== null && loopIn < loopOut) {
-    // Inactive loop — subtle
     cx.fillStyle = 'rgba(255,214,10,0.08)';
     cx.fillRect(t2x(loopIn), 0, t2x(loopOut) - t2x(loopIn), waveH);
   }
@@ -718,15 +990,12 @@ function drawWave() {
       var total = bL + bM + bH;
       var r, g, bl;
       if (total > 0.001) {
-        // Exaggerate differences: square the weights to make dominant band pop more
         var wL = (bL*bL), wM = (bM*bM), wH = (bH*bH);
         var wT = wL + wM + wH;
         wL /= wT; wM /= wT; wH /= wT;
-        // Bass = deep blue(50,100,255), Mid = vivid green(50,255,100), High = hot pink(255,70,230)
         r = Math.round(50*wL + 50*wM + 255*wH);
         g = Math.round(100*wL + 255*wM + 70*wH);
         bl = Math.round(255*wL + 100*wM + 230*wH);
-        // Brightness: higher floor so quiet parts are still clearly colored
         var amp = Math.max(Math.abs(mn), Math.abs(mx));
         var bright = 0.55 + 0.45 * Math.min(1, amp * 2.5);
         r = Math.min(255, Math.round(r * bright));
@@ -744,6 +1013,38 @@ function drawWave() {
     }
   }
 
+  // ── Beat grid overlay ──────────────────────────────────────────────────
+  if (gridBPM > 0) {
+    var beatDur = 60 / gridBPM;
+    var beatsPerBar = gridTimeSigTop;
+    var firstBeat = Math.floor((vStart - gridOffset) / beatDur) - 1;
+    var lastBeat = Math.ceil((vEnd - gridOffset) / beatDur) + 1;
+
+    for (var bi = firstBeat; bi <= lastBeat; bi++) {
+      var t = gridOffset + bi * beatDur;
+      if (t < vStart - beatDur * 0.1 || t > vEnd + beatDur * 0.1) continue;
+      var gx = t2x(t);
+      if (gx < -2 || gx > W + 2) continue;
+
+      // Determine if this is a downbeat (first beat of bar)
+      // Use modular arithmetic: beat 0 is a downbeat
+      var beatInBar = ((bi % beatsPerBar) + beatsPerBar) % beatsPerBar;
+      var isDownbeat = (beatInBar === 0);
+
+      if (isDownbeat) {
+        cx.strokeStyle = 'rgba(255,214,10,0.55)';
+        cx.lineWidth = 2;
+      } else {
+        cx.strokeStyle = 'rgba(255,214,10,0.18)';
+        cx.lineWidth = 0.7;
+      }
+      cx.beginPath();
+      cx.moveTo(gx, 0);
+      cx.lineTo(gx, waveH);
+      cx.stroke();
+    }
+  }
+
   // Loop IN marker
   if (loopIn !== null) drawMarker(t2x(loopIn), '#30d158', waveH);
   // Loop OUT marker
@@ -752,11 +1053,9 @@ function drawWave() {
   // Playhead with white triangle handle
   var ph = t2x(audTime());
   if (ph >= -10 && ph <= W + 10) {
-    // Line
     cx.strokeStyle = '#ffffff';
     cx.lineWidth = 1.5;
     cx.beginPath(); cx.moveTo(ph, 0); cx.lineTo(ph, H); cx.stroke();
-    // White triangle at top (draggable handle)
     cx.fillStyle = '#ffffff';
     cx.beginPath();
     cx.moveTo(ph - 8, 0);
@@ -789,7 +1088,7 @@ function doZoom(f) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  Touch + Mouse (with playhead drag + live loop editing)
+//  Touch + Mouse (with playhead drag, live loop editing, grid shift)
 // ══════════════════════════════════════════════════════════════════════════════
 function tx(touch) { return touch.clientX - cv.getBoundingClientRect().left; }
 
@@ -804,15 +1103,14 @@ function onTS(e) {
     return;
   }
   var x = tx(e.touches[0]);
-  drgX0 = x; drgMoved = false; drgVS0 = vStart; drgVE0 = vEnd;
-  // Check playhead triangle first (top 20px, near playhead)
+  drgX0 = x; drgMoved = false; drgVS0 = vStart; drgVE0 = vEnd; drgGridOff0 = gridOffset;
   var phx = t2x(audTime());
   if (Math.abs(x - phx) < 24 && e.touches[0].clientY - cv.getBoundingClientRect().top < 30) {
     drgType = 'playhead'; return;
   }
   if (loopIn !== null && Math.abs(x - t2x(loopIn)) < 24) { drgType = 'in'; return; }
   if (loopOut !== null && Math.abs(x - t2x(loopOut)) < 24) { drgType = 'out'; return; }
-  drgType = 'pan';
+  drgType = gridEditMode ? 'gridshift' : 'pan';
 }
 
 function onTM(e) {
@@ -835,11 +1133,13 @@ function onTM(e) {
 
 function onTE(e) {
   e.preventDefault();
-  // On release of loop marker drag: apply loop live
   if ((drgType === 'in' || drgType === 'out') && loopOn && playing) {
     applyLoop();
   }
-  if (drgType === 'pan' && !drgMoved) seekTo(x2t(drgX0));
+  if (drgType === 'gridshift' && drgMoved) {
+    saveGridSettings();
+  }
+  if ((drgType === 'pan' || drgType === 'gridshift') && !drgMoved) seekTo(x2t(drgX0));
   drgType = null; pnDist0 = null;
 }
 
@@ -848,13 +1148,13 @@ function onMD(e) {
   var r = cv.getBoundingClientRect();
   var x = e.clientX - r.left;
   var y = e.clientY - r.top;
-  drgX0 = x; drgMoved = false; drgVS0 = vStart; drgVE0 = vEnd;
+  drgX0 = x; drgMoved = false; drgVS0 = vStart; drgVE0 = vEnd; drgGridOff0 = gridOffset;
   mouseDown = true;
   var phx = t2x(audTime());
   if (Math.abs(x - phx) < 12 && y < 20) { drgType = 'playhead'; return; }
   if (loopIn !== null && Math.abs(x - t2x(loopIn)) < 12) { drgType = 'in'; return; }
   if (loopOut !== null && Math.abs(x - t2x(loopOut)) < 12) { drgType = 'out'; return; }
-  drgType = 'pan';
+  drgType = gridEditMode ? 'gridshift' : 'pan';
 }
 function onMM(e) {
   if (!mouseDown || !drgType) return;
@@ -869,7 +1169,10 @@ function onMU(e) {
   if ((drgType === 'in' || drgType === 'out') && loopOn && playing) {
     applyLoop();
   }
-  if (drgType === 'pan' && !drgMoved) {
+  if (drgType === 'gridshift' && drgMoved) {
+    saveGridSettings();
+  }
+  if ((drgType === 'pan' || drgType === 'gridshift') && !drgMoved) {
     var r = cv.getBoundingClientRect();
     seekTo(x2t(e.clientX - r.left));
   }
@@ -878,7 +1181,6 @@ function onMU(e) {
 
 function handleDrag(x) {
   if (drgType === 'playhead') {
-    // Scrub through track by dragging the playhead
     var t = Math.max(0, Math.min(duration, x2t(x)));
     seekTo(t);
   } else if (drgType === 'in') {
@@ -889,6 +1191,11 @@ function handleDrag(x) {
     loopOut = Math.max(loopIn !== null ? loopIn + 0.05 : 0, Math.min(duration, x2t(x)));
     document.getElementById('outTime').textContent = fmt(loopOut);
     drawWave();
+  } else if (drgType === 'gridshift' && drgMoved) {
+    // In grid edit mode: drag shifts the grid offset
+    var tpp = (drgVE0 - drgVS0) / cvW;
+    gridOffset = drgGridOff0 + (x - drgX0) * tpp;
+    updateGridDisplay();
   } else if (drgType === 'pan' && drgMoved) {
     var tpp = (drgVE0 - drgVS0) / cvW;
     var len = drgVE0 - drgVS0;
@@ -941,7 +1248,6 @@ function editLoop(i) {
   document.getElementById('saveBtn').textContent = 'Update';
   document.getElementById('editBanner').style.display = 'block';
   updLoopUI();
-  // Start playing the loop so user hears edits
   stopPlay(); startAt(loopIn);
   drawWave();
   document.getElementById('loopCard').scrollIntoView({ behavior: 'smooth' });
@@ -1001,7 +1307,7 @@ function esc(s) {
 // ══════════════════════════════════════════════════════════════════════════════
 initCanvas();
 renderLibrary();
-log('Boot OK v4');
+log('Boot OK v5');
 </script>
 </body>
 </html>
