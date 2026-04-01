@@ -16,16 +16,12 @@ body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSys
 h1{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:var(--acc);padding:10px 0 4px}
 .sub{text-align:center;font-size:11px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px}
 .card{background:var(--sur);border-radius:18px;padding:16px;margin-bottom:10px}
-
 #fileInput{position:fixed;top:-999px;left:-999px;width:1px;height:1px;opacity:0}
 .open-lbl{display:block;width:100%;background:var(--acc);color:#fff;text-align:center;padding:16px;border-radius:13px;font-size:16px;font-weight:600;cursor:pointer;touch-action:manipulation}
 .open-lbl:active{opacity:.7}
 .track-name{margin-top:10px;font-size:13px;color:var(--dim);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
 .status{background:var(--sur2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--dim);text-align:center;margin-bottom:10px;display:none}
 .status.err{color:var(--red)}.status.ok{color:var(--grn)}
-
-/* Library */
 .lib-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--brd);cursor:pointer;touch-action:manipulation}
 .lib-item:last-child{border-bottom:none}
 .lib-item:active{opacity:.6}
@@ -36,23 +32,17 @@ h1{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:var
 .lib-del{background:none;border:none;color:var(--red);font-size:12px;font-weight:600;padding:8px;cursor:pointer;touch-action:manipulation;flex-shrink:0}
 .lib-del:active{opacity:.5}
 .lib-empty{text-align:center;color:#444;font-size:13px;padding:10px 0}
-
-/* Waveform */
 .wave-card{background:var(--sur);border-radius:18px;padding:12px;margin-bottom:10px}
-#waveCanvas{display:block;width:100%;height:130px;border-radius:10px;background:var(--sur2);touch-action:none}
+#waveCanvas{display:block;width:100%;height:160px;border-radius:10px;background:var(--sur2);touch-action:none}
 .wave-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
 .wave-time{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
 .zbtns{display:flex;gap:6px}
 .zbtn{background:var(--sur2);color:var(--txt);border:none;border-radius:8px;padding:6px 16px;font-size:18px;font-weight:600;cursor:pointer;touch-action:manipulation}
 .zbtn:active{opacity:.6}
-
-/* Controls */
 .controls{display:flex;align-items:center;justify-content:center;gap:10px}
 .cbtn{background:var(--sur2);color:var(--txt);border:none;border-radius:12px;padding:12px 15px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation}
 .cbtn:active{opacity:.6}
 .play-btn{width:66px;height:66px;border-radius:33px;background:var(--acc);color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center}
-
-/* Speed */
 .speed-big{text-align:center;margin-bottom:12px;line-height:1}
 .speed-num{font-size:48px;font-weight:700;color:var(--acc);letter-spacing:-2px}
 .speed-x{font-size:22px;color:var(--dim)}
@@ -62,8 +52,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
 .pbtn{background:var(--sur2);color:var(--dim);border:none;border-radius:9px;padding:9px 11px;font-size:13px;font-weight:500;cursor:pointer;touch-action:manipulation;min-width:46px;text-align:center}
 .pbtn.on{background:var(--acc);color:#fff}
 .pbtn:active{opacity:.6}
-
-/* Loop */
 .sec-lbl{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:13px}
 .lp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:13px}
 .lp-btn{border:none;border-radius:14px;padding:15px 8px;text-align:center;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation}
@@ -85,11 +73,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
 .name-inp:focus{outline:none;border-color:var(--acc)}
 .save-btn{background:var(--acc);color:#fff;border:none;border-radius:12px;padding:13px 18px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap}
 .save-btn:active{opacity:.7}
-
-/* Loop list */
 .loop-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--brd)}
 .loop-item:last-child{border-bottom:none}
-.ldot{width:10px;height:10px;border-radius:5px;background:var(--yel);flex-shrink:0}
+.ldot{width:10px;height:10px;border-radius:5px;flex-shrink:0}
 .linfo{flex:1;min-width:0}
 .lname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ltimes{font-size:12px;color:var(--dim);margin-top:3px;font-variant-numeric:tabular-nums}
@@ -98,8 +84,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
 .labtn:active{opacity:.6}
 .la-load{color:var(--acc)}.la-edit{color:var(--grn)}.la-del{color:var(--red)}
 .empty{text-align:center;color:#444;font-size:13px;padding:10px 0}
-
-/* Debug log */
 .log-toggle{display:block;width:100%;background:none;border:1px solid var(--brd);color:var(--dim);border-radius:13px;padding:12px;font-size:12px;cursor:pointer;margin-top:20px;text-align:center}
 .log-toggle:active{opacity:.6}
 #logPanel{display:none;margin-top:6px;background:var(--sur);border-radius:12px;padding:12px;max-height:300px;overflow-y:auto}
@@ -109,23 +93,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
 </style>
 </head>
 <body>
-
 <h1>LOOP TRAINER</h1>
 <p class="sub">Drum practice tool</p>
-
 <div class="card">
   <input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac">
   <label for="fileInput" class="open-lbl">Open Audio File</label>
   <div class="track-name" id="trackName">No track loaded</div>
 </div>
-
 <div class="card" id="libCard">
   <div class="sec-lbl">Library</div>
   <div id="libList"><div class="lib-empty">No saved tracks</div></div>
 </div>
-
 <div class="status" id="statusBar"></div>
-
 <div class="wave-card" id="waveCard" style="display:none">
   <canvas id="waveCanvas"></canvas>
   <div class="wave-foot">
@@ -136,7 +115,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
     </div>
   </div>
 </div>
-
 <div class="card" id="ctrlCard" style="display:none">
   <div class="controls">
     <button class="cbtn" onclick="skip(-10)">-10s</button>
@@ -146,7 +124,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
     <button class="cbtn" onclick="skip(10)">+10s</button>
   </div>
 </div>
-
 <div class="card" id="speedCard" style="display:none">
   <div class="speed-big">
     <span class="speed-num" id="speedNum">1.0</span><span class="speed-x">&#215;</span>
@@ -167,16 +144,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
     <button class="pbtn" onclick="setSpeed(1.5)">1.5&#215;</button>
   </div>
 </div>
-
 <div class="card" id="loopCard" style="display:none">
   <div class="sec-lbl">Loop Points</div>
   <div class="lp-grid">
-    <button class="lp-btn lp-in" onclick="setIn()">
-      Set In<br><span class="lp-t" id="inTime">--:--</span>
-    </button>
-    <button class="lp-btn lp-out" onclick="setOut()">
-      Set Out<br><span class="lp-t" id="outTime">--:--</span>
-    </button>
+    <button class="lp-btn lp-in" onclick="setIn()">Set In<br><span class="lp-t" id="inTime">--:--</span></button>
+    <button class="lp-btn lp-out" onclick="setOut()">Set Out<br><span class="lp-t" id="outTime">--:--</span></button>
   </div>
   <div class="loop-row">
     <span class="loop-row-lbl">Loop active</span>
@@ -189,12 +161,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
     <button class="save-btn" id="saveBtn" onclick="saveLoop()">Save</button>
   </div>
 </div>
-
 <div class="card" id="savedCard" style="display:none">
   <div class="sec-lbl">Saved Loops</div>
   <div id="loopList"><div class="empty">No saved loops yet</div></div>
 </div>
-
 <button class="log-toggle" onclick="toggleLogPanel()">Show Debug Log</button>
 <div id="logPanel">
   <div id="logContent"></div>
@@ -239,40 +209,30 @@ if ('serviceWorker' in navigator) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  IndexedDB — persistent track storage
+//  IndexedDB
 // ══════════════════════════════════════════════════════════════════════════════
-var DB_NAME = 'loopTrainerDB';
-var DB_VER = 1;
-var STORE = 'tracks';
-
+var DB_NAME = 'loopTrainerDB', DB_VER = 1, STORE = 'tracks';
 function openDB() {
   return new Promise(function(resolve, reject) {
     var req = indexedDB.open(DB_NAME, DB_VER);
     req.onupgradeneeded = function(e) {
       var db = e.target.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: 'id' });
-      }
+      if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'id' });
     };
     req.onsuccess = function(e) { resolve(e.target.result); };
     req.onerror = function(e) { reject(e.target.error); };
   });
 }
-
 function saveTrackToDB(id, name, arrayBuf, dur) {
   return openDB().then(function(db) {
     return new Promise(function(resolve, reject) {
       var tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).put({
-        id: id, name: name, data: arrayBuf, duration: dur,
-        savedAt: Date.now()
-      });
+      tx.objectStore(STORE).put({ id:id, name:name, data:arrayBuf, duration:dur, savedAt:Date.now() });
       tx.oncomplete = function() { resolve(); };
       tx.onerror = function(e) { reject(e.target.error); };
     });
   });
 }
-
 function loadTrackFromDB(id) {
   return openDB().then(function(db) {
     return new Promise(function(resolve, reject) {
@@ -283,7 +243,6 @@ function loadTrackFromDB(id) {
     });
   });
 }
-
 function deleteTrackFromDB(id) {
   return openDB().then(function(db) {
     return new Promise(function(resolve, reject) {
@@ -294,48 +253,44 @@ function deleteTrackFromDB(id) {
     });
   });
 }
-
-// Library index in localStorage
-function getLibrary() {
-  try { return JSON.parse(localStorage.getItem('library') || '[]'); } catch(e) { return []; }
-}
-function saveLibrary(lib) {
-  localStorage.setItem('library', JSON.stringify(lib));
-}
+function getLibrary() { try { return JSON.parse(localStorage.getItem('library')||'[]'); } catch(e) { return []; } }
+function saveLibrary(lib) { localStorage.setItem('library', JSON.stringify(lib)); }
 function trackId(name, size) { return name + '__' + size; }
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  State
 // ══════════════════════════════════════════════════════════════════════════════
-var audioCtx = null;
-var audioBuf = null;   // decoded AudioBuffer
-var srcNode  = null;   // current AudioBufferSourceNode
-var playing  = false;
-var playCtxT = 0;      // audioCtx.currentTime when started
-var playAudT = 0;      // audio offset when started
-var speed    = 1.0;
-var loopIn   = null;
-var loopOut  = null;
-var loopOn   = false;
-var trkName  = '';
-var trkId    = '';
-var editIdx  = -1;
-var duration = 0;
+var audioCtx = null, audioBuf = null, srcNode = null;
+var playing = false, playCtxT = 0, playAudT = 0, speed = 1.0;
+var loopIn = null, loopOut = null, loopOn = false;
+var trkName = '', trkId = '', editIdx = -1, duration = 0;
 
-// Waveform
-var cv, cx;
-var cvW = 1, cvH = 1;
+// Waveform — 3-band frequency peaks (Rekordbox style)
+var cv, cx, cvW = 1, cvH = 1;
 var vStart = 0, vEnd = 30;
-var pkMin = null, pkMax = null;
-var NPKS = 3000;
+var NPKS = 6000;
+var pkLow = null, pkMid = null, pkHigh = null; // per-band amplitude [0..1]
+var pkMin = null, pkMax = null; // overall min/max for shape
+
+// Loop lane height for saved loops on timeline
+var LOOP_LANE_H = 5;
+var LOOP_LANE_GAP = 1;
+var LOOP_LANES_ZONE = 0; // computed from saved loop count
 
 // Touch
-var drgType = null;
+var drgType = null; // 'in'|'out'|'pan'|'pinch'|'playhead'
 var drgX0 = 0, drgVS0 = 0, drgVE0 = 0, drgMoved = false;
 var pnDist0 = null, pnLen0 = null, pnCtr0 = null;
 
+// Loop colors palette (distinct, visible on dark bg)
+var LOOP_COLORS = [
+  '#ff6b6b','#ffa94d','#ffd43b','#69db7c','#38d9a9',
+  '#4dabf7','#748ffc','#da77f2','#f783ac','#e599f7',
+  '#63e6be','#74c0fc','#a9e34b','#ff8787','#66d9e8'
+];
+
 // ══════════════════════════════════════════════════════════════════════════════
-//  AudioContext + Web Audio playback (sample-accurate gapless looping)
+//  AudioContext + Web Audio playback
 // ══════════════════════════════════════════════════════════════════════════════
 function ensureCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -364,7 +319,7 @@ function startAt(offset) {
   if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
     s.loop = true;
     s.loopStart = loopIn;
-    s.loopEnd   = loopOut;
+    s.loopEnd = loopOut;
   }
   s.connect(audioCtx.destination);
   var off = Math.max(0, Math.min(duration, offset));
@@ -383,8 +338,7 @@ function killSrc() {
   if (!srcNode) return;
   var t = audTime();
   var s = srcNode;
-  srcNode = null;
-  playing = false;
+  srcNode = null; playing = false;
   try { s.stop(); } catch(e) {}
   try { s.disconnect(); } catch(e) {}
   playAudT = t;
@@ -395,13 +349,11 @@ function stopPlay() { killSrc(); updPlayBtn(); }
 function togglePlay() {
   if (!audioBuf) { setStatus('Load a track first.', 'err'); return; }
   ensureCtx();
-  if (playing) stopPlay();
-  else startAt(playAudT);
+  if (playing) stopPlay(); else startAt(playAudT);
 }
 
 function skip(s) {
-  var t = audTime() + s;
-  var was = playing;
+  var t = audTime() + s, was = playing;
   stopPlay();
   playAudT = Math.max(0, Math.min(duration, t));
   if (was) startAt(playAudT);
@@ -427,125 +379,88 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
   var file = e.target.files && e.target.files[0];
   if (!file) return;
   log('File: ' + file.name + ' ' + (file.size/1024/1024).toFixed(1) + 'MB');
-  ensureCtx(); // must be inside user gesture
+  ensureCtx();
   setStatus('Reading file...');
-
   var reader = new FileReader();
-  reader.onload = function(ev) {
-    var arrayBuf = ev.target.result;
-    decodeAndLoad(file.name, file.size, arrayBuf, true);
-  };
+  reader.onload = function(ev) { decodeAndLoad(file.name, file.size, ev.target.result, true); };
   reader.onerror = function() { setStatus('Could not read file.', 'err'); };
   reader.readAsArrayBuffer(file);
 });
 
 function decodeAndLoad(name, size, arrayBuf, saveToLib) {
   setStatus('Decoding audio...');
-  // decodeAudioData detaches the buffer, so pass a copy if we need to save
   var bufForDecode = saveToLib ? arrayBuf.slice(0) : arrayBuf;
   ensureCtx();
   audioCtx.decodeAudioData(bufForDecode, function(buf) {
-    // Reset state
     stopPlay();
-    audioBuf = buf;
-    duration = buf.duration;
-    trkName = name;
-    trkId = trackId(name, size);
+    audioBuf = buf; duration = buf.duration;
+    trkName = name; trkId = trackId(name, size);
     playAudT = 0;
     loopIn = null; loopOut = null; loopOn = false; editIdx = -1;
-    pkMin = null; pkMax = null;
+    pkLow = null; pkMid = null; pkHigh = null; pkMin = null; pkMax = null;
     resetEditor(); updLoopUI(); updPlayBtn();
-
-    // Show UI
     document.getElementById('trackName').textContent = name;
     ['waveCard','ctrlCard','speedCard','loopCard','savedCard'].forEach(function(id) {
       document.getElementById(id).style.display = 'block';
     });
-
-    // Compute peaks + draw
     vStart = 0; vEnd = duration;
     computePeaks(buf);
     setTimeout(function() {
       resizeCanvas();
       document.getElementById('waveTime').textContent = '0:00 / ' + fmt(duration);
     }, 50);
-
-    // Save to library
     if (saveToLib) {
       saveTrackToDB(trkId, name, arrayBuf, duration).then(function() {
-        log('Saved to IndexedDB');
-        var lib = getLibrary();
-        // Remove existing entry for same ID
-        lib = lib.filter(function(x) { return x.id !== trkId; });
-        lib.unshift({ id: trkId, name: name, size: size, duration: duration, lastPlayed: Date.now() });
-        saveLibrary(lib);
-        renderLibrary();
-      }).catch(function(err) {
-        log('IndexedDB save error: ' + err.message);
-      });
+        var lib = getLibrary().filter(function(x) { return x.id !== trkId; });
+        lib.unshift({ id:trkId, name:name, size:size, duration:duration, lastPlayed:Date.now() });
+        saveLibrary(lib); renderLibrary();
+      }).catch(function(err) { log('DB save err: ' + err.message); });
     } else {
-      // Update lastPlayed
       var lib = getLibrary();
       lib.forEach(function(x) { if (x.id === trkId) x.lastPlayed = Date.now(); });
-      saveLibrary(lib);
-      renderLibrary();
+      saveLibrary(lib); renderLibrary();
     }
-
     renderLoops();
     setStatus('Ready - tap play!', 'ok');
     setTimeout(function(){ setStatus(''); }, 2000);
     log('Loaded: ' + name + ' (' + duration.toFixed(1) + 's)');
-
   }, function(err) {
     log('Decode failed: ' + (err ? err.message || err : '?'));
-    setStatus('Could not decode audio. Try a different file.', 'err');
+    setStatus('Could not decode audio.', 'err');
   });
 }
 
-// ── Load from library ────────────────────────────────────────────────────────
 function loadFromLibrary(id) {
-  ensureCtx();
-  setStatus('Loading from library...');
-  loadTrackFromDB(id).then(function(record) {
-    if (!record) { setStatus('Track not found in storage.', 'err'); return; }
-    decodeAndLoad(record.name, record.data.byteLength, record.data, false);
-  }).catch(function(err) {
-    log('Load error: ' + err.message);
-    setStatus('Could not load track.', 'err');
-  });
+  ensureCtx(); setStatus('Loading from library...');
+  loadTrackFromDB(id).then(function(r) {
+    if (!r) { setStatus('Track not found.', 'err'); return; }
+    decodeAndLoad(r.name, r.data.byteLength, r.data, false);
+  }).catch(function(err) { setStatus('Load error.', 'err'); });
 }
 
 function deleteFromLibrary(id, e) {
   e.stopPropagation();
   if (!confirm('Delete this track from library?')) return;
   deleteTrackFromDB(id).catch(function(){});
-  var lib = getLibrary().filter(function(x) { return x.id !== id; });
-  saveLibrary(lib);
-  // Also remove saved loops
-  try { localStorage.removeItem('loops__' + lib.find(function(x){ return x.id === id; })); } catch(ex) {}
+  var lib = getLibrary(), entry = lib.find(function(x){ return x.id === id; });
+  if (entry) try { localStorage.removeItem('loops__' + entry.name); } catch(ex) {}
+  saveLibrary(lib.filter(function(x) { return x.id !== id; }));
   renderLibrary();
-  log('Deleted from library: ' + id);
 }
 
 function renderLibrary() {
-  var lib = getLibrary();
-  var el = document.getElementById('libList');
+  var lib = getLibrary(), el = document.getElementById('libList');
   if (!lib.length) { el.innerHTML = '<div class="lib-empty">No saved tracks</div>'; return; }
   el.innerHTML = lib.map(function(t) {
-    var date = new Date(t.lastPlayed || t.savedAt || 0);
-    var dateStr = date.toLocaleDateString();
-    var loops = [];
-    try { loops = JSON.parse(localStorage.getItem('loops__' + t.name) || '[]'); } catch(ex) {}
-    var loopStr = loops.length ? loops.length + ' loop' + (loops.length > 1 ? 's' : '') : '';
-    return '<div class="lib-item" onclick="loadFromLibrary(\'' + esc(t.id).replace(/'/g, "\\'") + '\')">' +
-      '<div class="lib-icon">&#9835;</div>' +
-      '<div class="lib-info">' +
-        '<div class="lib-name">' + esc(t.name) + '</div>' +
-        '<div class="lib-meta">' + fmt(t.duration) + ' &middot; ' + dateStr +
-          (loopStr ? ' &middot; ' + loopStr : '') + '</div>' +
-      '</div>' +
-      '<button class="lib-del" onclick="deleteFromLibrary(\'' + esc(t.id).replace(/'/g, "\\'") + '\', event)">Del</button>' +
-    '</div>';
+    var date = new Date(t.lastPlayed || 0).toLocaleDateString();
+    var loops = []; try { loops = JSON.parse(localStorage.getItem('loops__'+t.name)||'[]'); } catch(ex) {}
+    var ls = loops.length ? loops.length + ' loop' + (loops.length>1?'s':'') : '';
+    return '<div class="lib-item" onclick="loadFromLibrary(\''+esc(t.id).replace(/'/g,"\\'")+'\')">' +
+      '<div class="lib-icon">&#9835;</div><div class="lib-info">' +
+      '<div class="lib-name">'+esc(t.name)+'</div>' +
+      '<div class="lib-meta">'+fmt(t.duration)+' &middot; '+date+(ls?' &middot; '+ls:'')+'</div>' +
+      '</div><button class="lib-del" onclick="deleteFromLibrary(\''+esc(t.id).replace(/'/g,"\\'") +
+      '\', event)">Del</button></div>';
   }).join('');
 }
 
@@ -553,29 +468,30 @@ function renderLibrary() {
 //  Speed
 // ══════════════════════════════════════════════════════════════════════════════
 function setSpeed(s) {
-  if (playing && audioCtx) {
-    playAudT = audTime();
-    playCtxT = audioCtx.currentTime;
-  }
+  if (playing && audioCtx) { playAudT = audTime(); playCtxT = audioCtx.currentTime; }
   speed = s;
   if (srcNode) srcNode.playbackRate.value = s;
-  var d = s.toFixed(2).replace(/0$/,'');
-  if (d.indexOf('.') < 0) d += '.0';
+  var d = s.toFixed(2).replace(/0$/,''); if (d.indexOf('.')<0) d += '.0';
   document.getElementById('speedNum').textContent = d;
   document.getElementById('speedSlider').value = s;
   document.querySelectorAll('.pbtn').forEach(function(b){
-    b.classList.toggle('on', Math.abs(parseFloat(b.textContent) - s) < 0.001);
+    b.classList.toggle('on', Math.abs(parseFloat(b.textContent)-s)<0.001);
   });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  Loop points — gapless via Web Audio native loop
+//  Loop points
 // ══════════════════════════════════════════════════════════════════════════════
 function setIn() {
   if (!duration) return;
   loopIn = audTime();
   document.getElementById('inTime').textContent = fmt(loopIn);
-  if (playing && loopOn) applyLoop();
+  // Auto-activate loop when both points are set
+  if (loopOut !== null && loopIn < loopOut) {
+    loopOn = true;
+    updLoopUI();
+    applyLoop();
+  }
   drawWave();
 }
 
@@ -583,7 +499,12 @@ function setOut() {
   if (!duration) return;
   loopOut = audTime();
   document.getElementById('outTime').textContent = fmt(loopOut);
-  if (playing && loopOn) applyLoop();
+  // Auto-activate loop when both points are set
+  if (loopIn !== null && loopIn < loopOut) {
+    loopOn = true;
+    updLoopUI();
+    applyLoop();
+  }
   drawWave();
 }
 
@@ -593,23 +514,16 @@ function toggleLoop() {
     if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
       applyLoop();
     } else if (!loopOn && srcNode) {
-      // Disable loop: restart without loop to clear the native loop flag
-      var t = audTime();
-      stopPlay();
-      startAt(t);
+      var t = audTime(); stopPlay(); startAt(t);
     }
   }
   updLoopUI();
 }
 
-// Apply loop to the running source. If the source already has loop set,
-// we must restart to update loopStart/loopEnd (they're read at start time).
 function applyLoop() {
   if (loopIn === null || loopOut === null || loopIn >= loopOut) return;
-  var t = audTime();
-  var was = playing;
+  var t = audTime(), was = playing;
   stopPlay();
-  // Jump to loopIn if outside bounds
   if (t >= loopOut || t < loopIn) t = loopIn;
   if (was) startAt(t);
 }
@@ -621,24 +535,74 @@ function updLoopUI() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  Waveform peaks
+//  3-band frequency peaks (Rekordbox-style waveform)
 // ══════════════════════════════════════════════════════════════════════════════
 function computePeaks(buf) {
+  var sampleRate = buf.sampleRate;
   var ch0 = buf.getChannelData(0);
   var ch1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : null;
+  var N = ch0.length;
+  var spb = N / NPKS; // samples per bin
+
   pkMin = new Float32Array(NPKS);
   pkMax = new Float32Array(NPKS);
-  var spb = ch0.length / NPKS;
+  pkLow = new Float32Array(NPKS);
+  pkMid = new Float32Array(NPKS);
+  pkHigh = new Float32Array(NPKS);
+
+  // Simple 3-band split using exponential moving average filters
+  // Bass cutoff ~250Hz, Mid cutoff ~2500Hz
+  var alphaLow = Math.min(1, 2 * Math.PI * 250 / sampleRate);
+  var alphaMid = Math.min(1, 2 * Math.PI * 2500 / sampleRate);
+
+  var lpLow = 0, lpMid = 0; // filter state
+
   for (var i = 0; i < NPKS; i++) {
-    var s0 = Math.floor(i * spb), s1 = Math.floor((i+1) * spb);
+    var s0 = Math.floor(i * spb), s1 = Math.min(N, Math.floor((i + 1) * spb));
     var mn = 0, mx = 0;
+    var sumLow = 0, sumMid = 0, sumHigh = 0;
+    var count = s1 - s0;
+
     for (var j = s0; j < s1; j++) {
       var v = ch1 ? (ch0[j] + ch1[j]) * 0.5 : ch0[j];
       if (v < mn) mn = v;
       if (v > mx) mx = v;
+
+      // Low-pass for bass
+      lpLow += alphaLow * (v - lpLow);
+      // Low-pass for bass+mid
+      lpMid += alphaMid * (v - lpMid);
+
+      var bass = Math.abs(lpLow);
+      var mid = Math.abs(lpMid - lpLow);
+      var high = Math.abs(v - lpMid);
+
+      sumLow += bass;
+      sumMid += mid;
+      sumHigh += high;
     }
-    pkMin[i] = mn; pkMax[i] = mx;
+
+    pkMin[i] = mn;
+    pkMax[i] = mx;
+    if (count > 0) {
+      pkLow[i] = sumLow / count;
+      pkMid[i] = sumMid / count;
+      pkHigh[i] = sumHigh / count;
+    }
   }
+
+  // Normalize band peaks to [0..1]
+  var maxL = 0, maxM = 0, maxH = 0;
+  for (var i = 0; i < NPKS; i++) {
+    if (pkLow[i] > maxL) maxL = pkLow[i];
+    if (pkMid[i] > maxM) maxM = pkMid[i];
+    if (pkHigh[i] > maxH) maxH = pkHigh[i];
+  }
+  if (maxL > 0) for (var i = 0; i < NPKS; i++) pkLow[i] /= maxL;
+  if (maxM > 0) for (var i = 0; i < NPKS; i++) pkMid[i] /= maxM;
+  if (maxH > 0) for (var i = 0; i < NPKS; i++) pkHigh[i] /= maxH;
+
+  log('Peaks computed: ' + NPKS + ' bins, 3-band, sr=' + sampleRate);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -649,11 +613,11 @@ function initCanvas() {
   cx = cv.getContext('2d');
   window.addEventListener('resize', function(){ setTimeout(resizeCanvas, 80); });
   cv.addEventListener('touchstart', onTS, { passive: false });
-  cv.addEventListener('touchmove',  onTM, { passive: false });
-  cv.addEventListener('touchend',   onTE, { passive: false });
+  cv.addEventListener('touchmove', onTM, { passive: false });
+  cv.addEventListener('touchend', onTE, { passive: false });
   cv.addEventListener('mousedown', onMD);
   window.addEventListener('mousemove', onMM);
-  window.addEventListener('mouseup',   onMU);
+  window.addEventListener('mouseup', onMU);
   requestAnimationFrame(animLoop);
 }
 
@@ -663,7 +627,7 @@ function resizeCanvas() {
   var r = cv.getBoundingClientRect();
   if (r.width < 1 || r.height < 1) return;
   cvW = r.width; cvH = r.height;
-  cv.width  = Math.round(r.width * dpr);
+  cv.width = Math.round(r.width * dpr);
   cv.height = Math.round(r.height * dpr);
   cx = cv.getContext('2d');
   cx.scale(dpr, dpr);
@@ -685,6 +649,9 @@ function animLoop() {
   requestAnimationFrame(animLoop);
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+//  Draw waveform
+// ══════════════════════════════════════════════════════════════════════════════
 function drawWave() {
   if (!cx || cvW < 1) return;
   var W = cvW, H = cvH;
@@ -693,52 +660,115 @@ function drawWave() {
   cx.fillRect(0, 0, W, H);
   if (!duration) return;
 
-  if (loopIn !== null && loopOut !== null && loopIn < loopOut) {
-    cx.fillStyle = 'rgba(255,214,10,0.15)';
-    cx.fillRect(t2x(loopIn), 0, t2x(loopOut) - t2x(loopIn), H);
+  // Compute loop lanes zone height
+  var loops = getLoops();
+  LOOP_LANES_ZONE = loops.length > 0 ? loops.length * (LOOP_LANE_H + LOOP_LANE_GAP) + 4 : 0;
+  var waveH = H - LOOP_LANES_ZONE; // waveform area height
+  var waveTop = 0; // waveform starts at top
+
+  // Draw saved loop lanes at bottom
+  if (loops.length > 0) {
+    for (var li = 0; li < loops.length; li++) {
+      var sl = loops[li];
+      var color = getLoopColor(li);
+      var x1 = t2x(sl.i), x2 = t2x(sl.o);
+      var laneY = H - LOOP_LANES_ZONE + 4 + li * (LOOP_LANE_H + LOOP_LANE_GAP);
+      cx.fillStyle = color;
+      cx.fillRect(x1, laneY, Math.max(1, x2 - x1), LOOP_LANE_H);
+      // Thin border
+      cx.strokeStyle = color;
+      cx.lineWidth = 0.5;
+      cx.strokeRect(x1, laneY, Math.max(1, x2 - x1), LOOP_LANE_H);
+    }
   }
 
-  cx.strokeStyle = 'rgba(255,255,255,0.08)';
-  cx.lineWidth = 1;
-  cx.beginPath(); cx.moveTo(0, H/2); cx.lineTo(W, H/2); cx.stroke();
+  // Active loop region — strong white overlay
+  if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
+    cx.fillStyle = 'rgba(255,255,255,0.18)';
+    cx.fillRect(t2x(loopIn), 0, t2x(loopOut) - t2x(loopIn), waveH);
+  } else if (loopIn !== null && loopOut !== null && loopIn < loopOut) {
+    // Inactive loop — subtle
+    cx.fillStyle = 'rgba(255,214,10,0.08)';
+    cx.fillRect(t2x(loopIn), 0, t2x(loopOut) - t2x(loopIn), waveH);
+  }
 
-  if (pkMin && pkMax) {
+  // Center line
+  cx.strokeStyle = 'rgba(255,255,255,0.06)';
+  cx.lineWidth = 1;
+  cx.beginPath(); cx.moveTo(0, waveH/2); cx.lineTo(W, waveH/2); cx.stroke();
+
+  // 3-band colored waveform
+  if (pkMin && pkMax && pkLow) {
     for (var x = 0; x < W; x++) {
       var ta = vStart + (x / W) * (vEnd - vStart);
       var tb = vStart + ((x+1) / W) * (vEnd - vStart);
       var b0 = Math.max(0, Math.floor(ta / duration * NPKS));
       var b1 = Math.min(NPKS-1, Math.ceil(tb / duration * NPKS));
       var mn = 0, mx = 0;
+      var bL = 0, bM = 0, bH = 0, cnt = 0;
       for (var b = b0; b <= b1; b++) {
         if (pkMin[b] < mn) mn = pkMin[b];
         if (pkMax[b] > mx) mx = pkMax[b];
+        bL += pkLow[b]; bM += pkMid[b]; bH += pkHigh[b]; cnt++;
       }
-      var amp = Math.max(Math.abs(mn), Math.abs(mx));
-      cx.fillStyle = amp > 0.6 ? '#5ba8e0' : amp > 0.3 ? '#3a87d4' : '#1e5ea0';
-      var cy2 = H / 2;
+      if (cnt > 0) { bL /= cnt; bM /= cnt; bH /= cnt; }
+
+      // Color from frequency mix: blue=bass, green=mid, magenta=high
+      var total = bL + bM + bH;
+      var r, g, bl;
+      if (total > 0.001) {
+        // Bass = blue(40,80,220), Mid = green(40,200,80), High = magenta(200,60,200)
+        var wL = bL/total, wM = bM/total, wH = bH/total;
+        r = Math.round(40*wL + 40*wM + 220*wH);
+        g = Math.round(80*wL + 220*wM + 60*wH);
+        bl = Math.round(220*wL + 80*wM + 200*wH);
+        // Brightness scales with amplitude
+        var amp = Math.max(Math.abs(mn), Math.abs(mx));
+        var bright = 0.4 + 0.6 * Math.min(1, amp * 2);
+        r = Math.round(r * bright);
+        g = Math.round(g * bright);
+        bl = Math.round(bl * bright);
+      } else {
+        r = 30; g = 50; bl = 100;
+      }
+      cx.fillStyle = 'rgb(' + r + ',' + g + ',' + bl + ')';
+
+      var cy2 = waveH / 2;
       var yT = cy2 - mx * cy2;
       var yB = cy2 - mn * cy2;
       cx.fillRect(x, yT, 1, Math.max(1, yB - yT));
     }
   }
 
-  if (loopIn !== null) drawMarker(t2x(loopIn), '#30d158');
-  if (loopOut !== null) drawMarker(t2x(loopOut), '#ff453a');
+  // Loop IN marker
+  if (loopIn !== null) drawMarker(t2x(loopIn), '#30d158', waveH);
+  // Loop OUT marker
+  if (loopOut !== null) drawMarker(t2x(loopOut), '#ff453a', waveH);
 
+  // Playhead with white triangle handle
   var ph = t2x(audTime());
-  if (ph >= 0 && ph <= W) {
+  if (ph >= -10 && ph <= W + 10) {
+    // Line
     cx.strokeStyle = '#ffffff';
     cx.lineWidth = 1.5;
     cx.beginPath(); cx.moveTo(ph, 0); cx.lineTo(ph, H); cx.stroke();
+    // White triangle at top (draggable handle)
+    cx.fillStyle = '#ffffff';
+    cx.beginPath();
+    cx.moveTo(ph - 8, 0);
+    cx.lineTo(ph + 8, 0);
+    cx.lineTo(ph, 14);
+    cx.closePath();
+    cx.fill();
   }
 }
 
-function drawMarker(x, color) {
+function drawMarker(x, color, h) {
   if (x < -20 || x > cvW + 20) return;
   cx.strokeStyle = color; cx.lineWidth = 2;
-  cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, cvH); cx.stroke();
+  cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, h); cx.stroke();
   cx.fillStyle = color;
-  cx.beginPath(); cx.moveTo(x-9,0); cx.lineTo(x+9,0); cx.lineTo(x,18); cx.closePath(); cx.fill();
+  cx.beginPath(); cx.moveTo(x-9, 0); cx.lineTo(x+9, 0); cx.lineTo(x, 18); cx.closePath(); cx.fill();
 }
 
 function t2x(t) { return ((t - vStart) / (vEnd - vStart)) * cvW; }
@@ -749,12 +779,14 @@ function doZoom(f) {
   var c = (vStart + vEnd) / 2;
   var len = Math.max(0.5, Math.min(duration, (vEnd - vStart) * f));
   vStart = Math.max(0, c - len/2);
-  vEnd   = Math.min(duration, vStart + len);
+  vEnd = Math.min(duration, vStart + len);
   if (vEnd === duration) vStart = Math.max(0, vEnd - len);
   drawWave();
 }
 
-// ── Touch ────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+//  Touch + Mouse (with playhead drag + live loop editing)
+// ══════════════════════════════════════════════════════════════════════════════
 function tx(touch) { return touch.clientX - cv.getBoundingClientRect().left; }
 
 function onTS(e) {
@@ -769,7 +801,12 @@ function onTS(e) {
   }
   var x = tx(e.touches[0]);
   drgX0 = x; drgMoved = false; drgVS0 = vStart; drgVE0 = vEnd;
-  if (loopIn  !== null && Math.abs(x - t2x(loopIn))  < 24) { drgType = 'in';  return; }
+  // Check playhead triangle first (top 20px, near playhead)
+  var phx = t2x(audTime());
+  if (Math.abs(x - phx) < 24 && e.touches[0].clientY - cv.getBoundingClientRect().top < 30) {
+    drgType = 'playhead'; return;
+  }
+  if (loopIn !== null && Math.abs(x - t2x(loopIn)) < 24) { drgType = 'in'; return; }
   if (loopOut !== null && Math.abs(x - t2x(loopOut)) < 24) { drgType = 'out'; return; }
   drgType = 'pan';
 }
@@ -783,7 +820,7 @@ function onTM(e) {
     var newLen = Math.max(0.5, Math.min(maxD, pnLen0 * pnDist0 / d));
     var ratio = (pnCtr0 - vStart) / (vEnd - vStart);
     vStart = Math.max(0, pnCtr0 - ratio * newLen);
-    vEnd   = Math.min(maxD, vStart + newLen);
+    vEnd = Math.min(maxD, vStart + newLen);
     drawWave(); return;
   }
   if (e.touches.length !== 1 || !drgType) return;
@@ -794,6 +831,10 @@ function onTM(e) {
 
 function onTE(e) {
   e.preventDefault();
+  // On release of loop marker drag: apply loop live
+  if ((drgType === 'in' || drgType === 'out') && loopOn && playing) {
+    applyLoop();
+  }
   if (drgType === 'pan' && !drgMoved) seekTo(x2t(drgX0));
   drgType = null; pnDist0 = null;
 }
@@ -802,20 +843,28 @@ var mouseDown = false;
 function onMD(e) {
   var r = cv.getBoundingClientRect();
   var x = e.clientX - r.left;
+  var y = e.clientY - r.top;
   drgX0 = x; drgMoved = false; drgVS0 = vStart; drgVE0 = vEnd;
   mouseDown = true;
-  if (loopIn  !== null && Math.abs(x - t2x(loopIn))  < 12) { drgType = 'in';  return; }
+  var phx = t2x(audTime());
+  if (Math.abs(x - phx) < 12 && y < 20) { drgType = 'playhead'; return; }
+  if (loopIn !== null && Math.abs(x - t2x(loopIn)) < 12) { drgType = 'in'; return; }
   if (loopOut !== null && Math.abs(x - t2x(loopOut)) < 12) { drgType = 'out'; return; }
   drgType = 'pan';
 }
 function onMM(e) {
   if (!mouseDown || !drgType) return;
   var r = cv.getBoundingClientRect();
-  handleDrag(e.clientX - r.left);
+  var x = e.clientX - r.left;
+  if (Math.abs(x - drgX0) > 3) drgMoved = true;
+  handleDrag(x);
 }
 function onMU(e) {
   if (!mouseDown) return;
   mouseDown = false;
+  if ((drgType === 'in' || drgType === 'out') && loopOn && playing) {
+    applyLoop();
+  }
   if (drgType === 'pan' && !drgMoved) {
     var r = cv.getBoundingClientRect();
     seekTo(x2t(e.clientX - r.left));
@@ -824,7 +873,11 @@ function onMU(e) {
 }
 
 function handleDrag(x) {
-  if (drgType === 'in') {
+  if (drgType === 'playhead') {
+    // Scrub through track by dragging the playhead
+    var t = Math.max(0, Math.min(duration, x2t(x)));
+    seekTo(t);
+  } else if (drgType === 'in') {
     loopIn = Math.max(0, Math.min(loopOut !== null ? loopOut - 0.05 : duration, x2t(x)));
     document.getElementById('inTime').textContent = fmt(loopIn);
     drawWave();
@@ -842,11 +895,15 @@ function handleDrag(x) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  Loops storage
+//  Loops storage + colors
 // ══════════════════════════════════════════════════════════════════════════════
 function skey() { return 'loops__' + trkName; }
 function getLoops() {
   try { return JSON.parse(localStorage.getItem(skey()) || '[]'); } catch(e) { return []; }
+}
+
+function getLoopColor(idx) {
+  return LOOP_COLORS[idx % LOOP_COLORS.length];
 }
 
 function saveLoop() {
@@ -858,7 +915,7 @@ function saveLoop() {
   var entry = { name: name, i: loopIn, o: loopOut };
   if (editIdx >= 0 && editIdx < loops.length) loops[editIdx] = entry; else loops.push(entry);
   localStorage.setItem(skey(), JSON.stringify(loops));
-  editIdx = -1; resetEditor(); renderLoops();
+  editIdx = -1; resetEditor(); renderLoops(); drawWave();
 }
 
 function loadLoop(i) {
@@ -866,21 +923,22 @@ function loadLoop(i) {
   loopIn = l.i; loopOut = l.o; loopOn = true;
   document.getElementById('inTime').textContent = fmt(loopIn);
   document.getElementById('outTime').textContent = fmt(loopOut);
-  updLoopUI();
-  stopPlay();
-  startAt(loopIn);
+  updLoopUI(); stopPlay(); startAt(loopIn);
   document.getElementById('waveCard').scrollIntoView({ behavior: 'smooth' });
 }
 
 function editLoop(i) {
   var l = getLoops()[i]; if (!l) return;
-  loopIn = l.i; loopOut = l.o;
+  loopIn = l.i; loopOut = l.o; loopOn = true;
   document.getElementById('inTime').textContent = fmt(loopIn);
   document.getElementById('outTime').textContent = fmt(loopOut);
   document.getElementById('loopName').value = l.name;
   editIdx = i;
   document.getElementById('saveBtn').textContent = 'Update';
   document.getElementById('editBanner').style.display = 'block';
+  updLoopUI();
+  // Start playing the loop so user hears edits
+  stopPlay(); startAt(loopIn);
   drawWave();
   document.getElementById('loopCard').scrollIntoView({ behavior: 'smooth' });
 }
@@ -889,7 +947,7 @@ function deleteLoop(i) {
   var loops = getLoops(); loops.splice(i, 1);
   localStorage.setItem(skey(), JSON.stringify(loops));
   if (editIdx === i) { editIdx = -1; resetEditor(); }
-  renderLoops();
+  renderLoops(); drawWave();
 }
 
 function resetEditor() {
@@ -904,14 +962,15 @@ function renderLoops() {
   var loops = getLoops(), el = document.getElementById('loopList');
   if (!loops.length) { el.innerHTML = '<div class="empty">No saved loops yet</div>'; return; }
   el.innerHTML = loops.map(function(l, i) {
+    var color = getLoopColor(i);
     return '<div class="loop-item">' +
-      '<div class="ldot"></div>' +
+      '<div class="ldot" style="background:' + color + '"></div>' +
       '<div class="linfo"><div class="lname">' + esc(l.name) + '</div>' +
       '<div class="ltimes">' + fmt(l.i) + ' &rarr; ' + fmt(l.o) + '</div></div>' +
       '<div class="lacts">' +
-      '<button class="labtn la-load" onclick="loadLoop(' + i + ')">Load</button>' +
-      '<button class="labtn la-edit" onclick="editLoop(' + i + ')">Edit</button>' +
-      '<button class="labtn la-del"  onclick="deleteLoop(' + i + ')">Del</button>' +
+      '<button class="labtn la-load" onclick="loadLoop('+i+')">Load</button>' +
+      '<button class="labtn la-edit" onclick="editLoop('+i+')">Edit</button>' +
+      '<button class="labtn la-del" onclick="deleteLoop('+i+')">Del</button>' +
       '</div></div>';
   }).join('');
 }
@@ -921,15 +980,12 @@ function renderLoops() {
 // ══════════════════════════════════════════════════════════════════════════════
 function setStatus(msg, cls) {
   var el = document.getElementById('statusBar');
-  el.textContent = msg;
-  el.className = 'status' + (cls ? ' ' + cls : '');
+  el.textContent = msg; el.className = 'status' + (cls ? ' ' + cls : '');
   el.style.display = msg ? 'block' : 'none';
 }
 function fmt(s) {
   if (s == null || isNaN(s)) return '0:00';
-  var m = Math.floor(s / 60);
-  var sec = Math.floor(s % 60);
-  var ms = Math.floor((s % 1) * 10);
+  var m = Math.floor(s / 60), sec = Math.floor(s % 60), ms = Math.floor((s % 1) * 10);
   return m + ':' + sec.toString().padStart(2, '0') + '.' + ms;
 }
 function esc(s) {
@@ -941,7 +997,7 @@ function esc(s) {
 // ══════════════════════════════════════════════════════════════════════════════
 initCanvas();
 renderLibrary();
-log('Boot OK');
+log('Boot OK v3');
 </script>
 </body>
 </html>
