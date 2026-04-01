@@ -8,7 +8,6 @@
 <meta name="apple-mobile-web-app-title" content="Loop Trainer">
 <meta name="theme-color" content="#0e0e0e">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230e0e0e'/><circle cx='256' cy='256' r='160' fill='none' stroke='%230a84ff' stroke-width='32'/><circle cx='256' cy='256' r='80' fill='none' stroke='%230a84ff' stroke-width='24'/><polygon points='240,200 300,256 240,312' fill='%230a84ff'/></svg>">
 <title>Loop Trainer</title>
 <style>
 :root{--bg:#0e0e0e;--sur:#1c1c1e;--sur2:#2c2c2e;--acc:#0a84ff;--grn:#30d158;--red:#ff453a;--yel:#ffd60a;--txt:#f2f2f7;--dim:#8e8e93;--brd:#38383a}
@@ -25,6 +24,18 @@ h1{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:var
 
 .status{background:var(--sur2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--dim);text-align:center;margin-bottom:10px;display:none}
 .status.err{color:var(--red)}.status.ok{color:var(--grn)}
+
+/* Library */
+.lib-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--brd);cursor:pointer;touch-action:manipulation}
+.lib-item:last-child{border-bottom:none}
+.lib-item:active{opacity:.6}
+.lib-icon{width:36px;height:36px;border-radius:8px;background:var(--sur2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.lib-info{flex:1;min-width:0}
+.lib-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-meta{font-size:11px;color:var(--dim);margin-top:2px}
+.lib-del{background:none;border:none;color:var(--red);font-size:12px;font-weight:600;padding:8px;cursor:pointer;touch-action:manipulation;flex-shrink:0}
+.lib-del:active{opacity:.5}
+.lib-empty{text-align:center;color:#444;font-size:13px;padding:10px 0}
 
 /* Waveform */
 .wave-card{background:var(--sur);border-radius:18px;padding:12px;margin-bottom:10px}
@@ -108,9 +119,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
   <div class="track-name" id="trackName">No track loaded</div>
 </div>
 
-<div class="status" id="statusBar"></div>
+<div class="card" id="libCard">
+  <div class="sec-lbl">Library</div>
+  <div id="libList"><div class="lib-empty">No saved tracks</div></div>
+</div>
 
-<audio id="audioEl" preload="auto" style="display:none"></audio>
+<div class="status" id="statusBar"></div>
 
 <div class="wave-card" id="waveCard" style="display:none">
   <canvas id="waveCanvas"></canvas>
@@ -192,63 +206,121 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
 var logLines = [];
 function log(msg) {
   var ts = new Date().toLocaleTimeString();
-  var line = '[' + ts + '] ' + msg;
-  logLines.push(line);
+  logLines.push('[' + ts + '] ' + msg);
   if (logLines.length > 200) logLines.shift();
   var el = document.getElementById('logContent');
   if (el) el.textContent = logLines.join('\n');
 }
-function toggleLogPanel() {
-  document.getElementById('logPanel').classList.toggle('show');
-}
+function toggleLogPanel() { document.getElementById('logPanel').classList.toggle('show'); }
 function copyLog() {
   var text = logLines.join('\n');
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(function() {
-      alert('Log copied!');
-    }, function() { fallbackCopy(text); });
-  } else { fallbackCopy(text); }
+    navigator.clipboard.writeText(text).then(function(){ alert('Copied!'); }, function(){ fbCopy(text); });
+  } else fbCopy(text);
 }
-function fallbackCopy(text) {
-  var ta = document.createElement('textarea');
-  ta.value = text;
+function fbCopy(t) {
+  var ta = document.createElement('textarea'); ta.value = t;
   ta.style.cssText = 'position:fixed;left:-9999px';
-  document.body.appendChild(ta);
-  ta.select();
-  try { document.execCommand('copy'); alert('Log copied!'); }
-  catch(e) { alert('Copy failed.'); }
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); alert('Copied!'); } catch(e) {}
   document.body.removeChild(ta);
 }
-window.onerror = function(msg, src, line, col, err) {
-  log('ERROR: ' + msg + ' (line ' + line + ')');
-};
-window.addEventListener('unhandledrejection', function(e) {
-  log('PROMISE ERROR: ' + (e.reason ? e.reason.message || e.reason : 'unknown'));
+window.onerror = function(m,s,l){ log('ERROR: '+m+' line '+l); };
+window.addEventListener('unhandledrejection', function(e){
+  log('PROMISE ERR: '+(e.reason?e.reason.message||e.reason:'?'));
 });
+log('App start');
 
-log('App starting');
-log('UA: ' + navigator.userAgent.substring(0, 120));
-
-// ── Service Worker Registration ──────────────────────────────────────────────
+// ── Service Worker ───────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').then(function(reg) {
-    log('SW registered, scope: ' + reg.scope);
-  }).catch(function(err) {
-    log('SW registration failed: ' + err.message);
+  navigator.serviceWorker.register('sw.js').then(function(r){
+    log('SW OK');
+  }).catch(function(e){ log('SW fail: '+e.message); });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  IndexedDB — persistent track storage
+// ══════════════════════════════════════════════════════════════════════════════
+var DB_NAME = 'loopTrainerDB';
+var DB_VER = 1;
+var STORE = 'tracks';
+
+function openDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = function(e) {
+      var db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE)) {
+        db.createObjectStore(STORE, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = function(e) { resolve(e.target.result); };
+    req.onerror = function(e) { reject(e.target.error); };
   });
 }
 
-// ── State ────────────────────────────────────────────────────────────────────
-var audio = document.getElementById('audioEl');
-var fileBlobUrl = null;
-var duration = 0;
+function saveTrackToDB(id, name, arrayBuf, dur) {
+  return openDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put({
+        id: id, name: name, data: arrayBuf, duration: dur,
+        savedAt: Date.now()
+      });
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+
+function loadTrackFromDB(id) {
+  return openDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE, 'readonly');
+      var req = tx.objectStore(STORE).get(id);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+
+function deleteTrackFromDB(id) {
+  return openDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+
+// Library index in localStorage
+function getLibrary() {
+  try { return JSON.parse(localStorage.getItem('library') || '[]'); } catch(e) { return []; }
+}
+function saveLibrary(lib) {
+  localStorage.setItem('library', JSON.stringify(lib));
+}
+function trackId(name, size) { return name + '__' + size; }
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  State
+// ══════════════════════════════════════════════════════════════════════════════
+var audioCtx = null;
+var audioBuf = null;   // decoded AudioBuffer
+var srcNode  = null;   // current AudioBufferSourceNode
+var playing  = false;
+var playCtxT = 0;      // audioCtx.currentTime when started
+var playAudT = 0;      // audio offset when started
 var speed    = 1.0;
 var loopIn   = null;
 var loopOut  = null;
 var loopOn   = false;
 var trkName  = '';
+var trkId    = '';
 var editIdx  = -1;
-var audioReady = false;
+var duration = 0;
 
 // Waveform
 var cv, cx;
@@ -256,132 +328,301 @@ var cvW = 1, cvH = 1;
 var vStart = 0, vEnd = 30;
 var pkMin = null, pkMax = null;
 var NPKS = 3000;
-var hasPeaks = false;
 
 // Touch
 var drgType = null;
 var drgX0 = 0, drgVS0 = 0, drgVE0 = 0, drgMoved = false;
 var pnDist0 = null, pnLen0 = null, pnCtr0 = null;
 
-// ── Audio element events ─────────────────────────────────────────────────────
-audio.addEventListener('loadedmetadata', function() {
-  log('Event: loadedmetadata, duration=' + audio.duration);
-  onAudioReady();
-});
-audio.addEventListener('canplay', function() {
-  log('Event: canplay');
-  if (!audioReady) onAudioReady();
-});
-audio.addEventListener('canplaythrough', function() {
-  log('Event: canplaythrough');
-  if (!audioReady) onAudioReady();
-});
-audio.addEventListener('durationchange', function() {
-  log('Event: durationchange, d=' + audio.duration);
-  if (!audioReady) onAudioReady();
-});
-audio.addEventListener('error', function() {
-  var code = audio.error ? audio.error.code : '?';
-  var msg = audio.error ? audio.error.message || '' : '';
-  log('AUDIO ERROR code=' + code + ' ' + msg);
-  setStatus('Audio error (code ' + code + '). Try a different file.', 'err');
-});
-audio.addEventListener('ended', function() {
-  log('Event: ended');
-  if (loopOn && loopIn !== null && loopOut !== null) {
-    audio.currentTime = loopIn;
-    audio.play();
-  }
-  updPlayBtn();
-});
-
-function onAudioReady() {
-  if (audioReady) return;
-  if (!audio.duration || !isFinite(audio.duration)) return;
-  audioReady = true;
-  duration = audio.duration;
-  vStart = 0;
-  vEnd = duration;
-  log('READY, duration=' + duration.toFixed(2) + 's');
-
-  ['waveCard','ctrlCard','speedCard','loopCard','savedCard'].forEach(function(id) {
-    document.getElementById(id).style.display = 'block';
-  });
-
-  setTimeout(function() {
-    resizeCanvas();
-    document.getElementById('waveTime').textContent = '0:00 / ' + fmt(duration);
-    setStatus('Ready - tap play!', 'ok');
-    setTimeout(function(){ setStatus(''); }, 2500);
-  }, 100);
-
-  renderLoops();
-  tryComputePeaks();
+// ══════════════════════════════════════════════════════════════════════════════
+//  AudioContext + Web Audio playback (sample-accurate gapless looping)
+// ══════════════════════════════════════════════════════════════════════════════
+function ensureCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
-// ── File loading ─────────────────────────────────────────────────────────────
-document.getElementById('fileInput').addEventListener('change', function(e) {
-  log('File input change');
-  var file = e.target.files && e.target.files[0];
-  if (!file) { log('No file'); return; }
-
-  log('File: ' + file.name + ' type=' + file.type + ' size=' + file.size);
-  trkName = file.name;
-  document.getElementById('trackName').textContent = file.name;
-  setStatus('Loading audio...');
-
-  audio.pause();
-  audioReady = false;
-  duration = 0;
-  pkMin = null; pkMax = null; hasPeaks = false;
-  loopIn = null; loopOut = null; loopOn = false; editIdx = -1;
-  resetEditor(); updLoopUI(); updPlayBtn();
-
-  if (fileBlobUrl) {
-    try { URL.revokeObjectURL(fileBlobUrl); } catch(ex) {}
-    fileBlobUrl = null;
+function audTime() {
+  if (!playing || !audioCtx) return playAudT;
+  var t = playAudT + (audioCtx.currentTime - playCtxT) * speed;
+  if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
+    if (t >= loopOut) {
+      var len = loopOut - loopIn;
+      t = loopIn + ((t - loopIn) % len);
+    }
   }
+  return Math.max(0, Math.min(duration, t));
+}
 
-  try {
-    fileBlobUrl = URL.createObjectURL(file);
-    log('Blob URL: ' + fileBlobUrl.substring(0, 50));
-    audio.src = fileBlobUrl;
-    audio.load();
-    log('audio.load() called');
-  } catch(err) {
-    log('Load error: ' + err.message);
-    setStatus('Could not load: ' + err.message, 'err');
+function startAt(offset) {
+  if (!audioBuf) return;
+  ensureCtx();
+  killSrc();
+  var s = audioCtx.createBufferSource();
+  s.buffer = audioBuf;
+  s.playbackRate.value = speed;
+  if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
+    s.loop = true;
+    s.loopStart = loopIn;
+    s.loopEnd   = loopOut;
   }
-});
-
-// ── Waveform peaks (optional) ────────────────────────────────────────────────
-function tryComputePeaks() {
-  if (hasPeaks || !fileBlobUrl) return;
-  var AC = window.AudioContext || window.webkitAudioContext;
-  if (!AC) { log('No AudioContext for peaks'); return; }
-
-  log('Computing peaks...');
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', fileBlobUrl, true);
-  xhr.responseType = 'arraybuffer';
-  xhr.onload = function() {
-    try {
-      var ctx = new AC();
-      ctx.decodeAudioData(xhr.response, function(buf) {
-        log('Peaks decoded');
-        computePeaks(buf);
-        hasPeaks = true;
-        try { ctx.close(); } catch(ex) {}
-        drawWave();
-      }, function() {
-        log('Peaks decode failed (non-critical)');
-      });
-    } catch(err) { log('Peaks AC error: ' + err.message); }
+  s.connect(audioCtx.destination);
+  var off = Math.max(0, Math.min(duration, offset));
+  playAudT = off;
+  playCtxT = audioCtx.currentTime;
+  s.start(0, off);
+  playing = true;
+  srcNode = s;
+  s.onended = function() {
+    if (srcNode === s) { playing = false; srcNode = null; updPlayBtn(); }
   };
-  xhr.onerror = function() { log('Peaks XHR error'); };
-  xhr.send();
+  updPlayBtn();
 }
 
+function killSrc() {
+  if (!srcNode) return;
+  var t = audTime();
+  var s = srcNode;
+  srcNode = null;
+  playing = false;
+  try { s.stop(); } catch(e) {}
+  try { s.disconnect(); } catch(e) {}
+  playAudT = t;
+}
+
+function stopPlay() { killSrc(); updPlayBtn(); }
+
+function togglePlay() {
+  if (!audioBuf) { setStatus('Load a track first.', 'err'); return; }
+  ensureCtx();
+  if (playing) stopPlay();
+  else startAt(playAudT);
+}
+
+function skip(s) {
+  var t = audTime() + s;
+  var was = playing;
+  stopPlay();
+  playAudT = Math.max(0, Math.min(duration, t));
+  if (was) startAt(playAudT);
+  drawWave();
+}
+
+function seekTo(t) {
+  var was = playing;
+  stopPlay();
+  playAudT = Math.max(0, Math.min(duration, t));
+  if (was) startAt(playAudT);
+  drawWave();
+}
+
+function updPlayBtn() {
+  document.getElementById('playBtn').innerHTML = playing ? '&#9646;&#9646;' : '&#9654;';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  File loading
+// ══════════════════════════════════════════════════════════════════════════════
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  var file = e.target.files && e.target.files[0];
+  if (!file) return;
+  log('File: ' + file.name + ' ' + (file.size/1024/1024).toFixed(1) + 'MB');
+  ensureCtx(); // must be inside user gesture
+  setStatus('Reading file...');
+
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var arrayBuf = ev.target.result;
+    decodeAndLoad(file.name, file.size, arrayBuf, true);
+  };
+  reader.onerror = function() { setStatus('Could not read file.', 'err'); };
+  reader.readAsArrayBuffer(file);
+});
+
+function decodeAndLoad(name, size, arrayBuf, saveToLib) {
+  setStatus('Decoding audio...');
+  // decodeAudioData detaches the buffer, so pass a copy if we need to save
+  var bufForDecode = saveToLib ? arrayBuf.slice(0) : arrayBuf;
+  ensureCtx();
+  audioCtx.decodeAudioData(bufForDecode, function(buf) {
+    // Reset state
+    stopPlay();
+    audioBuf = buf;
+    duration = buf.duration;
+    trkName = name;
+    trkId = trackId(name, size);
+    playAudT = 0;
+    loopIn = null; loopOut = null; loopOn = false; editIdx = -1;
+    pkMin = null; pkMax = null;
+    resetEditor(); updLoopUI(); updPlayBtn();
+
+    // Show UI
+    document.getElementById('trackName').textContent = name;
+    ['waveCard','ctrlCard','speedCard','loopCard','savedCard'].forEach(function(id) {
+      document.getElementById(id).style.display = 'block';
+    });
+
+    // Compute peaks + draw
+    vStart = 0; vEnd = duration;
+    computePeaks(buf);
+    setTimeout(function() {
+      resizeCanvas();
+      document.getElementById('waveTime').textContent = '0:00 / ' + fmt(duration);
+    }, 50);
+
+    // Save to library
+    if (saveToLib) {
+      saveTrackToDB(trkId, name, arrayBuf, duration).then(function() {
+        log('Saved to IndexedDB');
+        var lib = getLibrary();
+        // Remove existing entry for same ID
+        lib = lib.filter(function(x) { return x.id !== trkId; });
+        lib.unshift({ id: trkId, name: name, size: size, duration: duration, lastPlayed: Date.now() });
+        saveLibrary(lib);
+        renderLibrary();
+      }).catch(function(err) {
+        log('IndexedDB save error: ' + err.message);
+      });
+    } else {
+      // Update lastPlayed
+      var lib = getLibrary();
+      lib.forEach(function(x) { if (x.id === trkId) x.lastPlayed = Date.now(); });
+      saveLibrary(lib);
+      renderLibrary();
+    }
+
+    renderLoops();
+    setStatus('Ready - tap play!', 'ok');
+    setTimeout(function(){ setStatus(''); }, 2000);
+    log('Loaded: ' + name + ' (' + duration.toFixed(1) + 's)');
+
+  }, function(err) {
+    log('Decode failed: ' + (err ? err.message || err : '?'));
+    setStatus('Could not decode audio. Try a different file.', 'err');
+  });
+}
+
+// ── Load from library ────────────────────────────────────────────────────────
+function loadFromLibrary(id) {
+  ensureCtx();
+  setStatus('Loading from library...');
+  loadTrackFromDB(id).then(function(record) {
+    if (!record) { setStatus('Track not found in storage.', 'err'); return; }
+    decodeAndLoad(record.name, record.data.byteLength, record.data, false);
+  }).catch(function(err) {
+    log('Load error: ' + err.message);
+    setStatus('Could not load track.', 'err');
+  });
+}
+
+function deleteFromLibrary(id, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this track from library?')) return;
+  deleteTrackFromDB(id).catch(function(){});
+  var lib = getLibrary().filter(function(x) { return x.id !== id; });
+  saveLibrary(lib);
+  // Also remove saved loops
+  try { localStorage.removeItem('loops__' + lib.find(function(x){ return x.id === id; })); } catch(ex) {}
+  renderLibrary();
+  log('Deleted from library: ' + id);
+}
+
+function renderLibrary() {
+  var lib = getLibrary();
+  var el = document.getElementById('libList');
+  if (!lib.length) { el.innerHTML = '<div class="lib-empty">No saved tracks</div>'; return; }
+  el.innerHTML = lib.map(function(t) {
+    var date = new Date(t.lastPlayed || t.savedAt || 0);
+    var dateStr = date.toLocaleDateString();
+    var loops = [];
+    try { loops = JSON.parse(localStorage.getItem('loops__' + t.name) || '[]'); } catch(ex) {}
+    var loopStr = loops.length ? loops.length + ' loop' + (loops.length > 1 ? 's' : '') : '';
+    return '<div class="lib-item" onclick="loadFromLibrary(\'' + esc(t.id).replace(/'/g, "\\'") + '\')">' +
+      '<div class="lib-icon">&#9835;</div>' +
+      '<div class="lib-info">' +
+        '<div class="lib-name">' + esc(t.name) + '</div>' +
+        '<div class="lib-meta">' + fmt(t.duration) + ' &middot; ' + dateStr +
+          (loopStr ? ' &middot; ' + loopStr : '') + '</div>' +
+      '</div>' +
+      '<button class="lib-del" onclick="deleteFromLibrary(\'' + esc(t.id).replace(/'/g, "\\'") + '\', event)">Del</button>' +
+    '</div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Speed
+// ══════════════════════════════════════════════════════════════════════════════
+function setSpeed(s) {
+  if (playing && audioCtx) {
+    playAudT = audTime();
+    playCtxT = audioCtx.currentTime;
+  }
+  speed = s;
+  if (srcNode) srcNode.playbackRate.value = s;
+  var d = s.toFixed(2).replace(/0$/,'');
+  if (d.indexOf('.') < 0) d += '.0';
+  document.getElementById('speedNum').textContent = d;
+  document.getElementById('speedSlider').value = s;
+  document.querySelectorAll('.pbtn').forEach(function(b){
+    b.classList.toggle('on', Math.abs(parseFloat(b.textContent) - s) < 0.001);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Loop points — gapless via Web Audio native loop
+// ══════════════════════════════════════════════════════════════════════════════
+function setIn() {
+  if (!duration) return;
+  loopIn = audTime();
+  document.getElementById('inTime').textContent = fmt(loopIn);
+  if (playing && loopOn) applyLoop();
+  drawWave();
+}
+
+function setOut() {
+  if (!duration) return;
+  loopOut = audTime();
+  document.getElementById('outTime').textContent = fmt(loopOut);
+  if (playing && loopOn) applyLoop();
+  drawWave();
+}
+
+function toggleLoop() {
+  loopOn = !loopOn;
+  if (playing) {
+    if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
+      applyLoop();
+    } else if (!loopOn && srcNode) {
+      // Disable loop: restart without loop to clear the native loop flag
+      var t = audTime();
+      stopPlay();
+      startAt(t);
+    }
+  }
+  updLoopUI();
+}
+
+// Apply loop to the running source. If the source already has loop set,
+// we must restart to update loopStart/loopEnd (they're read at start time).
+function applyLoop() {
+  if (loopIn === null || loopOut === null || loopIn >= loopOut) return;
+  var t = audTime();
+  var was = playing;
+  stopPlay();
+  // Jump to loopIn if outside bounds
+  if (t >= loopOut || t < loopIn) t = loopIn;
+  if (was) startAt(t);
+}
+
+function updLoopUI() {
+  document.getElementById('loopToggle').className = 'toggle' + (loopOn ? ' on' : '');
+  document.getElementById('togLbl').textContent = loopOn ? 'ON' : 'OFF';
+  drawWave();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Waveform peaks
+// ══════════════════════════════════════════════════════════════════════════════
 function computePeaks(buf) {
   var ch0 = buf.getChannelData(0);
   var ch1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : null;
@@ -400,94 +641,9 @@ function computePeaks(buf) {
   }
 }
 
-// ── Playback ─────────────────────────────────────────────────────────────────
-function togglePlay() {
-  if (!audioReady) { setStatus('Load a track first.', 'err'); return; }
-  log('togglePlay, paused=' + audio.paused);
-  if (audio.paused) {
-    var p = audio.play();
-    if (p && p.catch) p.catch(function(err) {
-      log('play() rejected: ' + err.message);
-      setStatus('Tap play again.', 'err');
-    });
-  } else {
-    audio.pause();
-  }
-}
-
-function skip(s) {
-  if (!duration) return;
-  audio.currentTime = Math.max(0, Math.min(duration, audio.currentTime + s));
-  drawWave();
-}
-
-function seekTo(t) {
-  if (!duration) return;
-  audio.currentTime = Math.max(0, Math.min(duration, t));
-  drawWave();
-}
-
-function updPlayBtn() {
-  document.getElementById('playBtn').innerHTML = (!audio.paused) ? '&#9646;&#9646;' : '&#9654;';
-}
-
-// ── Speed ────────────────────────────────────────────────────────────────────
-function setSpeed(s) {
-  speed = s;
-  audio.playbackRate = s;
-  if ('preservesPitch' in audio) audio.preservesPitch = true;
-  else if ('webkitPreservesPitch' in audio) audio.webkitPreservesPitch = true;
-  var d = s.toFixed(2).replace(/0$/,'');
-  if (d.indexOf('.') < 0) d += '.0';
-  document.getElementById('speedNum').textContent = d;
-  document.getElementById('speedSlider').value = s;
-  document.querySelectorAll('.pbtn').forEach(function(b){
-    b.classList.toggle('on', Math.abs(parseFloat(b.textContent) - s) < 0.001);
-  });
-}
-
-// ── Loop ─────────────────────────────────────────────────────────────────────
-function setIn() {
-  if (!duration) return;
-  loopIn = audio.currentTime;
-  document.getElementById('inTime').textContent = fmt(loopIn);
-  log('IN: ' + loopIn.toFixed(3));
-  drawWave();
-}
-
-function setOut() {
-  if (!duration) return;
-  loopOut = audio.currentTime;
-  document.getElementById('outTime').textContent = fmt(loopOut);
-  log('OUT: ' + loopOut.toFixed(3));
-  drawWave();
-}
-
-function toggleLoop() {
-  loopOn = !loopOn;
-  log('Loop ' + (loopOn ? 'ON' : 'OFF'));
-  if (loopOn && loopIn !== null && loopOut !== null && !audio.paused) {
-    if (audio.currentTime >= loopOut || audio.currentTime < loopIn) {
-      audio.currentTime = loopIn;
-    }
-  }
-  updLoopUI();
-}
-
-function updLoopUI() {
-  document.getElementById('loopToggle').className = 'toggle' + (loopOn ? ' on' : '');
-  document.getElementById('togLbl').textContent = loopOn ? 'ON' : 'OFF';
-  drawWave();
-}
-
-function loopCheck() {
-  if (!loopOn || audio.paused || loopIn === null || loopOut === null || loopIn >= loopOut) return;
-  if (audio.currentTime >= loopOut) {
-    audio.currentTime = loopIn;
-  }
-}
-
-// ── Canvas ───────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+//  Canvas
+// ══════════════════════════════════════════════════════════════════════════════
 function initCanvas() {
   cv = document.getElementById('waveCanvas');
   cx = cv.getContext('2d');
@@ -499,7 +655,6 @@ function initCanvas() {
   window.addEventListener('mousemove', onMM);
   window.addEventListener('mouseup',   onMU);
   requestAnimationFrame(animLoop);
-  log('Canvas init');
 }
 
 function resizeCanvas() {
@@ -508,7 +663,7 @@ function resizeCanvas() {
   var r = cv.getBoundingClientRect();
   if (r.width < 1 || r.height < 1) return;
   cvW = r.width; cvH = r.height;
-  cv.width  = Math.round(r.width  * dpr);
+  cv.width  = Math.round(r.width * dpr);
   cv.height = Math.round(r.height * dpr);
   cx = cv.getContext('2d');
   cx.scale(dpr, dpr);
@@ -516,9 +671,8 @@ function resizeCanvas() {
 }
 
 function animLoop() {
-  loopCheck();
-  if (!audio.paused && duration) {
-    var t = audio.currentTime;
+  if (playing && audioBuf) {
+    var t = audTime();
     var len = vEnd - vStart;
     var px = (t - vStart) / len;
     if (px > 0.85 || px < 0) {
@@ -531,7 +685,6 @@ function animLoop() {
   requestAnimationFrame(animLoop);
 }
 
-// ── Draw ─────────────────────────────────────────────────────────────────────
 function drawWave() {
   if (!cx || cvW < 1) return;
   var W = cvW, H = cvH;
@@ -567,18 +720,12 @@ function drawWave() {
       var yB = cy2 - mn * cy2;
       cx.fillRect(x, yT, 1, Math.max(1, yB - yT));
     }
-  } else {
-    var prog = (audio.currentTime || 0) / duration;
-    cx.fillStyle = '#1e5ea0';
-    cx.fillRect(0, H/2 - 2, W * prog, 4);
-    cx.fillStyle = '#2c2c2e';
-    cx.fillRect(W * prog, H/2 - 2, W * (1 - prog), 4);
   }
 
   if (loopIn !== null) drawMarker(t2x(loopIn), '#30d158');
   if (loopOut !== null) drawMarker(t2x(loopOut), '#ff453a');
 
-  var ph = t2x(audio.currentTime || 0);
+  var ph = t2x(audTime());
   if (ph >= 0 && ph <= W) {
     cx.strokeStyle = '#ffffff';
     cx.lineWidth = 1.5;
@@ -597,7 +744,6 @@ function drawMarker(x, color) {
 function t2x(t) { return ((t - vStart) / (vEnd - vStart)) * cvW; }
 function x2t(x) { return vStart + (x / cvW) * (vEnd - vStart); }
 
-// ── Zoom ─────────────────────────────────────────────────────────────────────
 function doZoom(f) {
   if (!duration) return;
   var c = (vStart + vEnd) / 2;
@@ -617,8 +763,8 @@ function onTS(e) {
     drgType = 'pinch';
     pnDist0 = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
                          e.touches[0].clientY - e.touches[1].clientY);
-    pnLen0  = vEnd - vStart;
-    pnCtr0  = x2t((tx(e.touches[0]) + tx(e.touches[1])) / 2);
+    pnLen0 = vEnd - vStart;
+    pnCtr0 = x2t((tx(e.touches[0]) + tx(e.touches[1])) / 2);
     return;
   }
   var x = tx(e.touches[0]);
@@ -652,7 +798,6 @@ function onTE(e) {
   drgType = null; pnDist0 = null;
 }
 
-// ── Mouse ────────────────────────────────────────────────────────────────────
 var mouseDown = false;
 function onMD(e) {
   var r = cv.getBoundingClientRect();
@@ -691,107 +836,111 @@ function handleDrag(x) {
     var tpp = (drgVE0 - drgVS0) / cvW;
     var len = drgVE0 - drgVS0;
     vStart = Math.max(0, Math.min(duration - len, drgVS0 - (x - drgX0) * tpp));
-    vEnd   = vStart + len;
+    vEnd = vStart + len;
     drawWave();
   }
 }
 
-// ── Storage ──────────────────────────────────────────────────────────────────
-function skey(){ return 'loops__' + trkName; }
-function getLoops(){
-  try { return JSON.parse(localStorage.getItem(skey())||'[]'); }
-  catch(e) { return []; }
+// ══════════════════════════════════════════════════════════════════════════════
+//  Loops storage
+// ══════════════════════════════════════════════════════════════════════════════
+function skey() { return 'loops__' + trkName; }
+function getLoops() {
+  try { return JSON.parse(localStorage.getItem(skey()) || '[]'); } catch(e) { return []; }
 }
 
 function saveLoop() {
-  if (loopIn===null||loopOut===null||loopIn>=loopOut){ alert('Set valid In and Out points first.'); return; }
+  if (loopIn === null || loopOut === null || loopIn >= loopOut) {
+    alert('Set valid In and Out points first.'); return;
+  }
   var loops = getLoops();
-  var name = document.getElementById('loopName').value.trim() || ('Loop '+(loops.length+1));
-  var entry = { name:name, i:loopIn, o:loopOut };
-  if (editIdx>=0 && editIdx<loops.length) loops[editIdx]=entry; else loops.push(entry);
-  try { localStorage.setItem(skey(), JSON.stringify(loops)); }
-  catch(e) { alert('Could not save.'); }
-  editIdx=-1; resetEditor(); renderLoops();
-  log('Saved: ' + name);
+  var name = document.getElementById('loopName').value.trim() || ('Loop ' + (loops.length + 1));
+  var entry = { name: name, i: loopIn, o: loopOut };
+  if (editIdx >= 0 && editIdx < loops.length) loops[editIdx] = entry; else loops.push(entry);
+  localStorage.setItem(skey(), JSON.stringify(loops));
+  editIdx = -1; resetEditor(); renderLoops();
 }
 
 function loadLoop(i) {
-  var l = getLoops()[i]; if(!l) return;
-  loopIn=l.i; loopOut=l.o; loopOn=true;
-  document.getElementById('inTime').textContent  = fmt(loopIn);
+  var l = getLoops()[i]; if (!l) return;
+  loopIn = l.i; loopOut = l.o; loopOn = true;
+  document.getElementById('inTime').textContent = fmt(loopIn);
   document.getElementById('outTime').textContent = fmt(loopOut);
   updLoopUI();
-  audio.currentTime = loopIn;
-  if (audio.paused) {
-    var p = audio.play();
-    if (p && p.catch) p.catch(function(err) { log('play err: ' + err.message); });
-  }
-  document.getElementById('waveCard').scrollIntoView({behavior:'smooth'});
+  stopPlay();
+  startAt(loopIn);
+  document.getElementById('waveCard').scrollIntoView({ behavior: 'smooth' });
 }
 
 function editLoop(i) {
-  var l = getLoops()[i]; if(!l) return;
-  loopIn=l.i; loopOut=l.o;
-  document.getElementById('inTime').textContent  = fmt(loopIn);
+  var l = getLoops()[i]; if (!l) return;
+  loopIn = l.i; loopOut = l.o;
+  document.getElementById('inTime').textContent = fmt(loopIn);
   document.getElementById('outTime').textContent = fmt(loopOut);
   document.getElementById('loopName').value = l.name;
-  editIdx=i;
-  document.getElementById('saveBtn').textContent='Update';
-  document.getElementById('editBanner').style.display='block';
+  editIdx = i;
+  document.getElementById('saveBtn').textContent = 'Update';
+  document.getElementById('editBanner').style.display = 'block';
   drawWave();
-  document.getElementById('loopCard').scrollIntoView({behavior:'smooth'});
+  document.getElementById('loopCard').scrollIntoView({ behavior: 'smooth' });
 }
 
 function deleteLoop(i) {
-  var loops=getLoops(); loops.splice(i,1);
-  try { localStorage.setItem(skey(), JSON.stringify(loops)); } catch(e) {}
-  if(editIdx===i){ editIdx=-1; resetEditor(); }
+  var loops = getLoops(); loops.splice(i, 1);
+  localStorage.setItem(skey(), JSON.stringify(loops));
+  if (editIdx === i) { editIdx = -1; resetEditor(); }
   renderLoops();
 }
 
 function resetEditor() {
-  document.getElementById('inTime').textContent='--:--';
-  document.getElementById('outTime').textContent='--:--';
-  document.getElementById('loopName').value='';
-  document.getElementById('saveBtn').textContent='Save';
-  document.getElementById('editBanner').style.display='none';
+  document.getElementById('inTime').textContent = '--:--';
+  document.getElementById('outTime').textContent = '--:--';
+  document.getElementById('loopName').value = '';
+  document.getElementById('saveBtn').textContent = 'Save';
+  document.getElementById('editBanner').style.display = 'none';
 }
 
 function renderLoops() {
-  var loops=getLoops(), el=document.getElementById('loopList');
-  if(!loops.length){ el.innerHTML='<div class="empty">No saved loops yet</div>'; return; }
-  el.innerHTML=loops.map(function(l,i){
-    return '<div class="loop-item">'+
-      '<div class="ldot"></div>'+
-      '<div class="linfo"><div class="lname">'+esc(l.name)+'</div>'+
-      '<div class="ltimes">'+fmt(l.i)+' &rarr; '+fmt(l.o)+'</div></div>'+
-      '<div class="lacts">'+
-      '<button class="labtn la-load" onclick="loadLoop('+i+')">Load</button>'+
-      '<button class="labtn la-edit" onclick="editLoop('+i+')">Edit</button>'+
-      '<button class="labtn la-del"  onclick="deleteLoop('+i+')">Del</button>'+
+  var loops = getLoops(), el = document.getElementById('loopList');
+  if (!loops.length) { el.innerHTML = '<div class="empty">No saved loops yet</div>'; return; }
+  el.innerHTML = loops.map(function(l, i) {
+    return '<div class="loop-item">' +
+      '<div class="ldot"></div>' +
+      '<div class="linfo"><div class="lname">' + esc(l.name) + '</div>' +
+      '<div class="ltimes">' + fmt(l.i) + ' &rarr; ' + fmt(l.o) + '</div></div>' +
+      '<div class="lacts">' +
+      '<button class="labtn la-load" onclick="loadLoop(' + i + ')">Load</button>' +
+      '<button class="labtn la-edit" onclick="editLoop(' + i + ')">Edit</button>' +
+      '<button class="labtn la-del"  onclick="deleteLoop(' + i + ')">Del</button>' +
       '</div></div>';
   }).join('');
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-function setStatus(msg,cls){
-  var el=document.getElementById('statusBar');
-  el.textContent=msg; el.className='status'+(cls?' '+cls:'');
-  el.style.display=msg?'block':'none';
+// ══════════════════════════════════════════════════════════════════════════════
+//  Helpers
+// ══════════════════════════════════════════════════════════════════════════════
+function setStatus(msg, cls) {
+  var el = document.getElementById('statusBar');
+  el.textContent = msg;
+  el.className = 'status' + (cls ? ' ' + cls : '');
+  el.style.display = msg ? 'block' : 'none';
 }
-function fmt(s){
-  if(s==null||isNaN(s)) return '0:00';
-  var m = Math.floor(s/60);
-  var sec = Math.floor(s%60);
-  var ms = Math.floor((s%1)*10);
-  return m+':'+sec.toString().padStart(2,'0')+'.'+ms;
+function fmt(s) {
+  if (s == null || isNaN(s)) return '0:00';
+  var m = Math.floor(s / 60);
+  var sec = Math.floor(s % 60);
+  var ms = Math.floor((s % 1) * 10);
+  return m + ':' + sec.toString().padStart(2, '0') + '.' + ms;
 }
-function esc(s){
+function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Boot ─────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+//  Boot
+// ══════════════════════════════════════════════════════════════════════════════
 initCanvas();
+renderLibrary();
 log('Boot OK');
 </script>
 </body>
