@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Loop Trainer">
+<meta name="theme-color" content="#0e0e0e">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230e0e0e'/><circle cx='256' cy='256' r='160' fill='none' stroke='%230a84ff' stroke-width='32'/><circle cx='256' cy='256' r='80' fill='none' stroke='%230a84ff' stroke-width='24'/><polygon points='240,200 300,256 240,312' fill='%230a84ff'/></svg>">
+<title>Loop Trainer</title>
+<style>
+:root{--bg:#0e0e0e;--sur:#1c1c1e;--sur2:#2c2c2e;--acc:#0a84ff;--grn:#30d158;--red:#ff453a;--yel:#ffd60a;--txt:#f2f2f7;--dim:#8e8e93;--brd:#38383a}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;padding:14px 14px calc(env(safe-area-inset-bottom,0px) + 48px);padding-top:calc(env(safe-area-inset-top,0px) + 14px)}
+h1{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:var(--acc);padding:10px 0 4px}
+.sub{text-align:center;font-size:11px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px}
+.card{background:var(--sur);border-radius:18px;padding:16px;margin-bottom:10px}
+
+#fileInput{position:fixed;top:-999px;left:-999px;width:1px;height:1px;opacity:0}
+.open-lbl{display:block;width:100%;background:var(--acc);color:#fff;text-align:center;padding:16px;border-radius:13px;font-size:16px;font-weight:600;cursor:pointer;touch-action:manipulation}
+.open-lbl:active{opacity:.7}
+.track-name{margin-top:10px;font-size:13px;color:var(--dim);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.status{background:var(--sur2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--dim);text-align:center;margin-bottom:10px;display:none}
+.status.err{color:var(--red)}.status.ok{color:var(--grn)}
+
+/* Waveform */
+.wave-card{background:var(--sur);border-radius:18px;padding:12px;margin-bottom:10px}
+#waveCanvas{display:block;width:100%;height:130px;border-radius:10px;background:var(--sur2);touch-action:none}
+.wave-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.wave-time{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.zbtns{display:flex;gap:6px}
+.zbtn{background:var(--sur2);color:var(--txt);border:none;border-radius:8px;padding:6px 16px;font-size:18px;font-weight:600;cursor:pointer;touch-action:manipulation}
+.zbtn:active{opacity:.6}
+
+/* Controls */
+.controls{display:flex;align-items:center;justify-content:center;gap:10px}
+.cbtn{background:var(--sur2);color:var(--txt);border:none;border-radius:12px;padding:12px 15px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation}
+.cbtn:active{opacity:.6}
+.play-btn{width:66px;height:66px;border-radius:33px;background:var(--acc);color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center}
+
+/* Speed */
+.speed-big{text-align:center;margin-bottom:12px;line-height:1}
+.speed-num{font-size:48px;font-weight:700;color:var(--acc);letter-spacing:-2px}
+.speed-x{font-size:22px;color:var(--dim)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;background:var(--sur2);border-radius:3px;outline:none;margin-bottom:14px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:14px;background:var(--acc);box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.presets{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.pbtn{background:var(--sur2);color:var(--dim);border:none;border-radius:9px;padding:9px 11px;font-size:13px;font-weight:500;cursor:pointer;touch-action:manipulation;min-width:46px;text-align:center}
+.pbtn.on{background:var(--acc);color:#fff}
+.pbtn:active{opacity:.6}
+
+/* Loop */
+.sec-lbl{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:13px}
+.lp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:13px}
+.lp-btn{border:none;border-radius:14px;padding:15px 8px;text-align:center;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.lp-btn:active{opacity:.7}
+.lp-in{background:rgba(48,209,88,.15);color:var(--grn);border:1.5px solid var(--grn)}
+.lp-out{background:rgba(255,69,58,.15);color:var(--red);border:1.5px solid var(--red)}
+.lp-t{font-size:13px;font-weight:400;margin-top:5px;font-variant-numeric:tabular-nums;opacity:.85}
+.loop-row{display:flex;align-items:center;gap:12px;margin-bottom:13px}
+.loop-row-lbl{font-size:15px;font-weight:600;flex:1}
+.toggle{width:54px;height:30px;background:var(--sur2);border-radius:15px;position:relative;cursor:pointer;touch-action:manipulation;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--acc)}
+.toggle::after{content:'';position:absolute;width:24px;height:24px;background:#fff;border-radius:12px;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.toggle.on::after{left:27px}
+.tog-lbl{font-size:14px;color:var(--dim);min-width:26px}
+.edit-banner{background:rgba(48,209,88,.12);border:1px solid var(--grn);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--grn);margin-bottom:11px;display:none}
+.save-row{display:flex;gap:8px}
+.name-inp{flex:1;background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:12px;padding:13px 14px;font-size:14px;-webkit-appearance:none}
+.name-inp::placeholder{color:#555}
+.name-inp:focus{outline:none;border-color:var(--acc)}
+.save-btn{background:var(--acc);color:#fff;border:none;border-radius:12px;padding:13px 18px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap}
+.save-btn:active{opacity:.7}
+
+/* Loop list */
+.loop-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--brd)}
+.loop-item:last-child{border-bottom:none}
+.ldot{width:10px;height:10px;border-radius:5px;background:var(--yel);flex-shrink:0}
+.linfo{flex:1;min-width:0}
+.lname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ltimes{font-size:12px;color:var(--dim);margin-top:3px;font-variant-numeric:tabular-nums}
+.lacts{display:flex;gap:6px;flex-shrink:0}
+.labtn{background:var(--sur2);border:none;border-radius:9px;padding:8px 11px;font-size:12px;font-weight:600;cursor:pointer;touch-action:manipulation}
+.labtn:active{opacity:.6}
+.la-load{color:var(--acc)}.la-edit{color:var(--grn)}.la-del{color:var(--red)}
+.empty{text-align:center;color:#444;font-size:13px;padding:10px 0}
+
+/* Debug log */
+.log-toggle{display:block;width:100%;background:none;border:1px solid var(--brd);color:var(--dim);border-radius:13px;padding:12px;font-size:12px;cursor:pointer;margin-top:20px;text-align:center}
+.log-toggle:active{opacity:.6}
+#logPanel{display:none;margin-top:6px;background:var(--sur);border-radius:12px;padding:12px;max-height:300px;overflow-y:auto}
+#logPanel.show{display:block}
+#logContent{font-family:monospace;font-size:10px;color:var(--dim);white-space:pre-wrap;word-break:break-all}
+.log-copy{background:var(--sur2);color:var(--dim);border:none;border-radius:8px;padding:8px 14px;font-size:11px;cursor:pointer;margin-top:8px}
+</style>
+</head>
+<body>
+
+<h1>LOOP TRAINER</h1>
+<p class="sub">Drum practice tool</p>
+
+<div class="card">
+  <input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac">
+  <label for="fileInput" class="open-lbl">Open Audio File</label>
+  <div class="track-name" id="trackName">No track loaded</div>
+</div>
+
+<div class="status" id="statusBar"></div>
+
+<audio id="audioEl" preload="auto" style="display:none"></audio>
+
+<div class="wave-card" id="waveCard" style="display:none">
+  <canvas id="waveCanvas"></canvas>
+  <div class="wave-foot">
+    <span class="wave-time" id="waveTime">0:00 / 0:00</span>
+    <div class="zbtns">
+      <button class="zbtn" onclick="doZoom(2)">&#8722;</button>
+      <button class="zbtn" onclick="doZoom(0.5)">+</button>
+    </div>
+  </div>
+</div>
+
+<div class="card" id="ctrlCard" style="display:none">
+  <div class="controls">
+    <button class="cbtn" onclick="skip(-10)">-10s</button>
+    <button class="cbtn" onclick="skip(-5)">-5s</button>
+    <button class="cbtn play-btn" id="playBtn" onclick="togglePlay()">&#9654;</button>
+    <button class="cbtn" onclick="skip(5)">+5s</button>
+    <button class="cbtn" onclick="skip(10)">+10s</button>
+  </div>
+</div>
+
+<div class="card" id="speedCard" style="display:none">
+  <div class="speed-big">
+    <span class="speed-num" id="speedNum">1.0</span><span class="speed-x">&#215;</span>
+  </div>
+  <input type="range" id="speedSlider" min="0.5" max="1.5" step="0.05" value="1.0"
+         oninput="setSpeed(parseFloat(this.value))">
+  <div class="presets">
+    <button class="pbtn" onclick="setSpeed(0.5)">0.5&#215;</button>
+    <button class="pbtn" onclick="setSpeed(0.6)">0.6&#215;</button>
+    <button class="pbtn" onclick="setSpeed(0.7)">0.7&#215;</button>
+    <button class="pbtn" onclick="setSpeed(0.75)">0.75&#215;</button>
+    <button class="pbtn" onclick="setSpeed(0.8)">0.8&#215;</button>
+    <button class="pbtn" onclick="setSpeed(0.9)">0.9&#215;</button>
+    <button class="pbtn on" onclick="setSpeed(1.0)">1.0&#215;</button>
+    <button class="pbtn" onclick="setSpeed(1.1)">1.1&#215;</button>
+    <button class="pbtn" onclick="setSpeed(1.2)">1.2&#215;</button>
+    <button class="pbtn" onclick="setSpeed(1.25)">1.25&#215;</button>
+    <button class="pbtn" onclick="setSpeed(1.5)">1.5&#215;</button>
+  </div>
+</div>
+
+<div class="card" id="loopCard" style="display:none">
+  <div class="sec-lbl">Loop Points</div>
+  <div class="lp-grid">
+    <button class="lp-btn lp-in" onclick="setIn()">
+      Set In<br><span class="lp-t" id="inTime">--:--</span>
+    </button>
+    <button class="lp-btn lp-out" onclick="setOut()">
+      Set Out<br><span class="lp-t" id="outTime">--:--</span>
+    </button>
+  </div>
+  <div class="loop-row">
+    <span class="loop-row-lbl">Loop active</span>
+    <div class="toggle" id="loopToggle" onclick="toggleLoop()"></div>
+    <span class="tog-lbl" id="togLbl">OFF</span>
+  </div>
+  <div class="edit-banner" id="editBanner">Editing saved loop &mdash; adjust then tap Update</div>
+  <div class="save-row">
+    <input type="text" class="name-inp" id="loopName" placeholder="Name (e.g. Verse, Bridge)" maxlength="30">
+    <button class="save-btn" id="saveBtn" onclick="saveLoop()">Save</button>
+  </div>
+</div>
+
+<div class="card" id="savedCard" style="display:none">
+  <div class="sec-lbl">Saved Loops</div>
+  <div id="loopList"><div class="empty">No saved loops yet</div></div>
+</div>
+
+<button class="log-toggle" onclick="toggleLogPanel()">Show Debug Log</button>
+<div id="logPanel">
+  <div id="logContent"></div>
+  <button class="log-copy" onclick="copyLog()">Copy Log to Clipboard</button>
+</div>
+
+<script>
+// ── Debug Log ────────────────────────────────────────────────────────────────
+var logLines = [];
+function log(msg) {
+  var ts = new Date().toLocaleTimeString();
+  var line = '[' + ts + '] ' + msg;
+  logLines.push(line);
+  if (logLines.length > 200) logLines.shift();
+  var el = document.getElementById('logContent');
+  if (el) el.textContent = logLines.join('\n');
+}
+function toggleLogPanel() {
+  document.getElementById('logPanel').classList.toggle('show');
+}
+function copyLog() {
+  var text = logLines.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function() {
+      alert('Log copied!');
+    }, function() { fallbackCopy(text); });
+  } else { fallbackCopy(text); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;left:-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); alert('Log copied!'); }
+  catch(e) { alert('Copy failed.'); }
+  document.body.removeChild(ta);
+}
+window.onerror = function(msg, src, line, col, err) {
+  log('ERROR: ' + msg + ' (line ' + line + ')');
+};
+window.addEventListener('unhandledrejection', function(e) {
+  log('PROMISE ERROR: ' + (e.reason ? e.reason.message || e.reason : 'unknown'));
+});
+
+log('App starting');
+log('UA: ' + navigator.userAgent.substring(0, 120));
+
+// ── Service Worker Registration ──────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(function(reg) {
+    log('SW registered, scope: ' + reg.scope);
+  }).catch(function(err) {
+    log('SW registration failed: ' + err.message);
+  });
+}
+
+// ── State ────────────────────────────────────────────────────────────────────
+var audio = document.getElementById('audioEl');
+var fileBlobUrl = null;
+var duration = 0;
+var speed    = 1.0;
+var loopIn   = null;
+var loopOut  = null;
+var loopOn   = false;
+var trkName  = '';
+var editIdx  = -1;
+var audioReady = false;
+
+// Waveform
+var cv, cx;
+var cvW = 1, cvH = 1;
+var vStart = 0, vEnd = 30;
+var pkMin = null, pkMax = null;
+var NPKS = 3000;
+var hasPeaks = false;
+
+// Touch
+var drgType = null;
+var drgX0 = 0, drgVS0 = 0, drgVE0 = 0, drgMoved = false;
+var pnDist0 = null, pnLen0 = null, pnCtr0 = null;
+
+// ── Audio element events ─────────────────────────────────────────────────────
+audio.addEventListener('loadedmetadata', function() {
+  log('Event: loadedmetadata, duration=' + audio.duration);
+  onAudioReady();
+});
+audio.addEventListener('canplay', function() {
+  log('Event: canplay');
+  if (!audioReady) onAudioReady();
+});
+audio.addEventListener('canplaythrough', function() {
+  log('Event: canplaythrough');
+  if (!audioReady) onAudioReady();
+});
+audio.addEventListener('durationchange', function() {
+  log('Event: durationchange, d=' + audio.duration);
+  if (!audioReady) onAudioReady();
+});
+audio.addEventListener('error', function() {
+  var code = audio.error ? audio.error.code : '?';
+  var msg = audio.error ? audio.error.message || '' : '';
+  log('AUDIO ERROR code=' + code + ' ' + msg);
+  setStatus('Audio error (code ' + code + '). Try a different file.', 'err');
+});
+audio.addEventListener('ended', function() {
+  log('Event: ended');
+  if (loopOn && loopIn !== null && loopOut !== null) {
+    audio.currentTime = loopIn;
+    audio.play();
+  }
+  updPlayBtn();
+});
+
+function onAudioReady() {
+  if (audioReady) return;
+  if (!audio.duration || !isFinite(audio.duration)) return;
+  audioReady = true;
+  duration = audio.duration;
+  vStart = 0;
+  vEnd = duration;
+  log('READY, duration=' + duration.toFixed(2) + 's');
+
+  ['waveCard','ctrlCard','speedCard','loopCard','savedCard'].forEach(function(id) {
+    document.getElementById(id).style.display = 'block';
+  });
+
+  setTimeout(function() {
+    resizeCanvas();
+    document.getElementById('waveTime').textContent = '0:00 / ' + fmt(duration);
+    setStatus('Ready - tap play!', 'ok');
+    setTimeout(function(){ setStatus(''); }, 2500);
+  }, 100);
+
+  renderLoops();
+  tryComputePeaks();
+}
+
+// ── File loading ─────────────────────────────────────────────────────────────
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  log('File input change');
+  var file = e.target.files && e.target.files[0];
+  if (!file) { log('No file'); return; }
+
+  log('File: ' + file.name + ' type=' + file.type + ' size=' + file.size);
+  trkName = file.name;
+  document.getElementById('trackName').textContent = file.name;
+  setStatus('Loading audio...');
+
+  audio.pause();
+  audioReady = false;
+  duration = 0;
+  pkMin = null; pkMax = null; hasPeaks = false;
+  loopIn = null; loopOut = null; loopOn = false; editIdx = -1;
+  resetEditor(); updLoopUI(); updPlayBtn();
+
+  if (fileBlobUrl) {
+    try { URL.revokeObjectURL(fileBlobUrl); } catch(ex) {}
+    fileBlobUrl = null;
+  }
+
+  try {
+    fileBlobUrl = URL.createObjectURL(file);
+    log('Blob URL: ' + fileBlobUrl.substring(0, 50));
+    audio.src = fileBlobUrl;
+    audio.load();
+    log('audio.load() called');
+  } catch(err) {
+    log('Load error: ' + err.message);
+    setStatus('Could not load: ' + err.message, 'err');
+  }
+});
+
+// ── Waveform peaks (optional) ────────────────────────────────────────────────
+function tryComputePeaks() {
+  if (hasPeaks || !fileBlobUrl) return;
+  var AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) { log('No AudioContext for peaks'); return; }
+
+  log('Computing peaks...');
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', fileBlobUrl, true);
+  xhr.responseType = 'arraybuffer';
+  xhr.onload = function() {
+    try {
+      var ctx = new AC();
+      ctx.decodeAudioData(xhr.response, function(buf) {
+        log('Peaks decoded');
+        computePeaks(buf);
+        hasPeaks = true;
+        try { ctx.close(); } catch(ex) {}
+        drawWave();
+      }, function() {
+        log('Peaks decode failed (non-critical)');
+      });
+    } catch(err) { log('Peaks AC error: ' + err.message); }
+  };
+  xhr.onerror = function() { log('Peaks XHR error'); };
+  xhr.send();
+}
+
+function computePeaks(buf) {
+  var ch0 = buf.getChannelData(0);
+  var ch1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : null;
+  pkMin = new Float32Array(NPKS);
+  pkMax = new Float32Array(NPKS);
+  var spb = ch0.length / NPKS;
+  for (var i = 0; i < NPKS; i++) {
+    var s0 = Math.floor(i * spb), s1 = Math.floor((i+1) * spb);
+    var mn = 0, mx = 0;
+    for (var j = s0; j < s1; j++) {
+      var v = ch1 ? (ch0[j] + ch1[j]) * 0.5 : ch0[j];
+      if (v < mn) mn = v;
+      if (v > mx) mx = v;
+    }
+    pkMin[i] = mn; pkMax[i] = mx;
+  }
+}
+
+// ── Playback ─────────────────────────────────────────────────────────────────
+function togglePlay() {
+  if (!audioReady) { setStatus('Load a track first.', 'err'); return; }
+  log('togglePlay, paused=' + audio.paused);
+  if (audio.paused) {
+    var p = audio.play();
+    if (p && p.catch) p.catch(function(err) {
+      log('play() rejected: ' + err.message);
+      setStatus('Tap play again.', 'err');
+    });
+  } else {
+    audio.pause();
+  }
+}
+
+function skip(s) {
+  if (!duration) return;
+  audio.currentTime = Math.max(0, Math.min(duration, audio.currentTime + s));
+  drawWave();
+}
+
+function seekTo(t) {
+  if (!duration) return;
+  audio.currentTime = Math.max(0, Math.min(duration, t));
+  drawWave();
+}
+
+function updPlayBtn() {
+  document.getElementById('playBtn').innerHTML = (!audio.paused) ? '&#9646;&#9646;' : '&#9654;';
+}
+
+// ── Speed ────────────────────────────────────────────────────────────────────
+function setSpeed(s) {
+  speed = s;
+  audio.playbackRate = s;
+  if ('preservesPitch' in audio) audio.preservesPitch = true;
+  else if ('webkitPreservesPitch' in audio) audio.webkitPreservesPitch = true;
+  var d = s.toFixed(2).replace(/0$/,'');
+  if (d.indexOf('.') < 0) d += '.0';
+  document.getElementById('speedNum').textContent = d;
+  document.getElementById('speedSlider').value = s;
+  document.querySelectorAll('.pbtn').forEach(function(b){
+    b.classList.toggle('on', Math.abs(parseFloat(b.textContent) - s) < 0.001);
+  });
+}
+
+// ── Loop ─────────────────────────────────────────────────────────────────────
+function setIn() {
+  if (!duration) return;
+  loopIn = audio.currentTime;
+  document.getElementById('inTime').textContent = fmt(loopIn);
+  log('IN: ' + loopIn.toFixed(3));
+  drawWave();
+}
+
+function setOut() {
+  if (!duration) return;
+  loopOut = audio.currentTime;
+  document.getElementById('outTime').textContent = fmt(loopOut);
+  log('OUT: ' + loopOut.toFixed(3));
+  drawWave();
+}
+
+function toggleLoop() {
+  loopOn = !loopOn;
+  log('Loop ' + (loopOn ? 'ON' : 'OFF'));
+  if (loopOn && loopIn !== null && loopOut !== null && !audio.paused) {
+    if (audio.currentTime >= loopOut || audio.currentTime < loopIn) {
+      audio.currentTime = loopIn;
+    }
+  }
+  updLoopUI();
+}
+
+function updLoopUI() {
+  document.getElementById('loopToggle').className = 'toggle' + (loopOn ? ' on' : '');
+  document.getElementById('togLbl').textContent = loopOn ? 'ON' : 'OFF';
+  drawWave();
+}
+
+function loopCheck() {
+  if (!loopOn || audio.paused || loopIn === null || loopOut === null || loopIn >= loopOut) return;
+  if (audio.currentTime >= loopOut) {
+    audio.currentTime = loopIn;
+  }
+}
+
+// ── Canvas ───────────────────────────────────────────────────────────────────
+function initCanvas() {
+  cv = document.getElementById('waveCanvas');
+  cx = cv.getContext('2d');
+  window.addEventListener('resize', function(){ setTimeout(resizeCanvas, 80); });
+  cv.addEventListener('touchstart', onTS, { passive: false });
+  cv.addEventListener('touchmove',  onTM, { passive: false });
+  cv.addEventListener('touchend',   onTE, { passive: false });
+  cv.addEventListener('mousedown', onMD);
+  window.addEventListener('mousemove', onMM);
+  window.addEventListener('mouseup',   onMU);
+  requestAnimationFrame(animLoop);
+  log('Canvas init');
+}
+
+function resizeCanvas() {
+  if (!cv) return;
+  var dpr = window.devicePixelRatio || 1;
+  var r = cv.getBoundingClientRect();
+  if (r.width < 1 || r.height < 1) return;
+  cvW = r.width; cvH = r.height;
+  cv.width  = Math.round(r.width  * dpr);
+  cv.height = Math.round(r.height * dpr);
+  cx = cv.getContext('2d');
+  cx.scale(dpr, dpr);
+  drawWave();
+}
+
+function animLoop() {
+  loopCheck();
+  if (!audio.paused && duration) {
+    var t = audio.currentTime;
+    var len = vEnd - vStart;
+    var px = (t - vStart) / len;
+    if (px > 0.85 || px < 0) {
+      vStart = Math.max(0, Math.min(duration - len, t - len * 0.2));
+      vEnd = vStart + len;
+    }
+    drawWave();
+    document.getElementById('waveTime').textContent = fmt(t) + ' / ' + fmt(duration);
+  }
+  requestAnimationFrame(animLoop);
+}
+
+// ── Draw ─────────────────────────────────────────────────────────────────────
+function drawWave() {
+  if (!cx || cvW < 1) return;
+  var W = cvW, H = cvH;
+  cx.clearRect(0, 0, W, H);
+  cx.fillStyle = '#1c1c1e';
+  cx.fillRect(0, 0, W, H);
+  if (!duration) return;
+
+  if (loopIn !== null && loopOut !== null && loopIn < loopOut) {
+    cx.fillStyle = 'rgba(255,214,10,0.15)';
+    cx.fillRect(t2x(loopIn), 0, t2x(loopOut) - t2x(loopIn), H);
+  }
+
+  cx.strokeStyle = 'rgba(255,255,255,0.08)';
+  cx.lineWidth = 1;
+  cx.beginPath(); cx.moveTo(0, H/2); cx.lineTo(W, H/2); cx.stroke();
+
+  if (pkMin && pkMax) {
+    for (var x = 0; x < W; x++) {
+      var ta = vStart + (x / W) * (vEnd - vStart);
+      var tb = vStart + ((x+1) / W) * (vEnd - vStart);
+      var b0 = Math.max(0, Math.floor(ta / duration * NPKS));
+      var b1 = Math.min(NPKS-1, Math.ceil(tb / duration * NPKS));
+      var mn = 0, mx = 0;
+      for (var b = b0; b <= b1; b++) {
+        if (pkMin[b] < mn) mn = pkMin[b];
+        if (pkMax[b] > mx) mx = pkMax[b];
+      }
+      var amp = Math.max(Math.abs(mn), Math.abs(mx));
+      cx.fillStyle = amp > 0.6 ? '#5ba8e0' : amp > 0.3 ? '#3a87d4' : '#1e5ea0';
+      var cy2 = H / 2;
+      var yT = cy2 - mx * cy2;
+      var yB = cy2 - mn * cy2;
+      cx.fillRect(x, yT, 1, Math.max(1, yB - yT));
+    }
+  } else {
+    var prog = (audio.currentTime || 0) / duration;
+    cx.fillStyle = '#1e5ea0';
+    cx.fillRect(0, H/2 - 2, W * prog, 4);
+    cx.fillStyle = '#2c2c2e';
+    cx.fillRect(W * prog, H/2 - 2, W * (1 - prog), 4);
+  }
+
+  if (loopIn !== null) drawMarker(t2x(loopIn), '#30d158');
+  if (loopOut !== null) drawMarker(t2x(loopOut), '#ff453a');
+
+  var ph = t2x(audio.currentTime || 0);
+  if (ph >= 0 && ph <= W) {
+    cx.strokeStyle = '#ffffff';
+    cx.lineWidth = 1.5;
+    cx.beginPath(); cx.moveTo(ph, 0); cx.lineTo(ph, H); cx.stroke();
+  }
+}
+
+function drawMarker(x, color) {
+  if (x < -20 || x > cvW + 20) return;
+  cx.strokeStyle = color; cx.lineWidth = 2;
+  cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, cvH); cx.stroke();
+  cx.fillStyle = color;
+  cx.beginPath(); cx.moveTo(x-9,0); cx.lineTo(x+9,0); cx.lineTo(x,18); cx.closePath(); cx.fill();
+}
+
+function t2x(t) { return ((t - vStart) / (vEnd - vStart)) * cvW; }
+function x2t(x) { return vStart + (x / cvW) * (vEnd - vStart); }
+
+// ── Zoom ─────────────────────────────────────────────────────────────────────
+function doZoom(f) {
+  if (!duration) return;
+  var c = (vStart + vEnd) / 2;
+  var len = Math.max(0.5, Math.min(duration, (vEnd - vStart) * f));
+  vStart = Math.max(0, c - len/2);
+  vEnd   = Math.min(duration, vStart + len);
+  if (vEnd === duration) vStart = Math.max(0, vEnd - len);
+  drawWave();
+}
+
+// ── Touch ────────────────────────────────────────────────────────────────────
+function tx(touch) { return touch.clientX - cv.getBoundingClientRect().left; }
+
+function onTS(e) {
+  e.preventDefault();
+  if (e.touches.length === 2) {
+    drgType = 'pinch';
+    pnDist0 = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                         e.touches[0].clientY - e.touches[1].clientY);
+    pnLen0  = vEnd - vStart;
+    pnCtr0  = x2t((tx(e.touches[0]) + tx(e.touches[1])) / 2);
+    return;
+  }
+  var x = tx(e.touches[0]);
+  drgX0 = x; drgMoved = false; drgVS0 = vStart; drgVE0 = vEnd;
+  if (loopIn  !== null && Math.abs(x - t2x(loopIn))  < 24) { drgType = 'in';  return; }
+  if (loopOut !== null && Math.abs(x - t2x(loopOut)) < 24) { drgType = 'out'; return; }
+  drgType = 'pan';
+}
+
+function onTM(e) {
+  e.preventDefault();
+  if (drgType === 'pinch' && e.touches.length === 2) {
+    var d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                       e.touches[0].clientY - e.touches[1].clientY);
+    var maxD = duration || 100;
+    var newLen = Math.max(0.5, Math.min(maxD, pnLen0 * pnDist0 / d));
+    var ratio = (pnCtr0 - vStart) / (vEnd - vStart);
+    vStart = Math.max(0, pnCtr0 - ratio * newLen);
+    vEnd   = Math.min(maxD, vStart + newLen);
+    drawWave(); return;
+  }
+  if (e.touches.length !== 1 || !drgType) return;
+  var x = tx(e.touches[0]);
+  if (Math.abs(x - drgX0) > 3) drgMoved = true;
+  handleDrag(x);
+}
+
+function onTE(e) {
+  e.preventDefault();
+  if (drgType === 'pan' && !drgMoved) seekTo(x2t(drgX0));
+  drgType = null; pnDist0 = null;
+}
+
+// ── Mouse ────────────────────────────────────────────────────────────────────
+var mouseDown = false;
+function onMD(e) {
+  var r = cv.getBoundingClientRect();
+  var x = e.clientX - r.left;
+  drgX0 = x; drgMoved = false; drgVS0 = vStart; drgVE0 = vEnd;
+  mouseDown = true;
+  if (loopIn  !== null && Math.abs(x - t2x(loopIn))  < 12) { drgType = 'in';  return; }
+  if (loopOut !== null && Math.abs(x - t2x(loopOut)) < 12) { drgType = 'out'; return; }
+  drgType = 'pan';
+}
+function onMM(e) {
+  if (!mouseDown || !drgType) return;
+  var r = cv.getBoundingClientRect();
+  handleDrag(e.clientX - r.left);
+}
+function onMU(e) {
+  if (!mouseDown) return;
+  mouseDown = false;
+  if (drgType === 'pan' && !drgMoved) {
+    var r = cv.getBoundingClientRect();
+    seekTo(x2t(e.clientX - r.left));
+  }
+  drgType = null;
+}
+
+function handleDrag(x) {
+  if (drgType === 'in') {
+    loopIn = Math.max(0, Math.min(loopOut !== null ? loopOut - 0.05 : duration, x2t(x)));
+    document.getElementById('inTime').textContent = fmt(loopIn);
+    drawWave();
+  } else if (drgType === 'out') {
+    loopOut = Math.max(loopIn !== null ? loopIn + 0.05 : 0, Math.min(duration, x2t(x)));
+    document.getElementById('outTime').textContent = fmt(loopOut);
+    drawWave();
+  } else if (drgType === 'pan' && drgMoved) {
+    var tpp = (drgVE0 - drgVS0) / cvW;
+    var len = drgVE0 - drgVS0;
+    vStart = Math.max(0, Math.min(duration - len, drgVS0 - (x - drgX0) * tpp));
+    vEnd   = vStart + len;
+    drawWave();
+  }
+}
+
+// ── Storage ──────────────────────────────────────────────────────────────────
+function skey(){ return 'loops__' + trkName; }
+function getLoops(){
+  try { return JSON.parse(localStorage.getItem(skey())||'[]'); }
+  catch(e) { return []; }
+}
+
+function saveLoop() {
+  if (loopIn===null||loopOut===null||loopIn>=loopOut){ alert('Set valid In and Out points first.'); return; }
+  var loops = getLoops();
+  var name = document.getElementById('loopName').value.trim() || ('Loop '+(loops.length+1));
+  var entry = { name:name, i:loopIn, o:loopOut };
+  if (editIdx>=0 && editIdx<loops.length) loops[editIdx]=entry; else loops.push(entry);
+  try { localStorage.setItem(skey(), JSON.stringify(loops)); }
+  catch(e) { alert('Could not save.'); }
+  editIdx=-1; resetEditor(); renderLoops();
+  log('Saved: ' + name);
+}
+
+function loadLoop(i) {
+  var l = getLoops()[i]; if(!l) return;
+  loopIn=l.i; loopOut=l.o; loopOn=true;
+  document.getElementById('inTime').textContent  = fmt(loopIn);
+  document.getElementById('outTime').textContent = fmt(loopOut);
+  updLoopUI();
+  audio.currentTime = loopIn;
+  if (audio.paused) {
+    var p = audio.play();
+    if (p && p.catch) p.catch(function(err) { log('play err: ' + err.message); });
+  }
+  document.getElementById('waveCard').scrollIntoView({behavior:'smooth'});
+}
+
+function editLoop(i) {
+  var l = getLoops()[i]; if(!l) return;
+  loopIn=l.i; loopOut=l.o;
+  document.getElementById('inTime').textContent  = fmt(loopIn);
+  document.getElementById('outTime').textContent = fmt(loopOut);
+  document.getElementById('loopName').value = l.name;
+  editIdx=i;
+  document.getElementById('saveBtn').textContent='Update';
+  document.getElementById('editBanner').style.display='block';
+  drawWave();
+  document.getElementById('loopCard').scrollIntoView({behavior:'smooth'});
+}
+
+function deleteLoop(i) {
+  var loops=getLoops(); loops.splice(i,1);
+  try { localStorage.setItem(skey(), JSON.stringify(loops)); } catch(e) {}
+  if(editIdx===i){ editIdx=-1; resetEditor(); }
+  renderLoops();
+}
+
+function resetEditor() {
+  document.getElementById('inTime').textContent='--:--';
+  document.getElementById('outTime').textContent='--:--';
+  document.getElementById('loopName').value='';
+  document.getElementById('saveBtn').textContent='Save';
+  document.getElementById('editBanner').style.display='none';
+}
+
+function renderLoops() {
+  var loops=getLoops(), el=document.getElementById('loopList');
+  if(!loops.length){ el.innerHTML='<div class="empty">No saved loops yet</div>'; return; }
+  el.innerHTML=loops.map(function(l,i){
+    return '<div class="loop-item">'+
+      '<div class="ldot"></div>'+
+      '<div class="linfo"><div class="lname">'+esc(l.name)+'</div>'+
+      '<div class="ltimes">'+fmt(l.i)+' &rarr; '+fmt(l.o)+'</div></div>'+
+      '<div class="lacts">'+
+      '<button class="labtn la-load" onclick="loadLoop('+i+')">Load</button>'+
+      '<button class="labtn la-edit" onclick="editLoop('+i+')">Edit</button>'+
+      '<button class="labtn la-del"  onclick="deleteLoop('+i+')">Del</button>'+
+      '</div></div>';
+  }).join('');
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function setStatus(msg,cls){
+  var el=document.getElementById('statusBar');
+  el.textContent=msg; el.className='status'+(cls?' '+cls:'');
+  el.style.display=msg?'block':'none';
+}
+function fmt(s){
+  if(s==null||isNaN(s)) return '0:00';
+  var m = Math.floor(s/60);
+  var sec = Math.floor(s%60);
+  var ms = Math.floor((s%1)*10);
+  return m+':'+sec.toString().padStart(2,'0')+'.'+ms;
+}
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+initCanvas();
+log('Boot OK');
+</script>
+</body>
+</html>
