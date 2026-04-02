@@ -17,9 +17,10 @@ h1{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:var
 .sub{text-align:center;font-size:11px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px}
 .card{background:var(--sur);border-radius:18px;padding:16px;margin-bottom:10px}
 #fileInput{position:fixed;top:-999px;left:-999px;width:1px;height:1px;opacity:0}
-.open-lbl{display:block;width:100%;background:var(--acc);color:#fff;text-align:center;padding:16px;border-radius:13px;font-size:16px;font-weight:600;cursor:pointer;touch-action:manipulation}
+.open-lbl{display:inline-block;background:var(--acc);color:#fff;padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;margin-left:auto}
 .open-lbl:active{opacity:.7}
-.track-name{margin-top:10px;font-size:13px;color:var(--dim);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-header{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+.track-name-top{font-size:13px;color:var(--txt);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
 .status{background:var(--sur2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--dim);text-align:center;margin-bottom:10px;display:none}
 .status.err{color:var(--red)}.status.ok{color:var(--grn)}
 .lib-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--brd);cursor:pointer;touch-action:manipulation}
@@ -141,18 +142,11 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 <body>
 <h1>LOOP TRAINER</h1>
 <p class="sub">Drum practice tool</p>
-<div class="card">
-  <input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac">
-  <label for="fileInput" class="open-lbl">Open Audio File</label>
-  <div class="track-name" id="trackName">No track loaded</div>
-</div>
-<div class="card" id="libCard">
-  <div class="sec-lbl">Library</div>
-  <div id="libList"><div class="lib-empty">No saved tracks</div></div>
-</div>
+<input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac">
 <div class="status" id="statusBar"></div>
-<!-- BPM / Grid card (above waveform) -->
+<!-- BPM / Grid card (above waveform) — includes track name -->
 <div class="card" id="gridCard" style="display:none">
+  <div class="track-name-top" id="trackName">No track loaded</div>
   <div class="grid-info">
     <span class="grid-bpm" id="gridBpmDisp">-- BPM</span>
     <span class="grid-ts" id="gridTsDisp">4/4</span>
@@ -187,7 +181,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <button class="grid-refine" onclick="refineBpmFromCurrent()">Refine BPM</button>
       <button class="grid-reset" onclick="resetToDetected()">Reset to detected</button>
     </div>
-    <div class="grid-hint">Drag waveform left/right to align grid</div>
+    <div class="grid-hint">Top half: drag to shift grid &middot; Bottom half: drag to scroll track</div>
     <button class="cbtn grid-done" onclick="toggleGridEdit()">Done</button>
   </div>
 </div>
@@ -204,13 +198,13 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 </div>
 <!-- Deck: transport + loop + cue + speed in one compact card -->
 <div class="card" id="deckCard" style="display:none;padding:12px">
-  <!-- Transport row: skip / cue / play / skip -->
+  <!-- Transport row: skip / cue / play / skip / transfer -->
   <div class="controls" style="margin-bottom:8px">
     <button class="cbtn" onclick="skip(-5)" style="padding:8px 10px;font-size:12px">-5s</button>
-    <button class="cbtn cue-play-btn" onclick="jumpToCue()">CUE</button>
+    <button class="cbtn cue-play-btn" onclick="cueBtnPress()">CUE</button>
     <button class="cbtn play-btn" id="playBtn" onclick="togglePlay()">&#9654;</button>
     <button class="cbtn" onclick="skip(5)" style="padding:8px 10px;font-size:12px">+5s</button>
-    <button class="cbtn" onclick="setCue()" style="padding:8px 10px;font-size:11px;background:rgba(255,159,10,.2);color:var(--ora);border:1px solid var(--ora)">Set Cue</button>
+    <button class="cbtn" onclick="transferCueToHotCue()" style="padding:8px 10px;font-size:10px;background:rgba(255,159,10,.2);color:var(--ora);border:1px solid var(--ora)">&#8594; Hot Cue</button>
   </div>
   <div class="deck-sep"></div>
   <!-- Loop row -->
@@ -260,6 +254,14 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="save-btn" onclick="saveHotCue()" style="background:var(--ora)">+ Cue</button>
   </div>
   <div id="hotcueList"><div class="empty">No hot cues</div></div>
+</div>
+<!-- Library (at bottom) -->
+<div class="card" id="libCard">
+  <div class="lib-header">
+    <span class="sec-lbl" style="margin-bottom:0">Library</span>
+    <label for="fileInput" class="open-lbl">Open Audio File</label>
+  </div>
+  <div id="libList"><div class="lib-empty">No saved tracks</div></div>
 </div>
 <button class="log-toggle" onclick="toggleLogPanel()">Show Debug Log</button>
 <div id="logPanel">
@@ -674,13 +676,36 @@ function saveCuePoint() {
 function setCue() {
   if (!duration) return;
   cuePoint = audTime();
-  saveCuePoint(); updateCueDisplay(); drawWave();
+  saveCuePoint(); drawWave();
+}
+function cueBtnPress() {
+  if (!duration) return;
+  if (!playing) {
+    // Paused: set cue at current position
+    cuePoint = audTime();
+    saveCuePoint(); drawWave();
+  } else {
+    // Playing: jump to cue and keep playing
+    if (cuePoint !== null) {
+      seekTo(cuePoint);
+      if (!playing) startAt(cuePoint); // seekTo stops, restart
+    }
+  }
 }
 function jumpToCue() {
   if (cuePoint === null) return;
   seekTo(cuePoint);
 }
-function updateCueDisplay() { drawWave(); }
+function transferCueToHotCue() {
+  if (cuePoint === null) { alert('Set a cue point first (pause and press CUE).'); return; }
+  var hcs = getHotCues();
+  var name = 'Cue ' + (hcs.length + 1);
+  hcs.push({ name: name, time: cuePoint });
+  localStorage.setItem(hcKey(), JSON.stringify(hcs));
+  renderHotCues(); drawWave();
+  // Scroll to hot cues so user can rename
+  document.getElementById('hotcueCard').scrollIntoView({ behavior: 'smooth' });
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  Hot Cues
@@ -1107,6 +1132,14 @@ function drawWave() {
     }
   }
 
+  // Grid edit mode: draw zone divider at 50% height
+  if (gridEditMode) {
+    cx.strokeStyle = 'rgba(255,214,10,0.3)'; cx.lineWidth = 1;
+    cx.setLineDash([4, 4]);
+    cx.beginPath(); cx.moveTo(0, waveH * 0.5); cx.lineTo(W, waveH * 0.5); cx.stroke();
+    cx.setLineDash([]);
+  }
+
   // Hot cue markers
   var hcs = getHotCues();
   for (var hi = 0; hi < hcs.length; hi++) {
@@ -1192,12 +1225,16 @@ function onTS(e) {
     return;
   }
   var x = tx(e.touches[0]);
+  var r = cv.getBoundingClientRect();
+  var y = e.touches[0].clientY - r.top;
   drgX0 = x; drgMoved = false; drgVS0 = vStart; drgVE0 = vEnd; drgGridOff0 = gridOffset;
   var phx = t2x(audTime());
-  if (Math.abs(x - phx) < 24 && e.touches[0].clientY - cv.getBoundingClientRect().top < 30) { drgType = 'playhead'; return; }
+  if (Math.abs(x - phx) < 24 && y < 30) { drgType = 'playhead'; return; }
   if (loopIn !== null && Math.abs(x - t2x(loopIn)) < 24) { drgType = 'in'; return; }
   if (loopOut !== null && Math.abs(x - t2x(loopOut)) < 24) { drgType = 'out'; return; }
-  drgType = gridEditMode ? 'gridshift' : 'pan';
+  // Grid edit mode: top half = shift grid, bottom half = pan view
+  if (gridEditMode) { drgType = (y < cvH * 0.5) ? 'gridshift' : 'pan'; }
+  else { drgType = 'pan'; }
 }
 
 function onTM(e) {
@@ -1234,7 +1271,8 @@ function onMD(e) {
   if (Math.abs(x - phx) < 12 && y < 20) { drgType = 'playhead'; return; }
   if (loopIn !== null && Math.abs(x - t2x(loopIn)) < 12) { drgType = 'in'; return; }
   if (loopOut !== null && Math.abs(x - t2x(loopOut)) < 12) { drgType = 'out'; return; }
-  drgType = gridEditMode ? 'gridshift' : 'pan';
+  if (gridEditMode) { drgType = (y < cvH * 0.5) ? 'gridshift' : 'pan'; }
+  else { drgType = 'pan'; }
 }
 function onMM(e) {
   if (!mouseDown || !drgType) return;
@@ -1360,7 +1398,7 @@ function esc(s) {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v7');
+log('Boot OK v8');
 </script>
 </body>
 </html>
