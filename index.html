@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <title>Loop Trainer</title>
 <style>
-:root{--bg:#0e0e0e;--sur:#1c1c1e;--sur2:#2c2c2e;--acc:#0a84ff;--grn:#30d158;--red:#ff453a;--yel:#ffd60a;--txt:#f2f2f7;--dim:#8e8e93;--brd:#38383a}
+:root{--bg:#0e0e0e;--sur:#1c1c1e;--sur2:#2c2c2e;--acc:#0a84ff;--grn:#30d158;--red:#ff453a;--yel:#ffd60a;--ora:#ff9f0a;--txt:#f2f2f7;--dim:#8e8e93;--brd:#38383a}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;padding:14px 14px calc(env(safe-area-inset-bottom,0px) + 48px);padding-top:calc(env(safe-area-inset-top,0px) + 14px)}
 h1{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:var(--acc);padding:10px 0 4px}
@@ -33,7 +33,7 @@ h1{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:var
 .lib-del:active{opacity:.5}
 .lib-empty{text-align:center;color:#444;font-size:13px;padding:10px 0}
 .wave-card{background:var(--sur);border-radius:18px;padding:12px;margin-bottom:10px}
-#waveCanvas{display:block;width:100%;height:160px;border-radius:10px;background:var(--sur2);touch-action:none}
+#waveCanvas{display:block;width:100%;height:170px;border-radius:10px;background:var(--sur2);touch-action:none}
 .wave-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
 .wave-time{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
 .zbtns{display:flex;gap:6px}
@@ -85,7 +85,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .labtn:active{opacity:.6}
 .la-load{color:var(--acc)}.la-edit{color:var(--grn)}.la-del{color:var(--red)}
 .empty{text-align:center;color:#444;font-size:13px;padding:10px 0}
-/* Grid / BPM card */
+/* Grid / BPM */
 .grid-info{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .grid-bpm{font-size:22px;font-weight:700;color:var(--yel);font-variant-numeric:tabular-nums}
 .grid-ts{font-size:16px;font-weight:600;color:var(--dim);margin-left:2px}
@@ -93,18 +93,43 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .grid-edit-btn.active{background:var(--grn)}
 .grid-panel{margin-top:14px;display:none}
 .grid-panel.show{display:block}
-.grid-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.grid-row{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .grid-lbl{font-size:12px;font-weight:600;color:var(--dim);min-width:55px}
-.grid-inp{background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:10px;padding:10px 12px;font-size:15px;font-weight:600;width:90px;text-align:center;font-variant-numeric:tabular-nums}
+.grid-inp{background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:10px;padding:10px 12px;font-size:15px;font-weight:600;width:85px;text-align:center;font-variant-numeric:tabular-nums}
 .grid-inp:focus{outline:none;border-color:var(--yel)}
+.grid-inp-sm{width:45px;padding:8px 6px;font-size:14px;text-align:center}
 .grid-sel{background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:10px;padding:10px 12px;font-size:15px;font-weight:600;-webkit-appearance:none;appearance:none;min-width:70px;text-align:center}
 .grid-sel:focus{outline:none;border-color:var(--yel)}
+.bpm-adj{background:var(--sur2);color:var(--yel);border:1px solid var(--brd);border-radius:10px;width:38px;height:38px;font-size:20px;font-weight:700;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center}
+.bpm-adj:active{opacity:.6}
 .tap-btn{background:var(--yel);color:#000;font-size:16px;font-weight:800;padding:14px 24px;border-radius:14px;min-width:70px;letter-spacing:1px}
 .tap-btn:active{opacity:.7;transform:scale(0.95)}
-.tap-bpm-val{font-size:15px;font-weight:600;color:var(--yel);margin-left:4px;font-variant-numeric:tabular-nums}
+.tap-bpm-val{font-size:15px;font-weight:600;color:var(--yel);font-variant-numeric:tabular-nums}
 .tap-apply{background:var(--grn);color:#000;font-size:13px;font-weight:700;padding:10px 14px;border-radius:10px}
 .grid-hint{font-size:11px;color:var(--dim);text-align:center;margin:6px 0 10px;font-style:italic}
 .grid-done{background:var(--acc);color:#fff;width:100%;padding:13px;border-radius:12px;font-size:14px;font-weight:600}
+.grid-reset{background:var(--sur2);color:var(--dim);font-size:12px;font-weight:600;padding:8px 12px;border-radius:9px;border:none;cursor:pointer}
+.grid-refine{background:rgba(255,159,10,.2);color:var(--ora);font-size:12px;font-weight:600;padding:8px 12px;border-radius:9px;border:1px solid var(--ora);cursor:pointer}
+.grid-refine:active,.grid-reset:active{opacity:.6}
+.custom-ts-row{display:flex;align-items:center;gap:4px;margin-top:4px}
+.custom-ts-row .grid-inp-sm{width:40px}
+.ts-slash{font-size:16px;font-weight:700;color:var(--dim)}
+.ts-add{background:var(--grn);color:#000;font-size:11px;font-weight:700;padding:6px 10px;border-radius:8px;border:none;cursor:pointer;white-space:nowrap}
+/* Cue + Hot Cues */
+.cue-row{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.cue-set{background:var(--ora);color:#000;font-weight:700;padding:10px 14px}
+.cue-jump{background:rgba(255,159,10,.2);color:var(--ora);border:1px solid var(--ora);font-weight:700;padding:10px 14px}
+.cue-time{font-size:14px;color:var(--ora);font-weight:600;font-variant-numeric:tabular-nums;min-width:50px;text-align:center}
+.hc-item{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--brd)}
+.hc-item:last-child{border-bottom:none}
+.hc-num{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#000;flex-shrink:0}
+.hc-info{flex:1;min-width:0}
+.hc-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hc-time{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+.hc-acts{display:flex;gap:5px;flex-shrink:0}
+.hc-btn{background:var(--sur2);border:none;border-radius:8px;padding:6px 9px;font-size:11px;font-weight:600;cursor:pointer}
+.hc-btn:active{opacity:.6}
+.hc-go{color:var(--acc)}.hc-cue{color:var(--ora)}.hc-del{color:var(--red)}
 /* Log */
 .log-toggle{display:block;width:100%;background:none;border:1px solid var(--brd);color:var(--dim);border-radius:13px;padding:12px;font-size:12px;cursor:pointer;margin-top:20px;text-align:center}
 .log-toggle:active{opacity:.6}
@@ -127,6 +152,47 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
   <div id="libList"><div class="lib-empty">No saved tracks</div></div>
 </div>
 <div class="status" id="statusBar"></div>
+<!-- BPM / Grid card (above waveform) -->
+<div class="card" id="gridCard" style="display:none">
+  <div class="grid-info">
+    <span class="grid-bpm" id="gridBpmDisp">-- BPM</span>
+    <span class="grid-ts" id="gridTsDisp">4/4</span>
+    <button class="cbtn grid-edit-btn" id="gridEditBtn" onclick="toggleGridEdit()">Edit Grid</button>
+  </div>
+  <div class="grid-panel" id="gridPanel">
+    <div class="grid-row">
+      <span class="grid-lbl">BPM</span>
+      <button class="bpm-adj" onclick="nudgeBpm(-0.1)">&#8722;</button>
+      <input type="number" class="grid-inp" id="gridBpmInp" step="0.1" min="20" max="300" inputmode="decimal" onchange="onBpmInput(this.value)">
+      <button class="bpm-adj" onclick="nudgeBpm(0.1)">+</button>
+    </div>
+    <div class="grid-row">
+      <span class="grid-lbl">Time Sig</span>
+      <select class="grid-sel" id="gridTsSel" onchange="onTsChange()"></select>
+    </div>
+    <div id="customTsArea" style="display:none">
+      <div class="custom-ts-row">
+        <input type="number" class="grid-inp grid-inp-sm" id="customTsTop" min="1" max="32" value="7">
+        <span class="ts-slash">/</span>
+        <input type="number" class="grid-inp grid-inp-sm" id="customTsBot" min="1" max="32" value="8">
+        <button class="cbtn" style="font-size:12px;padding:8px 12px" onclick="applyCustomTs()">Use</button>
+        <button class="ts-add" onclick="saveCustomTs()">+ Save</button>
+      </div>
+    </div>
+    <div class="grid-row">
+      <button class="cbtn tap-btn" onclick="tapTempo()">TAP</button>
+      <span class="tap-bpm-val" id="tapBpmVal">--</span>
+      <button class="cbtn tap-apply" onclick="applyTapBpm()">Apply</button>
+    </div>
+    <div class="grid-row" style="gap:8px">
+      <button class="grid-refine" onclick="refineBpmFromCurrent()">Refine BPM</button>
+      <button class="grid-reset" onclick="resetToDetected()">Reset to detected</button>
+    </div>
+    <div class="grid-hint">Drag waveform left/right to align grid</div>
+    <button class="cbtn grid-done" onclick="toggleGridEdit()">Done</button>
+  </div>
+</div>
+<!-- Waveform -->
 <div class="wave-card" id="waveCard" style="display:none">
   <canvas id="waveCanvas"></canvas>
   <div class="wave-foot">
@@ -137,42 +203,40 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     </div>
   </div>
 </div>
-<!-- Grid / BPM card -->
-<div class="card" id="gridCard" style="display:none">
-  <div class="grid-info">
-    <span class="grid-bpm" id="gridBpmDisp">-- BPM</span>
-    <span class="grid-ts" id="gridTsDisp">4/4</span>
-    <button class="cbtn grid-edit-btn" id="gridEditBtn" onclick="toggleGridEdit()">Edit Grid</button>
+<!-- Loop Points (directly under waveform) -->
+<div class="card" id="loopCard" style="display:none">
+  <div class="sec-lbl">Loop Points</div>
+  <div class="lp-grid">
+    <button class="lp-btn lp-in" onclick="setIn()">Set In<br><span class="lp-t" id="inTime">--:--</span></button>
+    <button class="lp-btn lp-out" onclick="setOut()">Set Out<br><span class="lp-t" id="outTime">--:--</span></button>
   </div>
-  <div class="grid-panel" id="gridPanel">
-    <div class="grid-row">
-      <span class="grid-lbl">BPM</span>
-      <input type="number" class="grid-inp" id="gridBpmInp" step="0.1" min="20" max="300" inputmode="decimal" onchange="onBpmInput(this.value)">
-    </div>
-    <div class="grid-row">
-      <span class="grid-lbl">Time Sig</span>
-      <select class="grid-sel" id="gridTsSel" onchange="onTsChange()">
-        <option value="2/4">2/4</option>
-        <option value="3/4">3/4</option>
-        <option value="4/4" selected>4/4</option>
-        <option value="5/4">5/4</option>
-        <option value="6/4">6/4</option>
-        <option value="3/8">3/8</option>
-        <option value="6/8">6/8</option>
-        <option value="7/8">7/8</option>
-        <option value="9/8">9/8</option>
-        <option value="12/8">12/8</option>
-      </select>
-    </div>
-    <div class="grid-row">
-      <button class="cbtn tap-btn" id="tapBtn" onclick="tapTempo()">TAP</button>
-      <span class="tap-bpm-val" id="tapBpmVal">--</span>
-      <button class="cbtn tap-apply" onclick="applyTapBpm()">Apply</button>
-    </div>
-    <div class="grid-hint">Drag waveform left/right to align grid</div>
-    <button class="cbtn grid-done" onclick="toggleGridEdit()">Done</button>
+  <div class="loop-row">
+    <span class="loop-row-lbl">Loop active</span>
+    <div class="toggle" id="loopToggle" onclick="toggleLoop()"></div>
+    <span class="tog-lbl" id="togLbl">OFF</span>
+  </div>
+  <div class="edit-banner" id="editBanner">Editing saved loop &mdash; adjust then tap Update</div>
+  <div class="save-row">
+    <input type="text" class="name-inp" id="loopName" placeholder="Name (e.g. Verse, Bridge)" maxlength="30">
+    <button class="save-btn" id="saveBtn" onclick="saveLoop()">Save</button>
   </div>
 </div>
+<!-- Cue + Hot Cues -->
+<div class="card" id="cueCard" style="display:none">
+  <div class="sec-lbl">Cue Point</div>
+  <div class="cue-row">
+    <button class="cbtn cue-set" onclick="setCue()">Set Cue</button>
+    <span class="cue-time" id="cueTime">--:--</span>
+    <button class="cbtn cue-jump" onclick="jumpToCue()">&#9654; Cue</button>
+  </div>
+  <div class="sec-lbl">Hot Cues</div>
+  <div class="save-row" style="margin-bottom:10px">
+    <input type="text" class="name-inp" id="hotcueName" placeholder="Hot cue name" maxlength="20">
+    <button class="save-btn" onclick="saveHotCue()" style="background:var(--ora)">+ Cue</button>
+  </div>
+  <div id="hotcueList"><div class="empty">No hot cues</div></div>
+</div>
+<!-- Controls -->
 <div class="card" id="ctrlCard" style="display:none">
   <div class="controls">
     <button class="cbtn" onclick="skip(-10)">-10s</button>
@@ -182,6 +246,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="cbtn" onclick="skip(10)">+10s</button>
   </div>
 </div>
+<!-- Speed -->
 <div class="card" id="speedCard" style="display:none">
   <div class="speed-big">
     <span class="speed-num" id="speedNum">1.0</span><span class="speed-x">&#215;</span>
@@ -202,23 +267,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="pbtn" onclick="setSpeed(1.5)">1.5&#215;</button>
   </div>
 </div>
-<div class="card" id="loopCard" style="display:none">
-  <div class="sec-lbl">Loop Points</div>
-  <div class="lp-grid">
-    <button class="lp-btn lp-in" onclick="setIn()">Set In<br><span class="lp-t" id="inTime">--:--</span></button>
-    <button class="lp-btn lp-out" onclick="setOut()">Set Out<br><span class="lp-t" id="outTime">--:--</span></button>
-  </div>
-  <div class="loop-row">
-    <span class="loop-row-lbl">Loop active</span>
-    <div class="toggle" id="loopToggle" onclick="toggleLoop()"></div>
-    <span class="tog-lbl" id="togLbl">OFF</span>
-  </div>
-  <div class="edit-banner" id="editBanner">Editing saved loop &mdash; adjust then tap Update</div>
-  <div class="save-row">
-    <input type="text" class="name-inp" id="loopName" placeholder="Name (e.g. Verse, Bridge)" maxlength="30">
-    <button class="save-btn" id="saveBtn" onclick="saveLoop()">Save</button>
-  </div>
-</div>
+<!-- Saved Loops -->
 <div class="card" id="savedCard" style="display:none">
   <div class="sec-lbl">Saved Loops</div>
   <div id="loopList"><div class="empty">No saved loops yet</div></div>
@@ -323,29 +372,31 @@ var playing = false, playCtxT = 0, playAudT = 0, speed = 1.0;
 var loopIn = null, loopOut = null, loopOn = false;
 var trkName = '', trkId = '', editIdx = -1, duration = 0;
 
-// Waveform — 3-band frequency peaks (Rekordbox style)
+// Waveform
 var cv, cx, cvW = 1, cvH = 1;
 var vStart = 0, vEnd = 30;
 var NPKS = 12000;
 var pkLow = null, pkMid = null, pkHigh = null;
 var pkMin = null, pkMax = null;
 
-// Loop lane height for saved loops on timeline
-var LOOP_LANE_H = 5;
-var LOOP_LANE_GAP = 1;
-var LOOP_LANES_ZONE = 0;
+// Loop lanes
+var LOOP_LANE_H = 5, LOOP_LANE_GAP = 1, LOOP_LANES_ZONE = 0;
 
 // Touch
-var drgType = null; // 'in'|'out'|'pan'|'pinch'|'playhead'|'gridshift'
+var drgType = null;
 var drgX0 = 0, drgVS0 = 0, drgVE0 = 0, drgMoved = false;
 var pnDist0 = null, pnLen0 = null, pnCtr0 = null;
-var drgGridOff0 = 0; // initial gridOffset at drag start
+var drgGridOff0 = 0;
 
-// Loop colors palette
 var LOOP_COLORS = [
   '#ff6b6b','#ffa94d','#ffd43b','#69db7c','#38d9a9',
   '#4dabf7','#748ffc','#da77f2','#f783ac','#e599f7',
   '#63e6be','#74c0fc','#a9e34b','#ff8787','#66d9e8'
+];
+
+var HC_COLORS = [
+  '#ff9f0a','#ff375f','#30d158','#0a84ff','#bf5af2',
+  '#ffd60a','#64d2ff','#ff6482','#ac8e68','#ff453a'
 ];
 
 // Grid / BPM
@@ -353,6 +404,16 @@ var gridBPM = 0, gridOffset = 0;
 var gridTimeSigTop = 4, gridTimeSigBot = 4;
 var gridEditMode = false;
 var tapTimes = [];
+var detectedBPM = 0, detectedOffset = 0; // original auto-detected values
+
+// Custom time signatures saved by user
+var customTimeSigs = [];
+
+// Cue + Hot Cues
+var cuePoint = null;
+
+// Default time sigs
+var DEFAULT_TS = ['2/4','3/4','4/4','5/4','6/4','3/8','6/8','7/8','9/8','12/8'];
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  iOS Silent Mode Fix
@@ -361,8 +422,7 @@ var silentUnlocked = false;
 function unlockSilentMode() {
   if (silentUnlocked) return;
   silentUnlocked = true;
-  // Create a tiny silent WAV and play via <audio> to override iOS silent switch
-  var sr = 44100, len = sr; // 1 second of silence
+  var sr = 44100, len = sr;
   var buf = new ArrayBuffer(44 + len * 2);
   var dv = new DataView(buf);
   function ws(off, s) { for (var i = 0; i < s.length; i++) dv.setUint8(off + i, s.charCodeAt(i)); }
@@ -374,8 +434,7 @@ function unlockSilentMode() {
   var blob = new Blob([buf], { type: 'audio/wav' });
   var a = document.createElement('audio');
   a.src = URL.createObjectURL(blob);
-  a.loop = true;
-  a.volume = 0.001;
+  a.loop = true; a.volume = 0.001;
   a.play().catch(function(e){ log('Silent unlock: ' + e.message); });
   log('Silent mode unlock attempted');
 }
@@ -384,10 +443,7 @@ function unlockSilentMode() {
 //  AudioContext + Web Audio playback
 // ══════════════════════════════════════════════════════════════════════════════
 function ensureCtx() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    unlockSilentMode();
-  }
+  if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); unlockSilentMode(); }
   if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
@@ -395,43 +451,30 @@ function audTime() {
   if (!playing || !audioCtx) return playAudT;
   var t = playAudT + (audioCtx.currentTime - playCtxT) * speed;
   if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
-    if (t >= loopOut) {
-      var len = loopOut - loopIn;
-      t = loopIn + ((t - loopIn) % len);
-    }
+    if (t >= loopOut) { var len = loopOut - loopIn; t = loopIn + ((t - loopIn) % len); }
   }
   return Math.max(0, Math.min(duration, t));
 }
 
 function startAt(offset) {
   if (!audioBuf) return;
-  ensureCtx();
-  killSrc();
+  ensureCtx(); killSrc();
   var s = audioCtx.createBufferSource();
-  s.buffer = audioBuf;
-  s.playbackRate.value = speed;
+  s.buffer = audioBuf; s.playbackRate.value = speed;
   if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
-    s.loop = true;
-    s.loopStart = loopIn;
-    s.loopEnd = loopOut;
+    s.loop = true; s.loopStart = loopIn; s.loopEnd = loopOut;
   }
   s.connect(audioCtx.destination);
   var off = Math.max(0, Math.min(duration, offset));
-  playAudT = off;
-  playCtxT = audioCtx.currentTime;
-  s.start(0, off);
-  playing = true;
-  srcNode = s;
-  s.onended = function() {
-    if (srcNode === s) { playing = false; srcNode = null; updPlayBtn(); }
-  };
+  playAudT = off; playCtxT = audioCtx.currentTime;
+  s.start(0, off); playing = true; srcNode = s;
+  s.onended = function() { if (srcNode === s) { playing = false; srcNode = null; updPlayBtn(); } };
   updPlayBtn();
 }
 
 function killSrc() {
   if (!srcNode) return;
-  var t = audTime();
-  var s = srcNode;
+  var t = audTime(); var s = srcNode;
   srcNode = null; playing = false;
   try { s.stop(); } catch(e) {}
   try { s.disconnect(); } catch(e) {}
@@ -439,29 +482,21 @@ function killSrc() {
 }
 
 function stopPlay() { killSrc(); updPlayBtn(); }
-
 function togglePlay() {
   if (!audioBuf) { setStatus('Load a track first.', 'err'); return; }
   ensureCtx();
   if (playing) stopPlay(); else startAt(playAudT);
 }
-
 function skip(s) {
-  var t = audTime() + s, was = playing;
-  stopPlay();
+  var t = audTime() + s, was = playing; stopPlay();
   playAudT = Math.max(0, Math.min(duration, t));
-  if (was) startAt(playAudT);
-  drawWave();
+  if (was) startAt(playAudT); drawWave();
 }
-
 function seekTo(t) {
-  var was = playing;
-  stopPlay();
+  var was = playing; stopPlay();
   playAudT = Math.max(0, Math.min(duration, t));
-  if (was) startAt(playAudT);
-  drawWave();
+  if (was) startAt(playAudT); drawWave();
 }
-
 function updPlayBtn() {
   document.getElementById('playBtn').innerHTML = playing ? '&#9646;&#9646;' : '&#9654;';
 }
@@ -473,8 +508,7 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
   var file = e.target.files && e.target.files[0];
   if (!file) return;
   log('File: ' + file.name + ' ' + (file.size/1024/1024).toFixed(1) + 'MB');
-  ensureCtx();
-  setStatus('Reading file...');
+  ensureCtx(); setStatus('Reading file...');
   var reader = new FileReader();
   reader.onload = function(ev) { decodeAndLoad(file.name, file.size, ev.target.result, true); };
   reader.onerror = function() { setStatus('Could not read file.', 'err'); };
@@ -491,10 +525,11 @@ function decodeAndLoad(name, size, arrayBuf, saveToLib) {
     trkName = name; trkId = trackId(name, size);
     playAudT = 0;
     loopIn = null; loopOut = null; loopOn = false; editIdx = -1;
+    cuePoint = null;
     pkLow = null; pkMid = null; pkHigh = null; pkMin = null; pkMax = null;
     resetEditor(); updLoopUI(); updPlayBtn();
     document.getElementById('trackName').textContent = name;
-    ['waveCard','gridCard','ctrlCard','speedCard','loopCard','savedCard'].forEach(function(id) {
+    ['gridCard','waveCard','loopCard','cueCard','ctrlCard','speedCard','savedCard'].forEach(function(id) {
       document.getElementById(id).style.display = 'block';
     });
     vStart = 0; vEnd = duration;
@@ -503,17 +538,23 @@ function decodeAndLoad(name, size, arrayBuf, saveToLib) {
     // Load saved grid or auto-detect BPM
     var savedGrid = loadGridSettings();
     if (savedGrid) {
-      gridBPM = savedGrid.bpm;
-      gridOffset = savedGrid.offset;
-      gridTimeSigTop = savedGrid.tsTop;
-      gridTimeSigBot = savedGrid.tsBot;
+      gridBPM = savedGrid.bpm; gridOffset = savedGrid.offset;
+      gridTimeSigTop = savedGrid.tsTop; gridTimeSigBot = savedGrid.tsBot;
+      detectedBPM = savedGrid.detBpm || gridBPM;
+      detectedOffset = savedGrid.detOff || gridOffset;
     } else {
-      var detected = detectBPM(buf);
-      gridBPM = detected.bpm;
-      gridOffset = detected.offset;
+      var detected = detectBPM(buf, 60, 200);
+      gridBPM = detected.bpm; gridOffset = detected.offset;
+      detectedBPM = detected.bpm; detectedOffset = detected.offset;
       gridTimeSigTop = 4; gridTimeSigBot = 4;
     }
     updateGridDisplay();
+
+    // Load saved cue
+    var savedCue = loadCuePoint();
+    cuePoint = savedCue;
+    updateCueDisplay();
+    renderHotCues();
 
     setTimeout(function() {
       resizeCanvas();
@@ -556,6 +597,8 @@ function deleteFromLibrary(id, e) {
   if (entry) {
     try { localStorage.removeItem('loops__' + entry.name); } catch(ex) {}
     try { localStorage.removeItem('grid__' + entry.name); } catch(ex) {}
+    try { localStorage.removeItem('cue__' + entry.name); } catch(ex) {}
+    try { localStorage.removeItem('hotcues__' + entry.name); } catch(ex) {}
   }
   saveLibrary(lib.filter(function(x) { return x.id !== id; }));
   renderLibrary();
@@ -599,46 +642,30 @@ function setIn() {
   if (!duration) return;
   loopIn = audTime();
   document.getElementById('inTime').textContent = fmt(loopIn);
-  if (loopOut !== null && loopIn < loopOut) {
-    loopOn = true;
-    updLoopUI();
-    applyLoop();
-  }
+  if (loopOut !== null && loopIn < loopOut) { loopOn = true; updLoopUI(); applyLoop(); }
   drawWave();
 }
-
 function setOut() {
   if (!duration) return;
   loopOut = audTime();
   document.getElementById('outTime').textContent = fmt(loopOut);
-  if (loopIn !== null && loopIn < loopOut) {
-    loopOn = true;
-    updLoopUI();
-    applyLoop();
-  }
+  if (loopIn !== null && loopIn < loopOut) { loopOn = true; updLoopUI(); applyLoop(); }
   drawWave();
 }
-
 function toggleLoop() {
   loopOn = !loopOn;
   if (playing) {
-    if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
-      applyLoop();
-    } else if (!loopOn && srcNode) {
-      var t = audTime(); stopPlay(); startAt(t);
-    }
+    if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) applyLoop();
+    else if (!loopOn && srcNode) { var t = audTime(); stopPlay(); startAt(t); }
   }
   updLoopUI();
 }
-
 function applyLoop() {
   if (loopIn === null || loopOut === null || loopIn >= loopOut) return;
-  var t = audTime(), was = playing;
-  stopPlay();
+  var t = audTime(), was = playing; stopPlay();
   if (t >= loopOut || t < loopIn) t = loopIn;
   if (was) startAt(t);
 }
-
 function updLoopUI() {
   document.getElementById('loopToggle').className = 'toggle' + (loopOn ? ' on' : '');
   document.getElementById('togLbl').textContent = loopOn ? 'ON' : 'OFF';
@@ -646,58 +673,100 @@ function updLoopUI() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  3-band frequency peaks (Rekordbox-style waveform)
+//  Cue Point
+// ══════════════════════════════════════════════════════════════════════════════
+function cueKey() { return 'cue__' + trkName; }
+function loadCuePoint() {
+  try { var v = localStorage.getItem(cueKey()); return v !== null ? parseFloat(v) : null; } catch(e) { return null; }
+}
+function saveCuePoint() {
+  try { if (cuePoint !== null) localStorage.setItem(cueKey(), cuePoint); else localStorage.removeItem(cueKey()); } catch(e) {}
+}
+function setCue() {
+  if (!duration) return;
+  cuePoint = audTime();
+  saveCuePoint(); updateCueDisplay(); drawWave();
+}
+function jumpToCue() {
+  if (cuePoint === null) return;
+  seekTo(cuePoint);
+}
+function updateCueDisplay() {
+  document.getElementById('cueTime').textContent = cuePoint !== null ? fmt(cuePoint) : '--:--';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Hot Cues
+// ══════════════════════════════════════════════════════════════════════════════
+function hcKey() { return 'hotcues__' + trkName; }
+function getHotCues() {
+  try { return JSON.parse(localStorage.getItem(hcKey()) || '[]'); } catch(e) { return []; }
+}
+function saveHotCue() {
+  if (!duration) return;
+  var hcs = getHotCues();
+  var name = document.getElementById('hotcueName').value.trim() || ('Cue ' + (hcs.length + 1));
+  hcs.push({ name: name, time: audTime() });
+  localStorage.setItem(hcKey(), JSON.stringify(hcs));
+  document.getElementById('hotcueName').value = '';
+  renderHotCues(); drawWave();
+}
+function jumpToHotCue(i) {
+  var hc = getHotCues()[i]; if (!hc) return;
+  seekTo(hc.time);
+}
+function hotCueToCue(i) {
+  var hc = getHotCues()[i]; if (!hc) return;
+  cuePoint = hc.time;
+  saveCuePoint(); updateCueDisplay(); drawWave();
+}
+function deleteHotCue(i) {
+  var hcs = getHotCues(); hcs.splice(i, 1);
+  localStorage.setItem(hcKey(), JSON.stringify(hcs));
+  renderHotCues(); drawWave();
+}
+function renderHotCues() {
+  var hcs = getHotCues(), el = document.getElementById('hotcueList');
+  if (!hcs.length) { el.innerHTML = '<div class="empty">No hot cues</div>'; return; }
+  el.innerHTML = hcs.map(function(hc, i) {
+    var color = HC_COLORS[i % HC_COLORS.length];
+    return '<div class="hc-item">' +
+      '<div class="hc-num" style="background:' + color + '">' + (i + 1) + '</div>' +
+      '<div class="hc-info"><div class="hc-name">' + esc(hc.name) + '</div>' +
+      '<div class="hc-time">' + fmt(hc.time) + '</div></div>' +
+      '<div class="hc-acts">' +
+      '<button class="hc-btn hc-go" onclick="jumpToHotCue('+i+')">Go</button>' +
+      '<button class="hc-btn hc-cue" onclick="hotCueToCue('+i+')">&#8594;Cue</button>' +
+      '<button class="hc-btn hc-del" onclick="deleteHotCue('+i+')">Del</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  3-band frequency peaks
 // ══════════════════════════════════════════════════════════════════════════════
 function computePeaks(buf) {
   var sampleRate = buf.sampleRate;
   var ch0 = buf.getChannelData(0);
   var ch1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : null;
-  var N = ch0.length;
-  var spb = N / NPKS;
-
-  pkMin = new Float32Array(NPKS);
-  pkMax = new Float32Array(NPKS);
-  pkLow = new Float32Array(NPKS);
-  pkMid = new Float32Array(NPKS);
-  pkHigh = new Float32Array(NPKS);
-
+  var N = ch0.length, spb = N / NPKS;
+  pkMin = new Float32Array(NPKS); pkMax = new Float32Array(NPKS);
+  pkLow = new Float32Array(NPKS); pkMid = new Float32Array(NPKS); pkHigh = new Float32Array(NPKS);
   var alphaLow = Math.min(1, 2 * Math.PI * 250 / sampleRate);
   var alphaMid = Math.min(1, 2 * Math.PI * 2500 / sampleRate);
-
   var lpLow = 0, lpMid = 0;
-
   for (var i = 0; i < NPKS; i++) {
     var s0 = Math.floor(i * spb), s1 = Math.min(N, Math.floor((i + 1) * spb));
-    var mn = 0, mx = 0;
-    var sumLow = 0, sumMid = 0, sumHigh = 0;
-    var count = s1 - s0;
-
+    var mn = 0, mx = 0, sumL = 0, sumM = 0, sumH = 0, count = s1 - s0;
     for (var j = s0; j < s1; j++) {
       var v = ch1 ? (ch0[j] + ch1[j]) * 0.5 : ch0[j];
-      if (v < mn) mn = v;
-      if (v > mx) mx = v;
-
-      lpLow += alphaLow * (v - lpLow);
-      lpMid += alphaMid * (v - lpMid);
-
-      var bass = Math.abs(lpLow);
-      var mid = Math.abs(lpMid - lpLow);
-      var high = Math.abs(v - lpMid);
-
-      sumLow += bass;
-      sumMid += mid;
-      sumHigh += high;
+      if (v < mn) mn = v; if (v > mx) mx = v;
+      lpLow += alphaLow * (v - lpLow); lpMid += alphaMid * (v - lpMid);
+      sumL += Math.abs(lpLow); sumM += Math.abs(lpMid - lpLow); sumH += Math.abs(v - lpMid);
     }
-
-    pkMin[i] = mn;
-    pkMax[i] = mx;
-    if (count > 0) {
-      pkLow[i] = sumLow / count;
-      pkMid[i] = sumMid / count;
-      pkHigh[i] = sumHigh / count;
-    }
+    pkMin[i] = mn; pkMax[i] = mx;
+    if (count > 0) { pkLow[i] = sumL / count; pkMid[i] = sumM / count; pkHigh[i] = sumH / count; }
   }
-
   var maxL = 0, maxM = 0, maxH = 0;
   for (var i = 0; i < NPKS; i++) {
     if (pkLow[i] > maxL) maxL = pkLow[i];
@@ -707,23 +776,19 @@ function computePeaks(buf) {
   if (maxL > 0) for (var i = 0; i < NPKS; i++) pkLow[i] /= maxL;
   if (maxM > 0) for (var i = 0; i < NPKS; i++) pkMid[i] /= maxM;
   if (maxH > 0) for (var i = 0; i < NPKS; i++) pkHigh[i] /= maxH;
-
-  log('Peaks computed: ' + NPKS + ' bins, 3-band, sr=' + sampleRate);
+  log('Peaks: ' + NPKS + ' bins, sr=' + sampleRate);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  BPM Detection (onset autocorrelation)
+//  BPM Detection
 // ══════════════════════════════════════════════════════════════════════════════
-function detectBPM(buf) {
+function detectBPM(buf, minBPM, maxBPM) {
   var sr = buf.sampleRate;
   var data = buf.getChannelData(0);
   var ch1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : null;
-
-  // Energy in ~23ms windows
   var winSize = 1024;
   var nWins = Math.floor(data.length / winSize);
   var energy = new Float32Array(nWins);
-
   for (var i = 0; i < nWins; i++) {
     var sum = 0, off = i * winSize;
     for (var j = 0; j < winSize; j++) {
@@ -732,52 +797,58 @@ function detectBPM(buf) {
     }
     energy[i] = sum / winSize;
   }
-
-  // Onset strength (positive energy derivative)
   var onset = new Float32Array(nWins);
-  for (var i = 1; i < nWins; i++) {
-    onset[i] = Math.max(0, energy[i] - energy[i - 1]);
-  }
+  for (var i = 1; i < nWins; i++) onset[i] = Math.max(0, energy[i] - energy[i - 1]);
 
-  // Autocorrelation for 60-200 BPM range
-  var wps = sr / winSize; // windows per second
-  var minLag = Math.floor(wps * 60 / 200);
-  var maxLag = Math.ceil(wps * 60 / 60);
-  var useWins = Math.min(nWins, Math.floor(wps * 30)); // analyze up to 30s
+  var wps = sr / winSize;
+  var minLag = Math.floor(wps * 60 / maxBPM);
+  var maxLag = Math.ceil(wps * 60 / minBPM);
+  var useWins = Math.min(nWins, Math.floor(wps * 30));
 
   var bestLag = minLag, bestCorr = 0;
   for (var lag = minLag; lag <= maxLag; lag++) {
     var corr = 0;
-    for (var i = 0; i < useWins - lag; i++) {
-      corr += onset[i] * onset[i + lag];
-    }
+    for (var i = 0; i < useWins - lag; i++) corr += onset[i] * onset[i + lag];
     if (corr > bestCorr) { bestCorr = corr; bestLag = lag; }
   }
+  // Parabolic interpolation for sub-sample precision
+  var fracLag = bestLag;
+  if (bestLag > minLag && bestLag < maxLag) {
+    var corrM = 0, corrP = 0;
+    for (var i = 0; i < useWins - bestLag - 1; i++) {
+      corrM += onset[i] * onset[i + bestLag - 1];
+      corrP += onset[i] * onset[i + bestLag + 1];
+    }
+    var denom = 2 * (2 * bestCorr - corrM - corrP);
+    if (denom > 0) fracLag = bestLag + (corrM - corrP) / denom;
+  }
+  var bpm = Math.round((wps * 60 / fracLag) * 10) / 10;
 
-  var bpm = Math.round((wps * 60 / bestLag) * 10) / 10;
-
-  // Find best phase offset (align grid to onsets)
+  // Find best phase offset
   var beatDur = 60 / bpm;
   var nBeats = Math.floor(duration / beatDur);
-  var steps = 48;
-  var bestOff = 0, bestScore = 0;
+  var steps = 48, bestOff = 0, bestScore = 0;
   for (var s = 0; s < steps; s++) {
-    var off = (s / steps) * beatDur;
-    var score = 0;
+    var off = (s / steps) * beatDur, score = 0;
     for (var bi = 0; bi < Math.min(nBeats, 200); bi++) {
-      var t = off + bi * beatDur;
-      var wi = Math.floor(t * wps);
-      // Check a small window around the beat position
-      for (var d = -2; d <= 2; d++) {
-        var idx = wi + d;
-        if (idx >= 0 && idx < nWins) score += onset[idx];
-      }
+      var t = off + bi * beatDur, wi = Math.floor(t * wps);
+      for (var d = -2; d <= 2; d++) { var idx = wi + d; if (idx >= 0 && idx < nWins) score += onset[idx]; }
     }
     if (score > bestScore) { bestScore = score; bestOff = off; }
   }
-
-  log('BPM detected: ' + bpm + ', offset: ' + bestOff.toFixed(3) + 's');
+  log('BPM detected: ' + bpm + ' (range ' + minBPM + '-' + maxBPM + '), offset: ' + bestOff.toFixed(3));
   return { bpm: bpm, offset: bestOff };
+}
+
+function refineBpmFromCurrent() {
+  if (!audioBuf || gridBPM <= 0) return;
+  // Narrow search: ±3% around current BPM
+  var minB = Math.max(20, gridBPM * 0.97);
+  var maxB = Math.min(300, gridBPM * 1.03);
+  var result = detectBPM(audioBuf, minB, maxB);
+  gridBPM = result.bpm; gridOffset = result.offset;
+  updateGridDisplay(); saveGridSettings();
+  log('Refined BPM: ' + gridBPM);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -787,26 +858,53 @@ function gridKey() { return 'grid__' + trkName; }
 function saveGridSettings() {
   try {
     localStorage.setItem(gridKey(), JSON.stringify({
-      bpm: gridBPM, offset: gridOffset, tsTop: gridTimeSigTop, tsBot: gridTimeSigBot
+      bpm: gridBPM, offset: gridOffset, tsTop: gridTimeSigTop, tsBot: gridTimeSigBot,
+      detBpm: detectedBPM, detOff: detectedOffset
     }));
   } catch(e) {}
 }
 function loadGridSettings() {
-  try {
-    var s = localStorage.getItem(gridKey());
-    return s ? JSON.parse(s) : null;
-  } catch(e) { return null; }
+  try { var s = localStorage.getItem(gridKey()); return s ? JSON.parse(s) : null; } catch(e) { return null; }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  Grid UI
+//  Grid UI + Time Signatures
 // ══════════════════════════════════════════════════════════════════════════════
+function loadCustomTimeSigs() {
+  try { customTimeSigs = JSON.parse(localStorage.getItem('customTimeSigs') || '[]'); } catch(e) { customTimeSigs = []; }
+}
+function saveCustomTimeSigs() {
+  localStorage.setItem('customTimeSigs', JSON.stringify(customTimeSigs));
+}
+
+function buildTsSelect() {
+  var sel = document.getElementById('gridTsSel');
+  sel.innerHTML = '';
+  var all = DEFAULT_TS.slice();
+  customTimeSigs.forEach(function(ts) { if (all.indexOf(ts) < 0) all.push(ts); });
+  all.forEach(function(ts) {
+    var opt = document.createElement('option');
+    opt.value = ts; opt.textContent = ts; sel.appendChild(opt);
+  });
+  var optC = document.createElement('option');
+  optC.value = 'custom'; optC.textContent = 'Custom...'; sel.appendChild(optC);
+  sel.value = gridTimeSigTop + '/' + gridTimeSigBot;
+  // If current TS not in list, add it
+  if (sel.value !== gridTimeSigTop + '/' + gridTimeSigBot) {
+    var opt = document.createElement('option');
+    var v = gridTimeSigTop + '/' + gridTimeSigBot;
+    opt.value = v; opt.textContent = v;
+    sel.insertBefore(opt, sel.lastChild);
+    sel.value = v;
+  }
+}
+
 function updateGridDisplay() {
   var disp = gridBPM > 0 ? gridBPM.toFixed(1) + ' BPM' : '-- BPM';
   document.getElementById('gridBpmDisp').textContent = disp;
   document.getElementById('gridTsDisp').textContent = gridTimeSigTop + '/' + gridTimeSigBot;
   document.getElementById('gridBpmInp').value = gridBPM > 0 ? gridBPM.toFixed(1) : '';
-  document.getElementById('gridTsSel').value = gridTimeSigTop + '/' + gridTimeSigBot;
+  buildTsSelect();
   drawWave();
 }
 
@@ -814,52 +912,69 @@ function toggleGridEdit() {
   gridEditMode = !gridEditMode;
   var panel = document.getElementById('gridPanel');
   var btn = document.getElementById('gridEditBtn');
-  if (gridEditMode) {
-    panel.classList.add('show');
-    btn.textContent = 'Done';
-    btn.classList.add('active');
-  } else {
-    panel.classList.remove('show');
-    btn.textContent = 'Edit Grid';
-    btn.classList.remove('active');
-    saveGridSettings();
-  }
+  if (gridEditMode) { panel.classList.add('show'); btn.textContent = 'Done'; btn.classList.add('active'); }
+  else { panel.classList.remove('show'); btn.textContent = 'Edit Grid'; btn.classList.remove('active'); saveGridSettings(); document.getElementById('customTsArea').style.display = 'none'; }
 }
 
 function onBpmInput(val) {
   var v = parseFloat(val);
-  if (v >= 20 && v <= 300) {
-    gridBPM = Math.round(v * 10) / 10;
-    updateGridDisplay();
-    saveGridSettings();
-  }
+  if (v >= 20 && v <= 300) { gridBPM = Math.round(v * 10) / 10; updateGridDisplay(); saveGridSettings(); }
+}
+function nudgeBpm(delta) {
+  gridBPM = Math.round((gridBPM + delta) * 10) / 10;
+  if (gridBPM < 20) gridBPM = 20; if (gridBPM > 300) gridBPM = 300;
+  updateGridDisplay(); saveGridSettings();
 }
 
 function onTsChange() {
   var val = document.getElementById('gridTsSel').value;
+  if (val === 'custom') {
+    document.getElementById('customTsArea').style.display = 'block';
+    return;
+  }
+  document.getElementById('customTsArea').style.display = 'none';
   var parts = val.split('/');
-  gridTimeSigTop = parseInt(parts[0]);
-  gridTimeSigBot = parseInt(parts[1]);
-  updateGridDisplay();
-  saveGridSettings();
+  gridTimeSigTop = parseInt(parts[0]); gridTimeSigBot = parseInt(parts[1]);
+  updateGridDisplay(); saveGridSettings();
+}
+
+function applyCustomTs() {
+  var top = parseInt(document.getElementById('customTsTop').value);
+  var bot = parseInt(document.getElementById('customTsBot').value);
+  if (!top || !bot || top < 1 || bot < 1) return;
+  gridTimeSigTop = top; gridTimeSigBot = bot;
+  document.getElementById('customTsArea').style.display = 'none';
+  updateGridDisplay(); saveGridSettings();
+}
+
+function saveCustomTs() {
+  var top = parseInt(document.getElementById('customTsTop').value);
+  var bot = parseInt(document.getElementById('customTsBot').value);
+  if (!top || !bot || top < 1 || bot < 1) return;
+  var ts = top + '/' + bot;
+  if (customTimeSigs.indexOf(ts) < 0 && DEFAULT_TS.indexOf(ts) < 0) {
+    customTimeSigs.push(ts); saveCustomTimeSigs();
+  }
+  gridTimeSigTop = top; gridTimeSigBot = bot;
+  document.getElementById('customTsArea').style.display = 'none';
+  updateGridDisplay(); saveGridSettings();
+}
+
+function resetToDetected() {
+  if (detectedBPM <= 0) return;
+  gridBPM = detectedBPM; gridOffset = detectedOffset;
+  updateGridDisplay(); saveGridSettings();
 }
 
 function tapTempo() {
   var now = performance.now();
-  // Reset if more than 2.5s since last tap
-  if (tapTimes.length > 0 && now - tapTimes[tapTimes.length - 1] > 2500) {
-    tapTimes = [];
-  }
+  if (tapTimes.length > 0 && now - tapTimes[tapTimes.length - 1] > 2500) tapTimes = [];
   tapTimes.push(now);
-  if (tapTimes.length > 8) tapTimes.shift(); // keep last 8 taps
-
+  if (tapTimes.length > 8) tapTimes.shift();
   if (tapTimes.length >= 2) {
     var total = 0;
-    for (var i = 1; i < tapTimes.length; i++) {
-      total += tapTimes[i] - tapTimes[i - 1];
-    }
-    var avgMs = total / (tapTimes.length - 1);
-    var bpm = Math.round(60000 / avgMs * 10) / 10;
+    for (var i = 1; i < tapTimes.length; i++) total += tapTimes[i] - tapTimes[i - 1];
+    var bpm = Math.round(60000 / (total / (tapTimes.length - 1)) * 10) / 10;
     document.getElementById('tapBpmVal').textContent = bpm.toFixed(1) + ' BPM';
   } else {
     document.getElementById('tapBpmVal').textContent = 'tap...';
@@ -871,8 +986,7 @@ function applyTapBpm() {
   var m = text.match(/([\d.]+)/);
   if (m) {
     gridBPM = parseFloat(m[1]);
-    updateGridDisplay();
-    saveGridSettings();
+    updateGridDisplay(); saveGridSettings();
     tapTimes = [];
     document.getElementById('tapBpmVal').textContent = 'Applied!';
     setTimeout(function() { document.getElementById('tapBpmVal').textContent = '--'; }, 1000);
@@ -901,19 +1015,14 @@ function resizeCanvas() {
   var r = cv.getBoundingClientRect();
   if (r.width < 1 || r.height < 1) return;
   cvW = r.width; cvH = r.height;
-  cv.width = Math.round(r.width * dpr);
-  cv.height = Math.round(r.height * dpr);
-  cx = cv.getContext('2d');
-  cx.scale(dpr, dpr);
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  cx = cv.getContext('2d'); cx.scale(dpr, dpr);
   drawWave();
 }
 
 function animLoop() {
   if (playing && audioBuf) {
-    var t = audTime();
-    var len = vEnd - vStart;
-    var px = (t - vStart) / len;
-    // Only auto-scroll when loop is OFF — let user browse freely during loop playback
+    var t = audTime(), len = vEnd - vStart, px = (t - vStart) / len;
     if (!loopOn && (px > 0.85 || px < 0)) {
       vStart = Math.max(0, Math.min(duration - len, t - len * 0.2));
       vEnd = vStart + len;
@@ -931,32 +1040,22 @@ function drawWave() {
   if (!cx || cvW < 1) return;
   var W = cvW, H = cvH;
   cx.clearRect(0, 0, W, H);
-  cx.fillStyle = '#1c1c1e';
-  cx.fillRect(0, 0, W, H);
+  cx.fillStyle = '#1c1c1e'; cx.fillRect(0, 0, W, H);
   if (!duration) return;
 
-  // Compute loop lanes zone height
   var loops = getLoops();
   LOOP_LANES_ZONE = loops.length > 0 ? loops.length * (LOOP_LANE_H + LOOP_LANE_GAP) + 4 : 0;
   var waveH = H - LOOP_LANES_ZONE;
-  var waveTop = 0;
 
-  // Draw saved loop lanes at bottom
-  if (loops.length > 0) {
-    for (var li = 0; li < loops.length; li++) {
-      var sl = loops[li];
-      var color = getLoopColor(li);
-      var x1 = t2x(sl.i), x2 = t2x(sl.o);
-      var laneY = H - LOOP_LANES_ZONE + 4 + li * (LOOP_LANE_H + LOOP_LANE_GAP);
-      cx.fillStyle = color;
-      cx.fillRect(x1, laneY, Math.max(1, x2 - x1), LOOP_LANE_H);
-      cx.strokeStyle = color;
-      cx.lineWidth = 0.5;
-      cx.strokeRect(x1, laneY, Math.max(1, x2 - x1), LOOP_LANE_H);
-    }
+  // Saved loop lanes at bottom
+  for (var li = 0; li < loops.length; li++) {
+    var sl = loops[li], color = getLoopColor(li);
+    var x1 = t2x(sl.i), x2 = t2x(sl.o);
+    var laneY = H - LOOP_LANES_ZONE + 4 + li * (LOOP_LANE_H + LOOP_LANE_GAP);
+    cx.fillStyle = color; cx.fillRect(x1, laneY, Math.max(1, x2 - x1), LOOP_LANE_H);
   }
 
-  // Active loop region — strong white overlay
+  // Active loop overlay
   if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
     cx.fillStyle = 'rgba(255,255,255,0.18)';
     cx.fillRect(t2x(loopIn), 0, t2x(loopOut) - t2x(loopIn), waveH);
@@ -966,8 +1065,7 @@ function drawWave() {
   }
 
   // Center line
-  cx.strokeStyle = 'rgba(255,255,255,0.06)';
-  cx.lineWidth = 1;
+  cx.strokeStyle = 'rgba(255,255,255,0.06)'; cx.lineWidth = 1;
   cx.beginPath(); cx.moveTo(0, waveH/2); cx.lineTo(W, waveH/2); cx.stroke();
 
   // 3-band colored waveform
@@ -977,21 +1075,15 @@ function drawWave() {
       var tb = vStart + ((x+1) / W) * (vEnd - vStart);
       var b0 = Math.max(0, Math.floor(ta / duration * NPKS));
       var b1 = Math.min(NPKS-1, Math.ceil(tb / duration * NPKS));
-      var mn = 0, mx = 0;
-      var bL = 0, bM = 0, bH = 0, cnt = 0;
+      var mn = 0, mx = 0, bL = 0, bM = 0, bH = 0, cnt = 0;
       for (var b = b0; b <= b1; b++) {
-        if (pkMin[b] < mn) mn = pkMin[b];
-        if (pkMax[b] > mx) mx = pkMax[b];
+        if (pkMin[b] < mn) mn = pkMin[b]; if (pkMax[b] > mx) mx = pkMax[b];
         bL += pkLow[b]; bM += pkMid[b]; bH += pkHigh[b]; cnt++;
       }
       if (cnt > 0) { bL /= cnt; bM /= cnt; bH /= cnt; }
-
-      // Color from dominant frequency band — Rekordbox-style vivid coloring
-      var total = bL + bM + bH;
-      var r, g, bl;
+      var total = bL + bM + bH, r, g, bl;
       if (total > 0.001) {
-        var wL = (bL*bL), wM = (bM*bM), wH = (bH*bH);
-        var wT = wL + wM + wH;
+        var wL = bL*bL, wM = bM*bM, wH = bH*bH, wT = wL + wM + wH;
         wL /= wT; wM /= wT; wH /= wT;
         r = Math.round(50*wL + 50*wM + 255*wH);
         g = Math.round(100*wL + 255*wM + 70*wH);
@@ -1001,68 +1093,79 @@ function drawWave() {
         r = Math.min(255, Math.round(r * bright));
         g = Math.min(255, Math.round(g * bright));
         bl = Math.min(255, Math.round(bl * bright));
-      } else {
-        r = 25; g = 40; bl = 80;
-      }
+      } else { r = 25; g = 40; bl = 80; }
       cx.fillStyle = 'rgb(' + r + ',' + g + ',' + bl + ')';
-
-      var cy2 = waveH / 2;
-      var yT = cy2 - mx * cy2;
-      var yB = cy2 - mn * cy2;
+      var cy2 = waveH / 2, yT = cy2 - mx * cy2, yB = cy2 - mn * cy2;
       cx.fillRect(x, yT, 1, Math.max(1, yB - yT));
     }
   }
 
-  // ── Beat grid overlay ──────────────────────────────────────────────────
+  // Beat grid overlay
   if (gridBPM > 0) {
-    var beatDur = 60 / gridBPM;
-    var beatsPerBar = gridTimeSigTop;
+    var beatDur = 60 / gridBPM, beatsPerBar = gridTimeSigTop;
     var firstBeat = Math.floor((vStart - gridOffset) / beatDur) - 1;
     var lastBeat = Math.ceil((vEnd - gridOffset) / beatDur) + 1;
-
     for (var bi = firstBeat; bi <= lastBeat; bi++) {
       var t = gridOffset + bi * beatDur;
       if (t < vStart - beatDur * 0.1 || t > vEnd + beatDur * 0.1) continue;
       var gx = t2x(t);
       if (gx < -2 || gx > W + 2) continue;
-
-      // Determine if this is a downbeat (first beat of bar)
-      // Use modular arithmetic: beat 0 is a downbeat
       var beatInBar = ((bi % beatsPerBar) + beatsPerBar) % beatsPerBar;
-      var isDownbeat = (beatInBar === 0);
-
-      if (isDownbeat) {
-        cx.strokeStyle = 'rgba(255,214,10,0.55)';
-        cx.lineWidth = 2;
+      if (beatInBar === 0) {
+        cx.strokeStyle = 'rgba(255,214,10,0.55)'; cx.lineWidth = 2;
       } else {
-        cx.strokeStyle = 'rgba(255,214,10,0.18)';
-        cx.lineWidth = 0.7;
+        cx.strokeStyle = 'rgba(255,214,10,0.18)'; cx.lineWidth = 0.7;
       }
-      cx.beginPath();
-      cx.moveTo(gx, 0);
-      cx.lineTo(gx, waveH);
-      cx.stroke();
+      cx.beginPath(); cx.moveTo(gx, 0); cx.lineTo(gx, waveH); cx.stroke();
     }
   }
 
-  // Loop IN marker
+  // Hot cue markers
+  var hcs = getHotCues();
+  for (var hi = 0; hi < hcs.length; hi++) {
+    var hcx = t2x(hcs[hi].time);
+    if (hcx < -10 || hcx > W + 10) continue;
+    var hcColor = HC_COLORS[hi % HC_COLORS.length];
+    // Small diamond at bottom of waveform area
+    var dy = waveH - 12;
+    cx.fillStyle = hcColor;
+    cx.beginPath();
+    cx.moveTo(hcx, dy - 6); cx.lineTo(hcx + 6, dy); cx.lineTo(hcx, dy + 6); cx.lineTo(hcx - 6, dy);
+    cx.closePath(); cx.fill();
+    // Thin line
+    cx.strokeStyle = hcColor; cx.lineWidth = 0.8; cx.globalAlpha = 0.5;
+    cx.beginPath(); cx.moveTo(hcx, 0); cx.lineTo(hcx, waveH); cx.stroke();
+    cx.globalAlpha = 1;
+    // Number
+    cx.fillStyle = '#000'; cx.font = 'bold 8px sans-serif'; cx.textAlign = 'center';
+    cx.fillText(hi + 1, hcx, dy + 3);
+  }
+
+  // Cue point marker (orange triangle at top)
+  if (cuePoint !== null) {
+    var cuex = t2x(cuePoint);
+    if (cuex >= -10 && cuex <= W + 10) {
+      cx.strokeStyle = '#ff9f0a'; cx.lineWidth = 2;
+      cx.beginPath(); cx.moveTo(cuex, 0); cx.lineTo(cuex, waveH); cx.stroke();
+      cx.fillStyle = '#ff9f0a';
+      cx.beginPath(); cx.moveTo(cuex - 7, 0); cx.lineTo(cuex + 7, 0); cx.lineTo(cuex, 14); cx.closePath(); cx.fill();
+      // C label
+      cx.fillStyle = '#000'; cx.font = 'bold 9px sans-serif'; cx.textAlign = 'center';
+      cx.fillText('C', cuex, 10);
+    }
+  }
+
+  // Loop markers
   if (loopIn !== null) drawMarker(t2x(loopIn), '#30d158', waveH);
-  // Loop OUT marker
   if (loopOut !== null) drawMarker(t2x(loopOut), '#ff453a', waveH);
 
-  // Playhead with white triangle handle
+  // Playhead
   var ph = t2x(audTime());
   if (ph >= -10 && ph <= W + 10) {
-    cx.strokeStyle = '#ffffff';
-    cx.lineWidth = 1.5;
+    cx.strokeStyle = '#ffffff'; cx.lineWidth = 1.5;
     cx.beginPath(); cx.moveTo(ph, 0); cx.lineTo(ph, H); cx.stroke();
     cx.fillStyle = '#ffffff';
-    cx.beginPath();
-    cx.moveTo(ph - 8, 0);
-    cx.lineTo(ph + 8, 0);
-    cx.lineTo(ph, 14);
-    cx.closePath();
-    cx.fill();
+    cx.beginPath(); cx.moveTo(ph - 8, 0); cx.lineTo(ph + 8, 0); cx.lineTo(ph, 14); cx.closePath(); cx.fill();
   }
 }
 
@@ -1088,7 +1191,7 @@ function doZoom(f) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  Touch + Mouse (with playhead drag, live loop editing, grid shift)
+//  Touch + Mouse
 // ══════════════════════════════════════════════════════════════════════════════
 function tx(touch) { return touch.clientX - cv.getBoundingClientRect().left; }
 
@@ -1096,8 +1199,7 @@ function onTS(e) {
   e.preventDefault();
   if (e.touches.length === 2) {
     drgType = 'pinch';
-    pnDist0 = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
-                         e.touches[0].clientY - e.touches[1].clientY);
+    pnDist0 = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
     pnLen0 = vEnd - vStart;
     pnCtr0 = x2t((tx(e.touches[0]) + tx(e.touches[1])) / 2);
     return;
@@ -1105,9 +1207,7 @@ function onTS(e) {
   var x = tx(e.touches[0]);
   drgX0 = x; drgMoved = false; drgVS0 = vStart; drgVE0 = vEnd; drgGridOff0 = gridOffset;
   var phx = t2x(audTime());
-  if (Math.abs(x - phx) < 24 && e.touches[0].clientY - cv.getBoundingClientRect().top < 30) {
-    drgType = 'playhead'; return;
-  }
+  if (Math.abs(x - phx) < 24 && e.touches[0].clientY - cv.getBoundingClientRect().top < 30) { drgType = 'playhead'; return; }
   if (loopIn !== null && Math.abs(x - t2x(loopIn)) < 24) { drgType = 'in'; return; }
   if (loopOut !== null && Math.abs(x - t2x(loopOut)) < 24) { drgType = 'out'; return; }
   drgType = gridEditMode ? 'gridshift' : 'pan';
@@ -1116,8 +1216,7 @@ function onTS(e) {
 function onTM(e) {
   e.preventDefault();
   if (drgType === 'pinch' && e.touches.length === 2) {
-    var d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
-                       e.touches[0].clientY - e.touches[1].clientY);
+    var d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
     var maxD = duration || 100;
     var newLen = Math.max(0.5, Math.min(maxD, pnLen0 * pnDist0 / d));
     var ratio = (pnCtr0 - vStart) / (vEnd - vStart);
@@ -1133,21 +1232,15 @@ function onTM(e) {
 
 function onTE(e) {
   e.preventDefault();
-  if ((drgType === 'in' || drgType === 'out') && loopOn && playing) {
-    applyLoop();
-  }
-  if (drgType === 'gridshift' && drgMoved) {
-    saveGridSettings();
-  }
+  if ((drgType === 'in' || drgType === 'out') && loopOn && playing) applyLoop();
+  if (drgType === 'gridshift' && drgMoved) saveGridSettings();
   if ((drgType === 'pan' || drgType === 'gridshift') && !drgMoved) seekTo(x2t(drgX0));
   drgType = null; pnDist0 = null;
 }
 
 var mouseDown = false;
 function onMD(e) {
-  var r = cv.getBoundingClientRect();
-  var x = e.clientX - r.left;
-  var y = e.clientY - r.top;
+  var r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
   drgX0 = x; drgMoved = false; drgVS0 = vStart; drgVE0 = vEnd; drgGridOff0 = gridOffset;
   mouseDown = true;
   var phx = t2x(audTime());
@@ -1158,69 +1251,48 @@ function onMD(e) {
 }
 function onMM(e) {
   if (!mouseDown || !drgType) return;
-  var r = cv.getBoundingClientRect();
-  var x = e.clientX - r.left;
+  var x = e.clientX - cv.getBoundingClientRect().left;
   if (Math.abs(x - drgX0) > 3) drgMoved = true;
   handleDrag(x);
 }
 function onMU(e) {
   if (!mouseDown) return;
   mouseDown = false;
-  if ((drgType === 'in' || drgType === 'out') && loopOn && playing) {
-    applyLoop();
-  }
-  if (drgType === 'gridshift' && drgMoved) {
-    saveGridSettings();
-  }
-  if ((drgType === 'pan' || drgType === 'gridshift') && !drgMoved) {
-    var r = cv.getBoundingClientRect();
-    seekTo(x2t(e.clientX - r.left));
-  }
+  if ((drgType === 'in' || drgType === 'out') && loopOn && playing) applyLoop();
+  if (drgType === 'gridshift' && drgMoved) saveGridSettings();
+  if ((drgType === 'pan' || drgType === 'gridshift') && !drgMoved) seekTo(x2t(e.clientX - cv.getBoundingClientRect().left));
   drgType = null;
 }
 
 function handleDrag(x) {
   if (drgType === 'playhead') {
-    var t = Math.max(0, Math.min(duration, x2t(x)));
-    seekTo(t);
+    seekTo(Math.max(0, Math.min(duration, x2t(x))));
   } else if (drgType === 'in') {
     loopIn = Math.max(0, Math.min(loopOut !== null ? loopOut - 0.05 : duration, x2t(x)));
-    document.getElementById('inTime').textContent = fmt(loopIn);
-    drawWave();
+    document.getElementById('inTime').textContent = fmt(loopIn); drawWave();
   } else if (drgType === 'out') {
     loopOut = Math.max(loopIn !== null ? loopIn + 0.05 : 0, Math.min(duration, x2t(x)));
-    document.getElementById('outTime').textContent = fmt(loopOut);
-    drawWave();
+    document.getElementById('outTime').textContent = fmt(loopOut); drawWave();
   } else if (drgType === 'gridshift' && drgMoved) {
-    // In grid edit mode: drag shifts the grid offset
     var tpp = (drgVE0 - drgVS0) / cvW;
     gridOffset = drgGridOff0 + (x - drgX0) * tpp;
     updateGridDisplay();
   } else if (drgType === 'pan' && drgMoved) {
-    var tpp = (drgVE0 - drgVS0) / cvW;
-    var len = drgVE0 - drgVS0;
+    var tpp = (drgVE0 - drgVS0) / cvW, len = drgVE0 - drgVS0;
     vStart = Math.max(0, Math.min(duration - len, drgVS0 - (x - drgX0) * tpp));
-    vEnd = vStart + len;
-    drawWave();
+    vEnd = vStart + len; drawWave();
   }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  Loops storage + colors
+//  Loops storage
 // ══════════════════════════════════════════════════════════════════════════════
 function skey() { return 'loops__' + trkName; }
-function getLoops() {
-  try { return JSON.parse(localStorage.getItem(skey()) || '[]'); } catch(e) { return []; }
-}
-
-function getLoopColor(idx) {
-  return LOOP_COLORS[idx % LOOP_COLORS.length];
-}
+function getLoops() { try { return JSON.parse(localStorage.getItem(skey()) || '[]'); } catch(e) { return []; } }
+function getLoopColor(idx) { return LOOP_COLORS[idx % LOOP_COLORS.length]; }
 
 function saveLoop() {
-  if (loopIn === null || loopOut === null || loopIn >= loopOut) {
-    alert('Set valid In and Out points first.'); return;
-  }
+  if (loopIn === null || loopOut === null || loopIn >= loopOut) { alert('Set valid In and Out points first.'); return; }
   var loops = getLoops();
   var name = document.getElementById('loopName').value.trim() || ('Loop ' + (loops.length + 1));
   var entry = { name: name, i: loopIn, o: loopOut };
@@ -1228,7 +1300,6 @@ function saveLoop() {
   localStorage.setItem(skey(), JSON.stringify(loops));
   editIdx = -1; resetEditor(); renderLoops(); drawWave();
 }
-
 function loadLoop(i) {
   var l = getLoops()[i]; if (!l) return;
   loopIn = l.i; loopOut = l.o; loopOn = true;
@@ -1237,7 +1308,6 @@ function loadLoop(i) {
   updLoopUI(); stopPlay(); startAt(loopIn);
   document.getElementById('waveCard').scrollIntoView({ behavior: 'smooth' });
 }
-
 function editLoop(i) {
   var l = getLoops()[i]; if (!l) return;
   loopIn = l.i; loopOut = l.o; loopOn = true;
@@ -1247,19 +1317,15 @@ function editLoop(i) {
   editIdx = i;
   document.getElementById('saveBtn').textContent = 'Update';
   document.getElementById('editBanner').style.display = 'block';
-  updLoopUI();
-  stopPlay(); startAt(loopIn);
-  drawWave();
+  updLoopUI(); stopPlay(); startAt(loopIn); drawWave();
   document.getElementById('loopCard').scrollIntoView({ behavior: 'smooth' });
 }
-
 function deleteLoop(i) {
   var loops = getLoops(); loops.splice(i, 1);
   localStorage.setItem(skey(), JSON.stringify(loops));
   if (editIdx === i) { editIdx = -1; resetEditor(); }
   renderLoops(); drawWave();
 }
-
 function resetEditor() {
   document.getElementById('inTime').textContent = '--:--';
   document.getElementById('outTime').textContent = '--:--';
@@ -1267,7 +1333,6 @@ function resetEditor() {
   document.getElementById('saveBtn').textContent = 'Save';
   document.getElementById('editBanner').style.display = 'none';
 }
-
 function renderLoops() {
   var loops = getLoops(), el = document.getElementById('loopList');
   if (!loops.length) { el.innerHTML = '<div class="empty">No saved loops yet</div>'; return; }
@@ -1305,9 +1370,10 @@ function esc(s) {
 // ══════════════════════════════════════════════════════════════════════════════
 //  Boot
 // ══════════════════════════════════════════════════════════════════════════════
+loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v5');
+log('Boot OK v6');
 </script>
 </body>
 </html>
