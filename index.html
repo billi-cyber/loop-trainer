@@ -42,10 +42,12 @@ h1{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:var
 .controls{display:flex;align-items:center;justify-content:center;gap:10px}
 .cbtn{background:var(--sur2);color:var(--txt);border:none;border-radius:12px;padding:12px 15px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation}
 .cbtn:active{opacity:.6}
-.play-btn{width:66px;height:66px;border-radius:33px;background:var(--acc);color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center}
-.speed-big{text-align:center;margin-bottom:12px;line-height:1}
-.speed-num{font-size:48px;font-weight:700;color:var(--acc);letter-spacing:-2px}
-.speed-x{font-size:22px;color:var(--dim)}
+.play-btn{width:50px;height:50px;border-radius:25px;background:var(--acc);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
+.cue-play-btn{width:50px;height:50px;border-radius:25px;background:var(--ora);color:#000;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.cue-play-btn:active{opacity:.7}
+.speed-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.speed-num-sm{font-size:18px;font-weight:700;color:var(--acc);min-width:40px;text-align:center;font-variant-numeric:tabular-nums}
+.speed-lbl{font-size:11px;color:var(--dim);font-weight:600}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;background:var(--sur2);border-radius:3px;outline:none;margin-bottom:14px}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:14px;background:var(--acc);box-shadow:0 2px 6px rgba(0,0,0,.5)}
 input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
@@ -54,25 +56,26 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .pbtn.on{background:var(--acc);color:#fff}
 .pbtn:active{opacity:.6}
 .sec-lbl{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:13px}
-.lp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:13px}
-.lp-btn{border:none;border-radius:14px;padding:15px 8px;text-align:center;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.lp-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.lp-btn{border:none;border-radius:10px;padding:8px 6px;text-align:center;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
 .lp-btn:active{opacity:.7}
 .lp-in{background:rgba(48,209,88,.15);color:var(--grn);border:1.5px solid var(--grn)}
 .lp-out{background:rgba(255,69,58,.15);color:var(--red);border:1.5px solid var(--red)}
-.lp-t{font-size:13px;font-weight:400;margin-top:5px;font-variant-numeric:tabular-nums;opacity:.85}
-.loop-row{display:flex;align-items:center;gap:12px;margin-bottom:13px}
-.loop-row-lbl{font-size:15px;font-weight:600;flex:1}
-.toggle{width:54px;height:30px;background:var(--sur2);border-radius:15px;position:relative;cursor:pointer;touch-action:manipulation;transition:background .2s;flex-shrink:0}
+.lp-t{font-size:11px;font-weight:400;margin-top:2px;font-variant-numeric:tabular-nums;opacity:.85}
+.loop-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.loop-row-lbl{font-size:13px;font-weight:600;flex:1}
+.toggle{width:44px;height:24px;background:var(--sur2);border-radius:12px;position:relative;cursor:pointer;touch-action:manipulation;transition:background .2s;flex-shrink:0}
 .toggle.on{background:var(--acc)}
-.toggle::after{content:'';position:absolute;width:24px;height:24px;background:#fff;border-radius:12px;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.4)}
-.toggle.on::after{left:27px}
-.tog-lbl{font-size:14px;color:var(--dim);min-width:26px}
+.toggle::after{content:'';position:absolute;width:20px;height:20px;background:#fff;border-radius:10px;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.toggle.on::after{left:22px}
+.tog-lbl{font-size:12px;color:var(--dim);min-width:22px}
+.deck-sep{height:1px;background:var(--brd);margin:8px 0}
 .edit-banner{background:rgba(48,209,88,.12);border:1px solid var(--grn);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--grn);margin-bottom:11px;display:none}
-.save-row{display:flex;gap:8px}
-.name-inp{flex:1;background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:12px;padding:13px 14px;font-size:14px;-webkit-appearance:none}
+.save-row{display:flex;gap:6px}
+.name-inp{flex:1;background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:10px;padding:9px 10px;font-size:13px;-webkit-appearance:none}
 .name-inp::placeholder{color:#555}
 .name-inp:focus{outline:none;border-color:var(--acc)}
-.save-btn{background:var(--acc);color:#fff;border:none;border-radius:12px;padding:13px 18px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap}
+.save-btn{background:var(--acc);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap}
 .save-btn:active{opacity:.7}
 .loop-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--brd)}
 .loop-item:last-child{border-bottom:none}
@@ -115,11 +118,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .custom-ts-row .grid-inp-sm{width:40px}
 .ts-slash{font-size:16px;font-weight:700;color:var(--dim)}
 .ts-add{background:var(--grn);color:#000;font-size:11px;font-weight:700;padding:6px 10px;border-radius:8px;border:none;cursor:pointer;white-space:nowrap}
-/* Cue + Hot Cues */
-.cue-row{display:flex;align-items:center;gap:8px;margin-bottom:14px}
-.cue-set{background:var(--ora);color:#000;font-weight:700;padding:10px 14px}
-.cue-jump{background:rgba(255,159,10,.2);color:var(--ora);border:1px solid var(--ora);font-weight:700;padding:10px 14px}
-.cue-time{font-size:14px;color:var(--ora);font-weight:600;font-variant-numeric:tabular-nums;min-width:50px;text-align:center}
+/* Hot Cues */
 .hc-item{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--brd)}
 .hc-item:last-child{border-bottom:none}
 .hc-num{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#000;flex-shrink:0}
@@ -203,74 +202,64 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     </div>
   </div>
 </div>
-<!-- Loop Points (directly under waveform) -->
-<div class="card" id="loopCard" style="display:none">
-  <div class="sec-lbl">Loop Points</div>
+<!-- Deck: transport + loop + cue + speed in one compact card -->
+<div class="card" id="deckCard" style="display:none;padding:12px">
+  <!-- Transport row: skip / cue / play / skip -->
+  <div class="controls" style="margin-bottom:8px">
+    <button class="cbtn" onclick="skip(-5)" style="padding:8px 10px;font-size:12px">-5s</button>
+    <button class="cbtn cue-play-btn" onclick="jumpToCue()">CUE</button>
+    <button class="cbtn play-btn" id="playBtn" onclick="togglePlay()">&#9654;</button>
+    <button class="cbtn" onclick="skip(5)" style="padding:8px 10px;font-size:12px">+5s</button>
+    <button class="cbtn" onclick="setCue()" style="padding:8px 10px;font-size:11px;background:rgba(255,159,10,.2);color:var(--ora);border:1px solid var(--ora)">Set Cue</button>
+  </div>
+  <div class="deck-sep"></div>
+  <!-- Loop row -->
   <div class="lp-grid">
-    <button class="lp-btn lp-in" onclick="setIn()">Set In<br><span class="lp-t" id="inTime">--:--</span></button>
-    <button class="lp-btn lp-out" onclick="setOut()">Set Out<br><span class="lp-t" id="outTime">--:--</span></button>
+    <button class="lp-btn lp-in" onclick="setIn()">In <span class="lp-t" id="inTime">--:--</span></button>
+    <button class="lp-btn lp-out" onclick="setOut()">Out <span class="lp-t" id="outTime">--:--</span></button>
   </div>
   <div class="loop-row">
-    <span class="loop-row-lbl">Loop active</span>
+    <span class="loop-row-lbl">Loop</span>
     <div class="toggle" id="loopToggle" onclick="toggleLoop()"></div>
     <span class="tog-lbl" id="togLbl">OFF</span>
   </div>
   <div class="edit-banner" id="editBanner">Editing saved loop &mdash; adjust then tap Update</div>
   <div class="save-row">
-    <input type="text" class="name-inp" id="loopName" placeholder="Name (e.g. Verse, Bridge)" maxlength="30">
+    <input type="text" class="name-inp" id="loopName" placeholder="Loop name" maxlength="30">
     <button class="save-btn" id="saveBtn" onclick="saveLoop()">Save</button>
   </div>
-</div>
-<!-- Cue + Hot Cues -->
-<div class="card" id="cueCard" style="display:none">
-  <div class="sec-lbl">Cue Point</div>
-  <div class="cue-row">
-    <button class="cbtn cue-set" onclick="setCue()">Set Cue</button>
-    <span class="cue-time" id="cueTime">--:--</span>
-    <button class="cbtn cue-jump" onclick="jumpToCue()">&#9654; Cue</button>
+  <div class="deck-sep"></div>
+  <!-- Speed row -->
+  <div class="speed-row">
+    <span class="speed-lbl">Speed</span>
+    <span class="speed-num-sm" id="speedNum">1.0</span>
+    <input type="range" id="speedSlider" min="0.5" max="1.5" step="0.05" value="1.0"
+           oninput="setSpeed(parseFloat(this.value))" style="flex:1;margin-bottom:0">
   </div>
-  <div class="sec-lbl">Hot Cues</div>
-  <div class="save-row" style="margin-bottom:10px">
-    <input type="text" class="name-inp" id="hotcueName" placeholder="Hot cue name" maxlength="20">
-    <button class="save-btn" onclick="saveHotCue()" style="background:var(--ora)">+ Cue</button>
-  </div>
-  <div id="hotcueList"><div class="empty">No hot cues</div></div>
-</div>
-<!-- Controls -->
-<div class="card" id="ctrlCard" style="display:none">
-  <div class="controls">
-    <button class="cbtn" onclick="skip(-10)">-10s</button>
-    <button class="cbtn" onclick="skip(-5)">-5s</button>
-    <button class="cbtn play-btn" id="playBtn" onclick="togglePlay()">&#9654;</button>
-    <button class="cbtn" onclick="skip(5)">+5s</button>
-    <button class="cbtn" onclick="skip(10)">+10s</button>
-  </div>
-</div>
-<!-- Speed -->
-<div class="card" id="speedCard" style="display:none">
-  <div class="speed-big">
-    <span class="speed-num" id="speedNum">1.0</span><span class="speed-x">&#215;</span>
-  </div>
-  <input type="range" id="speedSlider" min="0.5" max="1.5" step="0.05" value="1.0"
-         oninput="setSpeed(parseFloat(this.value))">
-  <div class="presets">
-    <button class="pbtn" onclick="setSpeed(0.5)">0.5&#215;</button>
-    <button class="pbtn" onclick="setSpeed(0.6)">0.6&#215;</button>
-    <button class="pbtn" onclick="setSpeed(0.7)">0.7&#215;</button>
-    <button class="pbtn" onclick="setSpeed(0.75)">0.75&#215;</button>
-    <button class="pbtn" onclick="setSpeed(0.8)">0.8&#215;</button>
-    <button class="pbtn" onclick="setSpeed(0.9)">0.9&#215;</button>
-    <button class="pbtn on" onclick="setSpeed(1.0)">1.0&#215;</button>
-    <button class="pbtn" onclick="setSpeed(1.1)">1.1&#215;</button>
-    <button class="pbtn" onclick="setSpeed(1.2)">1.2&#215;</button>
-    <button class="pbtn" onclick="setSpeed(1.25)">1.25&#215;</button>
-    <button class="pbtn" onclick="setSpeed(1.5)">1.5&#215;</button>
+  <div class="presets" style="margin-top:4px">
+    <button class="pbtn" onclick="setSpeed(0.5)" style="padding:5px 7px;font-size:11px;min-width:34px">0.5</button>
+    <button class="pbtn" onclick="setSpeed(0.7)" style="padding:5px 7px;font-size:11px;min-width:34px">0.7</button>
+    <button class="pbtn" onclick="setSpeed(0.8)" style="padding:5px 7px;font-size:11px;min-width:34px">0.8</button>
+    <button class="pbtn" onclick="setSpeed(0.9)" style="padding:5px 7px;font-size:11px;min-width:34px">0.9</button>
+    <button class="pbtn on" onclick="setSpeed(1.0)" style="padding:5px 7px;font-size:11px;min-width:34px">1.0</button>
+    <button class="pbtn" onclick="setSpeed(1.1)" style="padding:5px 7px;font-size:11px;min-width:34px">1.1</button>
+    <button class="pbtn" onclick="setSpeed(1.2)" style="padding:5px 7px;font-size:11px;min-width:34px">1.2</button>
+    <button class="pbtn" onclick="setSpeed(1.5)" style="padding:5px 7px;font-size:11px;min-width:34px">1.5</button>
   </div>
 </div>
 <!-- Saved Loops -->
 <div class="card" id="savedCard" style="display:none">
   <div class="sec-lbl">Saved Loops</div>
   <div id="loopList"><div class="empty">No saved loops yet</div></div>
+</div>
+<!-- Hot Cues -->
+<div class="card" id="hotcueCard" style="display:none">
+  <div class="sec-lbl">Hot Cues</div>
+  <div class="save-row" style="margin-bottom:8px">
+    <input type="text" class="name-inp" id="hotcueName" placeholder="Hot cue name" maxlength="20">
+    <button class="save-btn" onclick="saveHotCue()" style="background:var(--ora)">+ Cue</button>
+  </div>
+  <div id="hotcueList"><div class="empty">No hot cues</div></div>
 </div>
 <button class="log-toggle" onclick="toggleLogPanel()">Show Debug Log</button>
 <div id="logPanel">
@@ -529,7 +518,7 @@ function decodeAndLoad(name, size, arrayBuf, saveToLib) {
     pkLow = null; pkMid = null; pkHigh = null; pkMin = null; pkMax = null;
     resetEditor(); updLoopUI(); updPlayBtn();
     document.getElementById('trackName').textContent = name;
-    ['gridCard','waveCard','loopCard','cueCard','ctrlCard','speedCard','savedCard'].forEach(function(id) {
+    ['gridCard','waveCard','deckCard','savedCard','hotcueCard'].forEach(function(id) {
       document.getElementById(id).style.display = 'block';
     });
     vStart = 0; vEnd = duration;
@@ -691,9 +680,7 @@ function jumpToCue() {
   if (cuePoint === null) return;
   seekTo(cuePoint);
 }
-function updateCueDisplay() {
-  document.getElementById('cueTime').textContent = cuePoint !== null ? fmt(cuePoint) : '--:--';
-}
+function updateCueDisplay() { drawWave(); }
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  Hot Cues
@@ -1306,7 +1293,7 @@ function loadLoop(i) {
   document.getElementById('inTime').textContent = fmt(loopIn);
   document.getElementById('outTime').textContent = fmt(loopOut);
   updLoopUI(); stopPlay(); startAt(loopIn);
-  document.getElementById('waveCard').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('deckCard').scrollIntoView({ behavior: 'smooth' });
 }
 function editLoop(i) {
   var l = getLoops()[i]; if (!l) return;
@@ -1318,7 +1305,7 @@ function editLoop(i) {
   document.getElementById('saveBtn').textContent = 'Update';
   document.getElementById('editBanner').style.display = 'block';
   updLoopUI(); stopPlay(); startAt(loopIn); drawWave();
-  document.getElementById('loopCard').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('deckCard').scrollIntoView({ behavior: 'smooth' });
 }
 function deleteLoop(i) {
   var loops = getLoops(); loops.splice(i, 1);
@@ -1373,7 +1360,7 @@ function esc(s) {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v6');
+log('Boot OK v7');
 </script>
 </body>
 </html>
