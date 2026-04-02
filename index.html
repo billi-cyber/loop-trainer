@@ -158,6 +158,8 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <button class="bpm-adj" onclick="nudgeBpm(-0.1)">&#8722;</button>
       <input type="number" class="grid-inp" id="gridBpmInp" step="0.1" min="20" max="300" inputmode="decimal" onchange="onBpmInput(this.value)">
       <button class="bpm-adj" onclick="nudgeBpm(0.1)">+</button>
+      <button class="bpm-adj" onclick="bpmHalf()" style="font-size:12px;width:32px;height:32px">/2</button>
+      <button class="bpm-adj" onclick="bpmDouble()" style="font-size:12px;width:32px;height:32px">x2</button>
     </div>
     <div class="grid-row">
       <span class="grid-lbl">Time Sig</span>
@@ -182,7 +184,6 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <button class="grid-reset" onclick="resetToDetected()">Reset to detected</button>
     </div>
     <div class="grid-hint">Top half: drag to shift grid &middot; Bottom half: drag to scroll track</div>
-    <button class="cbtn grid-done" onclick="toggleGridEdit()">Done</button>
   </div>
 </div>
 <!-- Waveform -->
@@ -673,6 +674,7 @@ function loadCuePoint() {
 function saveCuePoint() {
   try { if (cuePoint !== null) localStorage.setItem(cueKey(), cuePoint); else localStorage.removeItem(cueKey()); } catch(e) {}
 }
+function updateCueDisplay() { drawWave(); }
 function setCue() {
   if (!duration) return;
   cuePoint = audTime();
@@ -935,6 +937,16 @@ function onBpmInput(val) {
 function nudgeBpm(delta) {
   gridBPM = Math.round((gridBPM + delta) * 10) / 10;
   if (gridBPM < 20) gridBPM = 20; if (gridBPM > 300) gridBPM = 300;
+  updateGridDisplay(); saveGridSettings();
+}
+function bpmDouble() {
+  gridBPM = Math.round(gridBPM * 2 * 10) / 10;
+  if (gridBPM > 300) gridBPM = 300;
+  updateGridDisplay(); saveGridSettings();
+}
+function bpmHalf() {
+  gridBPM = Math.round(gridBPM / 2 * 10) / 10;
+  if (gridBPM < 20) gridBPM = 20;
   updateGridDisplay(); saveGridSettings();
 }
 
@@ -1398,7 +1410,7 @@ function esc(s) {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v8');
+log('Boot OK v9');
 </script>
 </body>
 </html>
