@@ -241,6 +241,11 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="pbtn" onclick="setSpeed(1.2)" style="padding:5px 7px;font-size:11px;min-width:34px">1.2</button>
     <button class="pbtn" onclick="setSpeed(1.5)" style="padding:5px 7px;font-size:11px;min-width:34px">1.5</button>
   </div>
+  <div class="speed-row" style="margin-top:8px">
+    <span class="speed-lbl">Master Tempo</span>
+    <div class="toggle" id="masterTempoToggle" onclick="toggleMasterTempo()"></div>
+    <span class="tog-lbl" id="masterTempoLbl">OFF</span>
+  </div>
 </div>
 <!-- Saved Loops -->
 <div class="card" id="savedCard" style="display:none">
@@ -362,6 +367,9 @@ function trackId(name, size) { return name + '__' + size; }
 var audioCtx = null, audioBuf = null, srcNode = null;
 var playing = false, playCtxT = 0, playAudT = 0, speed = 1.0;
 var loopIn = null, loopOut = null, loopOn = false;
+var masterTempo = false;
+var audioEl = null, audioBlobUrl = null;
+var loopCheckInterval = null;
 var trkName = '', trkId = '', editIdx = -1, duration = 0;
 
 // Waveform
@@ -440,37 +448,31 @@ function ensureCtx() {
 }
 
 function audTime() {
-  if (!playing || !audioCtx) return playAudT;
-  var t = playAudT + (audioCtx.currentTime - playCtxT) * speed;
-  if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
-    if (t >= loopOut) { var len = loopOut - loopIn; t = loopIn + ((t - loopIn) % len); }
-  }
-  return Math.max(0, Math.min(duration, t));
+  if (!playing || !audioEl) return playAudT;
+  return Math.max(0, Math.min(duration, audioEl.currentTime));
 }
 
 function startAt(offset) {
-  if (!audioBuf) return;
+  if (!audioEl || !audioBuf) return;
   ensureCtx(); killSrc();
-  var s = audioCtx.createBufferSource();
-  s.buffer = audioBuf; s.playbackRate.value = speed;
-  if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
-    s.loop = true; s.loopStart = loopIn; s.loopEnd = loopOut;
-  }
-  s.connect(audioCtx.destination);
   var off = Math.max(0, Math.min(duration, offset));
-  playAudT = off; playCtxT = audioCtx.currentTime;
-  s.start(0, off); playing = true; srcNode = s;
-  s.onended = function() { if (srcNode === s) { playing = false; srcNode = null; updPlayBtn(); } };
+  audioEl.currentTime = off;
+  audioEl.playbackRate = speed;
+  audioEl.preservesPitch = masterTempo;
+  if (audioEl.webkitPreservesPitch !== undefined) audioEl.webkitPreservesPitch = masterTempo;
+  audioEl.play().catch(function(e) { log('Play error: ' + e.message); });
+  playAudT = off; playing = true;
+  startLoopCheck();
   updPlayBtn();
+  updateMediaSession();
 }
 
 function killSrc() {
-  if (!srcNode) return;
-  var t = audTime(); var s = srcNode;
-  srcNode = null; playing = false;
-  try { s.stop(); } catch(e) {}
-  try { s.disconnect(); } catch(e) {}
-  playAudT = t;
+  if (!audioEl) return;
+  if (playing) playAudT = audioEl.currentTime || playAudT;
+  audioEl.pause();
+  playing = false;
+  stopLoopCheck();
 }
 
 function stopPlay() { killSrc(); updPlayBtn(); }
@@ -509,7 +511,7 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
 
 function decodeAndLoad(name, size, arrayBuf, saveToLib) {
   setStatus('Decoding audio...');
-  var bufForDecode = saveToLib ? arrayBuf.slice(0) : arrayBuf;
+  var bufForDecode = arrayBuf.slice(0); // always clone — keep original for blob URL
   ensureCtx();
   audioCtx.decodeAudioData(bufForDecode, function(buf) {
     stopPlay();
@@ -520,6 +522,21 @@ function decodeAndLoad(name, size, arrayBuf, saveToLib) {
     cuePoint = null;
     pkLow = null; pkMid = null; pkHigh = null; pkMin = null; pkMax = null;
     resetEditor(); updLoopUI(); updPlayBtn();
+
+    // Create <audio> element for playback (enables background audio + master tempo)
+    if (audioBlobUrl) URL.revokeObjectURL(audioBlobUrl);
+    audioBlobUrl = URL.createObjectURL(new Blob([arrayBuf]));
+    if (audioEl) { audioEl.pause(); audioEl.removeAttribute('src'); audioEl.load(); }
+    audioEl = new Audio();
+    audioEl.src = audioBlobUrl;
+    audioEl.preload = 'auto';
+    audioEl.preservesPitch = masterTempo;
+    if (audioEl.webkitPreservesPitch !== undefined) audioEl.webkitPreservesPitch = masterTempo;
+    audioEl.addEventListener('ended', function() {
+      if (!loopOn) { playing = false; playAudT = 0; stopLoopCheck(); updPlayBtn(); }
+    });
+    audioEl.addEventListener('timeupdate', function() { checkLoop(); }); // backup loop check for background
+
     document.getElementById('trackName').textContent = name;
     ['gridCard','waveCard','deckCard','savedCard','hotcueCard'].forEach(function(id) {
       document.getElementById(id).style.display = 'block';
@@ -616,9 +633,8 @@ function renderLibrary() {
 //  Speed
 // ══════════════════════════════════════════════════════════════════════════════
 function setSpeed(s) {
-  if (playing && audioCtx) { playAudT = audTime(); playCtxT = audioCtx.currentTime; }
   speed = s;
-  if (srcNode) srcNode.playbackRate.value = s;
+  if (audioEl) audioEl.playbackRate = s;
   var d = s.toFixed(2).replace(/0$/,''); if (d.indexOf('.')<0) d += '.0';
   document.getElementById('speedNum').textContent = d;
   document.getElementById('speedSlider').value = s;
@@ -626,6 +642,63 @@ function setSpeed(s) {
     b.classList.toggle('on', Math.abs(parseFloat(b.textContent)-s)<0.001);
   });
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Master Tempo
+// ══════════════════════════════════════════════════════════════════════════════
+function toggleMasterTempo() {
+  masterTempo = !masterTempo;
+  if (audioEl) {
+    audioEl.preservesPitch = masterTempo;
+    if (audioEl.webkitPreservesPitch !== undefined) audioEl.webkitPreservesPitch = masterTempo;
+  }
+  document.getElementById('masterTempoToggle').className = 'toggle' + (masterTempo ? ' on' : '');
+  document.getElementById('masterTempoLbl').textContent = masterTempo ? 'ON' : 'OFF';
+  log('Master Tempo ' + (masterTempo ? 'ON' : 'OFF'));
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Loop monitoring (replaces AudioBufferSourceNode native loop)
+// ══════════════════════════════════════════════════════════════════════════════
+function startLoopCheck() {
+  stopLoopCheck();
+  loopCheckInterval = setInterval(checkLoop, 15);
+}
+function stopLoopCheck() {
+  if (loopCheckInterval) { clearInterval(loopCheckInterval); loopCheckInterval = null; }
+}
+function checkLoop() {
+  if (!playing || !audioEl || !loopOn || loopIn === null || loopOut === null || loopIn >= loopOut) return;
+  if (audioEl.currentTime >= loopOut) {
+    audioEl.currentTime = loopIn;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Media Session API (lock screen controls + background audio persistence)
+// ══════════════════════════════════════════════════════════════════════════════
+function updateMediaSession() {
+  if (!('mediaSession' in navigator)) return;
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: trkName || 'Loop Trainer',
+    artist: 'Loop Trainer'
+  });
+  navigator.mediaSession.setActionHandler('play', function() { if (!playing) togglePlay(); });
+  navigator.mediaSession.setActionHandler('pause', function() { if (playing) togglePlay(); });
+  navigator.mediaSession.setActionHandler('seekbackward', function() { skip(-5); });
+  navigator.mediaSession.setActionHandler('seekforward', function() { skip(5); });
+}
+
+// Background audio: resume if AudioContext was suspended, keep loop check alive
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && audioEl && playing) {
+    if (audioEl.paused) {
+      audioEl.play().catch(function(e) { log('Resume error: ' + e.message); });
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    startLoopCheck();
+  }
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  Loop points
@@ -646,17 +719,18 @@ function setOut() {
 }
 function toggleLoop() {
   loopOn = !loopOn;
-  if (playing) {
-    if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) applyLoop();
-    else if (!loopOn && srcNode) { var t = audTime(); stopPlay(); startAt(t); }
+  if (playing && loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
+    applyLoop();
   }
   updLoopUI();
 }
 function applyLoop() {
   if (loopIn === null || loopOut === null || loopIn >= loopOut) return;
-  var t = audTime(), was = playing; stopPlay();
-  if (t >= loopOut || t < loopIn) t = loopIn;
-  if (was) startAt(t);
+  var t = audTime();
+  if (t >= loopOut || t < loopIn) {
+    if (playing && audioEl) audioEl.currentTime = loopIn;
+    else playAudT = loopIn;
+  }
 }
 function updLoopUI() {
   document.getElementById('loopToggle').className = 'toggle' + (loopOn ? ' on' : '');
@@ -1410,7 +1484,7 @@ function esc(s) {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v9');
+log('Boot OK v10');
 </script>
 </body>
 </html>
