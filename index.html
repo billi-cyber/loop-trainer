@@ -813,7 +813,7 @@ function stopLoopCheck() {
 }
 function checkLoop() {
   if (!playing || !audioEl || !loopOn || loopIn === null || loopOut === null || loopIn >= loopOut) return;
-  if (waLoopActive) return; // Web Audio handles it
+  if (waLoopActive || bgLoopActive) return; // WA loop or bg WAV handles it
   var t = audioEl.currentTime;
   if (t >= loopOut) { audioEl.currentTime = loopIn; }
 }
