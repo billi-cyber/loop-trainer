@@ -662,15 +662,20 @@ function toggleMasterTempo() {
 // ══════════════════════════════════════════════════════════════════════════════
 function startLoopCheck() {
   stopLoopCheck();
-  loopCheckInterval = setInterval(checkLoop, 15);
+  loopCheckInterval = setInterval(checkLoop, 4);  // 4ms for near-seamless loops
 }
 function stopLoopCheck() {
   if (loopCheckInterval) { clearInterval(loopCheckInterval); loopCheckInterval = null; }
 }
 function checkLoop() {
   if (!playing || !audioEl || !loopOn || loopIn === null || loopOut === null || loopIn >= loopOut) return;
-  if (audioEl.currentTime >= loopOut) {
-    audioEl.currentTime = loopIn;
+  var t = audioEl.currentTime;
+  // Lookahead: seek back when within 30ms of loopOut to avoid audible gap.
+  // Compensate for overshoot so we don't lose those milliseconds.
+  var LOOKAHEAD = 0.030;
+  if (t >= loopOut - LOOKAHEAD) {
+    var overshoot = t - (loopOut - LOOKAHEAD);
+    audioEl.currentTime = loopIn + Math.min(overshoot, LOOKAHEAD);
   }
 }
 
