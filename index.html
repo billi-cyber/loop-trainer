@@ -370,6 +370,12 @@ var loopIn = null, loopOut = null, loopOn = false;
 var masterTempo = false;
 var audioEl = null, audioBlobUrl = null;
 var loopCheckInterval = null;
+
+// Web Audio gapless loop state
+var waLoopSrc = null;
+var waLoopActive = false;
+var waLoopStartCtx = 0;   // audioCtx.currentTime when source started
+var waLoopStartOff = 0;   // buffer offset where source started
 var trkName = '', trkId = '', editIdx = -1, duration = 0;
 
 // Waveform
@@ -448,6 +454,15 @@ function ensureCtx() {
 }
 
 function audTime() {
+  if (waLoopActive && audioCtx) {
+    var elapsed = (audioCtx.currentTime - waLoopStartCtx) * speed;
+    var pos = waLoopStartOff + elapsed;
+    var loopLen = loopOut - loopIn;
+    if (loopLen > 0 && pos >= loopOut) {
+      pos = loopIn + ((pos - loopIn) % loopLen);
+    }
+    return Math.max(0, Math.min(duration, pos));
+  }
   if (!playing || !audioEl) return playAudT;
   return Math.max(0, Math.min(duration, audioEl.currentTime));
 }
@@ -456,20 +471,31 @@ function startAt(offset) {
   if (!audioEl || !audioBuf) return;
   ensureCtx(); killSrc();
   var off = Math.max(0, Math.min(duration, offset));
+  // Always start <audio> — keeps iOS background audio session alive
   audioEl.currentTime = off;
   audioEl.playbackRate = speed;
   audioEl.preservesPitch = masterTempo;
   if (audioEl.webkitPreservesPitch !== undefined) audioEl.webkitPreservesPitch = masterTempo;
   audioEl.play().catch(function(e) { log('Play error: ' + e.message); });
   playAudT = off; playing = true;
-  startLoopCheck();
+  // Use Web Audio for gapless looping, fall back to <audio> + polling otherwise
+  if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
+    startWALoop(off);
+  } else {
+    startLoopCheck();
+  }
   updPlayBtn();
   updateMediaSession();
 }
 
 function killSrc() {
   if (!audioEl) return;
-  if (playing) playAudT = audioEl.currentTime || playAudT;
+  if (waLoopActive) {
+    playAudT = audTime();
+    stopWALoop();
+  } else if (playing) {
+    playAudT = audioEl.currentTime || playAudT;
+  }
   audioEl.pause();
   playing = false;
   stopLoopCheck();
@@ -487,9 +513,20 @@ function skip(s) {
   if (was) startAt(playAudT); drawWave();
 }
 function seekTo(t) {
-  var was = playing; stopPlay();
-  playAudT = Math.max(0, Math.min(duration, t));
-  if (was) startAt(playAudT); drawWave();
+  var target = Math.max(0, Math.min(duration, t));
+  if (waLoopActive && playing) {
+    // Restart WA loop at new position — no pause/play gap
+    startWALoop(target);
+    playAudT = target;
+    if (audioEl) audioEl.currentTime = target;
+  } else if (playing && audioEl) {
+    // Seek without stop/restart cycle to avoid audible gap
+    audioEl.currentTime = target;
+    playAudT = target;
+  } else {
+    playAudT = target;
+  }
+  drawWave();
 }
 function updPlayBtn() {
   document.getElementById('playBtn').innerHTML = playing ? '&#9646;&#9646;' : '&#9654;';
@@ -633,6 +670,12 @@ function renderLibrary() {
 //  Speed
 // ══════════════════════════════════════════════════════════════════════════════
 function setSpeed(s) {
+  if (waLoopActive && waLoopSrc && audioCtx) {
+    // Snapshot current position before changing rate
+    waLoopStartOff = audTime();
+    waLoopStartCtx = audioCtx.currentTime;
+    waLoopSrc.playbackRate.value = s;
+  }
   speed = s;
   if (audioEl) audioEl.playbackRate = s;
   var d = s.toFixed(2).replace(/0$/,''); if (d.indexOf('.')<0) d += '.0';
@@ -658,25 +701,54 @@ function toggleMasterTempo() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  Loop monitoring (replaces AudioBufferSourceNode native loop)
+//  Gapless loop via Web Audio API AudioBufferSourceNode
+//  Uses native loop/loopStart/loopEnd for sample-accurate zero-gap loops.
+//  <audio> element stays alive (muted) to keep iOS background audio session.
 // ══════════════════════════════════════════════════════════════════════════════
+function startWALoop(offset) {
+  stopWALoop(); stopLoopCheck();
+  if (!audioCtx || !audioBuf || loopIn === null || loopOut === null || loopIn >= loopOut) return;
+  ensureCtx();
+  waLoopSrc = audioCtx.createBufferSource();
+  waLoopSrc.buffer = audioBuf;
+  waLoopSrc.loop = true;
+  waLoopSrc.loopStart = loopIn;
+  waLoopSrc.loopEnd = loopOut;
+  waLoopSrc.playbackRate.value = speed;
+  waLoopSrc.connect(audioCtx.destination);
+  var off = offset;
+  if (off < loopIn || off >= loopOut) off = loopIn;
+  waLoopStartCtx = audioCtx.currentTime;
+  waLoopStartOff = off;
+  waLoopSrc.start(0, off);
+  waLoopActive = true;
+  // Mute <audio> to avoid double sound (it stays playing for iOS audio session)
+  if (audioEl) audioEl.volume = 0;
+  log('WA Loop ON [' + loopIn.toFixed(3) + '-' + loopOut.toFixed(3) + '] from ' + off.toFixed(3));
+}
+function stopWALoop() {
+  if (waLoopSrc) {
+    try { waLoopSrc.stop(); } catch(e) {}
+    try { waLoopSrc.disconnect(); } catch(e) {}
+    waLoopSrc = null;
+  }
+  waLoopActive = false;
+  if (audioEl) audioEl.volume = 1;
+}
+
+// Fallback loop check — used when app is backgrounded (Web Audio suspended)
 function startLoopCheck() {
   stopLoopCheck();
-  loopCheckInterval = setInterval(checkLoop, 4);  // 4ms for near-seamless loops
+  loopCheckInterval = setInterval(checkLoop, 5);
 }
 function stopLoopCheck() {
   if (loopCheckInterval) { clearInterval(loopCheckInterval); loopCheckInterval = null; }
 }
 function checkLoop() {
   if (!playing || !audioEl || !loopOn || loopIn === null || loopOut === null || loopIn >= loopOut) return;
+  if (waLoopActive) return; // Web Audio handles it
   var t = audioEl.currentTime;
-  // Lookahead: seek back when within 30ms of loopOut to avoid audible gap.
-  // Compensate for overshoot so we don't lose those milliseconds.
-  var LOOKAHEAD = 0.030;
-  if (t >= loopOut - LOOKAHEAD) {
-    var overshoot = t - (loopOut - LOOKAHEAD);
-    audioEl.currentTime = loopIn + Math.min(overshoot, LOOKAHEAD);
-  }
+  if (t >= loopOut) { audioEl.currentTime = loopIn; }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -694,14 +766,27 @@ function updateMediaSession() {
   navigator.mediaSession.setActionHandler('seekforward', function() { skip(5); });
 }
 
-// Background audio: resume if AudioContext was suspended, keep loop check alive
+// Background/foreground: swap between Web Audio loop (gapless) and <audio> fallback
 document.addEventListener('visibilitychange', function() {
-  if (!document.hidden && audioEl && playing) {
-    if (audioEl.paused) {
+  if (document.hidden) {
+    // Backgrounded: iOS suspends AudioContext — fall back to <audio> for loop
+    if (waLoopActive && playing) {
+      var t = audTime();
+      stopWALoop(); // restores audioEl.volume to 1
+      if (audioEl) audioEl.currentTime = t;
+      if (loopOn) startLoopCheck();
+    }
+  } else {
+    // Foregrounded: resume AudioContext and switch back to gapless WA loop
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    if (audioEl && playing && audioEl.paused) {
       audioEl.play().catch(function(e) { log('Resume error: ' + e.message); });
     }
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    startLoopCheck();
+    if (playing && loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut && !waLoopActive) {
+      startWALoop(audTime());
+    } else if (!waLoopActive) {
+      startLoopCheck();
+    }
   }
 });
 
@@ -725,16 +810,22 @@ function setOut() {
 function toggleLoop() {
   loopOn = !loopOn;
   if (playing && loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
-    applyLoop();
+    startWALoop(audTime());
+  } else if (!loopOn && waLoopActive) {
+    var t = audTime();
+    stopWALoop();
+    if (playing && audioEl) { audioEl.currentTime = t; startLoopCheck(); }
   }
   updLoopUI();
 }
 function applyLoop() {
   if (loopIn === null || loopOut === null || loopIn >= loopOut) return;
-  var t = audTime();
-  if (t >= loopOut || t < loopIn) {
-    if (playing && audioEl) audioEl.currentTime = loopIn;
-    else playAudT = loopIn;
+  if (playing) {
+    // (Re)start Web Audio loop with updated boundaries
+    startWALoop(audTime());
+  } else {
+    var t = playAudT;
+    if (t >= loopOut || t < loopIn) playAudT = loopIn;
   }
 }
 function updLoopUI() {
@@ -766,11 +857,8 @@ function cueBtnPress() {
     cuePoint = audTime();
     saveCuePoint(); drawWave();
   } else {
-    // Playing: jump to cue and keep playing
-    if (cuePoint !== null) {
-      seekTo(cuePoint);
-      if (!playing) startAt(cuePoint); // seekTo stops, restart
-    }
+    // Playing: jump to cue and keep playing (seekTo no longer stop/restarts)
+    if (cuePoint !== null) seekTo(cuePoint);
   }
 }
 function jumpToCue() {
