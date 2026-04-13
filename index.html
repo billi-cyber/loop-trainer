@@ -471,17 +471,16 @@ function startAt(offset) {
   if (!audioEl || !audioBuf) return;
   ensureCtx(); killSrc();
   var off = Math.max(0, Math.min(duration, offset));
-  // Always start <audio> — keeps iOS background audio session alive
   audioEl.currentTime = off;
   audioEl.playbackRate = speed;
   audioEl.preservesPitch = masterTempo;
   if (audioEl.webkitPreservesPitch !== undefined) audioEl.webkitPreservesPitch = masterTempo;
-  audioEl.play().catch(function(e) { log('Play error: ' + e.message); });
   playAudT = off; playing = true;
-  // Use Web Audio for gapless looping, fall back to <audio> + polling otherwise
+  // Use Web Audio for gapless looping; only start <audio> when NOT using WA loop
   if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
-    startWALoop(off);
+    startWALoop(off);  // this keeps <audio> paused — no double playback
   } else {
+    audioEl.play().catch(function(e) { log('Play error: ' + e.message); });
     startLoopCheck();
   }
   updPlayBtn();
@@ -722,8 +721,10 @@ function startWALoop(offset) {
   waLoopStartOff = off;
   waLoopSrc.start(0, off);
   waLoopActive = true;
-  // Mute <audio> to avoid double sound (it stays playing for iOS audio session)
-  if (audioEl) audioEl.volume = 0;
+  // PAUSE <audio> — iOS Safari ignores volume=0, so we must fully pause to
+  // prevent double playback.  The silent-mode unlock audio keeps the audio
+  // session alive; <audio> is resumed in stopWALoop / visibility handler.
+  if (audioEl) audioEl.pause();
   log('WA Loop ON [' + loopIn.toFixed(3) + '-' + loopOut.toFixed(3) + '] from ' + off.toFixed(3));
 }
 function stopWALoop() {
@@ -733,7 +734,6 @@ function stopWALoop() {
     waLoopSrc = null;
   }
   waLoopActive = false;
-  if (audioEl) audioEl.volume = 1;
 }
 
 // Fallback loop check — used when app is backgrounded (Web Audio suspended)
@@ -772,8 +772,13 @@ document.addEventListener('visibilitychange', function() {
     // Backgrounded: iOS suspends AudioContext — fall back to <audio> for loop
     if (waLoopActive && playing) {
       var t = audTime();
-      stopWALoop(); // restores audioEl.volume to 1
-      if (audioEl) audioEl.currentTime = t;
+      stopWALoop();
+      // Resume <audio> at correct position for background loop fallback
+      if (audioEl) {
+        audioEl.currentTime = t;
+        audioEl.playbackRate = speed;
+        audioEl.play().catch(function(e) { log('BG resume error: ' + e.message); });
+      }
       if (loopOn) startLoopCheck();
     }
   } else {
@@ -814,7 +819,12 @@ function toggleLoop() {
   } else if (!loopOn && waLoopActive) {
     var t = audTime();
     stopWALoop();
-    if (playing && audioEl) { audioEl.currentTime = t; startLoopCheck(); }
+    if (playing && audioEl) {
+      audioEl.currentTime = t;
+      audioEl.playbackRate = speed;
+      audioEl.play().catch(function(e) { log('Resume after loop off: ' + e.message); });
+      startLoopCheck();
+    }
   }
   updLoopUI();
 }
