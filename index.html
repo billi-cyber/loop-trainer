@@ -376,6 +376,11 @@ var waLoopSrc = null;
 var waLoopActive = false;
 var waLoopStartCtx = 0;   // audioCtx.currentTime when source started
 var waLoopStartOff = 0;   // buffer offset where source started
+
+// Background loop: pre-rendered WAV of loop segment, played via <audio loop>
+var bgLoopBlobUrl = null;
+var bgLoopActive = false;
+var bgLoopLen = 0;         // duration of loop segment in seconds
 var trkName = '', trkId = '', editIdx = -1, duration = 0;
 
 // Waveform
@@ -463,6 +468,11 @@ function audTime() {
     }
     return Math.max(0, Math.min(duration, pos));
   }
+  if (bgLoopActive && audioEl && bgLoopLen > 0) {
+    // <audio> is playing the trimmed WAV; map its position back to track time
+    var posInLoop = audioEl.currentTime % bgLoopLen;
+    return Math.max(0, Math.min(duration, loopIn + posInLoop));
+  }
   if (!playing || !audioEl) return playAudT;
   return Math.max(0, Math.min(duration, audioEl.currentTime));
 }
@@ -492,6 +502,11 @@ function killSrc() {
   if (waLoopActive) {
     playAudT = audTime();
     stopWALoop();
+  } else if (bgLoopActive) {
+    playAudT = audTime();
+    stopBgLoop();
+    // Restore original source
+    if (audioBlobUrl) { audioEl.src = audioBlobUrl; audioEl.currentTime = playAudT; }
   } else if (playing) {
     playAudT = audioEl.currentTime || playAudT;
   }
@@ -726,6 +741,7 @@ function startWALoop(offset) {
   // session alive; <audio> is resumed in stopWALoop / visibility handler.
   if (audioEl) audioEl.pause();
   log('WA Loop ON [' + loopIn.toFixed(3) + '-' + loopOut.toFixed(3) + '] from ' + off.toFixed(3));
+  prepareBgLoop(); // pre-render WAV so it's ready if app goes to background
 }
 function stopWALoop() {
   if (waLoopSrc) {
@@ -734,6 +750,45 @@ function stopWALoop() {
     waLoopSrc = null;
   }
   waLoopActive = false;
+}
+function stopBgLoop() {
+  if (!bgLoopActive) return;
+  bgLoopActive = false;
+  if (audioEl) { audioEl.loop = false; audioEl.pause(); }
+}
+
+// Pre-render loop segment as 16-bit PCM WAV for background <audio loop> playback.
+// Called when WA loop starts or loop points change.  The resulting blob URL is
+// used by the visibility handler to switch to native <audio loop> when iOS
+// suspends AudioContext in background.
+function prepareBgLoop() {
+  if (!audioBuf || loopIn === null || loopOut === null || loopIn >= loopOut) return;
+  var sr = audioBuf.sampleRate;
+  var s0 = Math.floor(loopIn * sr), s1 = Math.ceil(loopOut * sr);
+  var nSamp = s1 - s0, nCh = audioBuf.numberOfChannels;
+  var chs = [];
+  for (var c = 0; c < nCh; c++) chs.push(audioBuf.getChannelData(c).subarray(s0, s1));
+  var dataSize = nSamp * nCh * 2;
+  var buf = new ArrayBuffer(44 + dataSize);
+  var dv = new DataView(buf);
+  function ws(o, s) { for (var i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); }
+  ws(0,'RIFF'); dv.setUint32(4, 36 + dataSize, true); ws(8,'WAVE');
+  ws(12,'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true);
+  dv.setUint16(22, nCh, true); dv.setUint32(24, sr, true);
+  dv.setUint32(28, sr * nCh * 2, true); dv.setUint16(32, nCh * 2, true);
+  dv.setUint16(34, 16, true); ws(36,'data'); dv.setUint32(40, dataSize, true);
+  var off = 44;
+  for (var i = 0; i < nSamp; i++) {
+    for (var c = 0; c < nCh; c++) {
+      var v = Math.max(-1, Math.min(1, chs[c][i]));
+      dv.setInt16(off, v < 0 ? v * 0x8000 : v * 0x7FFF, true);
+      off += 2;
+    }
+  }
+  if (bgLoopBlobUrl) { try { URL.revokeObjectURL(bgLoopBlobUrl); } catch(e) {} }
+  bgLoopBlobUrl = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+  bgLoopLen = nSamp / sr;
+  log('BG loop WAV ready: ' + bgLoopLen.toFixed(3) + 's, ' + (buf.byteLength/1024).toFixed(0) + 'KB');
 }
 
 // Fallback loop check — used when app is backgrounded (Web Audio suspended)
@@ -766,31 +821,54 @@ function updateMediaSession() {
   navigator.mediaSession.setActionHandler('seekforward', function() { skip(5); });
 }
 
-// Background/foreground: swap between Web Audio loop (gapless) and <audio> fallback
+// Background/foreground: swap between Web Audio loop and <audio loop> on WAV
 document.addEventListener('visibilitychange', function() {
   if (document.hidden) {
-    // Backgrounded: iOS suspends AudioContext — fall back to <audio> for loop
+    // Backgrounded: iOS suspends AudioContext — switch to <audio loop> on
+    // pre-rendered WAV for gapless background looping (no JS polling needed)
     if (waLoopActive && playing) {
       var t = audTime();
       stopWALoop();
-      // Resume <audio> at correct position for background loop fallback
-      if (audioEl) {
-        audioEl.currentTime = t;
+      if (bgLoopBlobUrl && audioEl) {
+        var posInLoop = t - loopIn;
+        if (posInLoop < 0 || posInLoop >= bgLoopLen) posInLoop = 0;
+        audioEl.src = bgLoopBlobUrl;
+        audioEl.loop = true;
         audioEl.playbackRate = speed;
-        audioEl.play().catch(function(e) { log('BG resume error: ' + e.message); });
+        audioEl.currentTime = posInLoop;
+        audioEl.play().catch(function(e) { log('BG loop error: ' + e.message); });
+        bgLoopActive = true;
+        log('BG: switched to WAV loop at ' + posInLoop.toFixed(3));
+      } else {
+        // No pre-rendered WAV — fall back to polling (will stutter)
+        if (audioEl) {
+          audioEl.currentTime = t;
+          audioEl.playbackRate = speed;
+          audioEl.play().catch(function(e) { log('BG resume error: ' + e.message); });
+        }
+        if (loopOn) startLoopCheck();
       }
-      if (loopOn) startLoopCheck();
     }
   } else {
-    // Foregrounded: resume AudioContext and switch back to gapless WA loop
+    // Foregrounded: restore original source and switch to Web Audio loop
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    if (audioEl && playing && audioEl.paused) {
-      audioEl.play().catch(function(e) { log('Resume error: ' + e.message); });
-    }
-    if (playing && loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut && !waLoopActive) {
-      startWALoop(audTime());
-    } else if (!waLoopActive) {
-      startLoopCheck();
+    if (bgLoopActive && playing) {
+      var t = audTime(); // uses bgLoop position mapping
+      stopBgLoop();
+      // Restore original audio source
+      if (audioEl && audioBlobUrl) {
+        audioEl.src = audioBlobUrl;
+        audioEl.currentTime = t;
+      }
+      startWALoop(t);
+      log('FG: restored WA loop at ' + t.toFixed(3));
+    } else {
+      if (audioEl && playing && audioEl.paused) {
+        audioEl.play().catch(function(e) { log('Resume error: ' + e.message); });
+      }
+      if (playing && loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut && !waLoopActive) {
+        startWALoop(audTime());
+      }
     }
   }
 });
