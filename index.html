@@ -757,18 +757,35 @@ function stopBgLoop() {
   if (audioEl) { audioEl.loop = false; audioEl.pause(); }
 }
 
-// Pre-render loop segment as 16-bit PCM WAV for background <audio loop> playback.
-// Called when WA loop starts or loop points change.  The resulting blob URL is
-// used by the visibility handler to switch to native <audio loop> when iOS
-// suspends AudioContext in background.
+// Pre-render loop segment as 16-bit PCM WAV for background playback.
+// The segment is repeated ~5 minutes worth (capped at 50MB) so <audio> just
+// plays straight through without hitting any loop boundary — no gap possible.
+// loop=true is set as a safety net but only triggers after minutes of playback.
 function prepareBgLoop() {
   if (!audioBuf || loopIn === null || loopOut === null || loopIn >= loopOut) return;
   var sr = audioBuf.sampleRate;
   var s0 = Math.floor(loopIn * sr), s1 = Math.ceil(loopOut * sr);
-  var nSamp = s1 - s0, nCh = audioBuf.numberOfChannels;
+  var segSamp = s1 - s0, nCh = audioBuf.numberOfChannels;
+  var segDur = segSamp / sr;
+  var segBytes = segSamp * nCh * 2;
+
+  // Repeat for ~5 min of audio, capped at 50MB
+  var reps = Math.max(3, Math.min(Math.floor(300 / segDur), Math.floor(50*1024*1024 / segBytes)));
+
+  // Build one interleaved PCM segment using TypedArray (fast)
   var chs = [];
   for (var c = 0; c < nCh; c++) chs.push(audioBuf.getChannelData(c).subarray(s0, s1));
-  var dataSize = nSamp * nCh * 2;
+  var oneSeg = new Int16Array(segSamp * nCh);
+  for (var i = 0; i < segSamp; i++) {
+    for (var c = 0; c < nCh; c++) {
+      var v = Math.max(-1, Math.min(1, chs[c][i]));
+      oneSeg[i * nCh + c] = v < 0 ? v * 0x8000 : v * 0x7FFF;
+    }
+  }
+
+  // Stamp repeated copies via fast TypedArray.set()
+  var totalSamp = segSamp * reps;
+  var dataSize = totalSamp * nCh * 2;
   var buf = new ArrayBuffer(44 + dataSize);
   var dv = new DataView(buf);
   function ws(o, s) { for (var i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); }
@@ -777,18 +794,13 @@ function prepareBgLoop() {
   dv.setUint16(22, nCh, true); dv.setUint32(24, sr, true);
   dv.setUint32(28, sr * nCh * 2, true); dv.setUint16(32, nCh * 2, true);
   dv.setUint16(34, 16, true); ws(36,'data'); dv.setUint32(40, dataSize, true);
-  var off = 44;
-  for (var i = 0; i < nSamp; i++) {
-    for (var c = 0; c < nCh; c++) {
-      var v = Math.max(-1, Math.min(1, chs[c][i]));
-      dv.setInt16(off, v < 0 ? v * 0x8000 : v * 0x7FFF, true);
-      off += 2;
-    }
-  }
+  var pcm = new Int16Array(buf, 44);
+  for (var r = 0; r < reps; r++) pcm.set(oneSeg, r * segSamp * nCh);
+
   if (bgLoopBlobUrl) { try { URL.revokeObjectURL(bgLoopBlobUrl); } catch(e) {} }
   bgLoopBlobUrl = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
-  bgLoopLen = nSamp / sr;
-  log('BG loop WAV ready: ' + bgLoopLen.toFixed(3) + 's, ' + (buf.byteLength/1024).toFixed(0) + 'KB');
+  bgLoopLen = segDur;  // single-segment length for position mapping (audTime uses modulo)
+  log('BG loop WAV: ' + reps + ' reps, ' + (segDur*reps).toFixed(0) + 's, ' + (buf.byteLength/1024/1024).toFixed(1) + 'MB');
 }
 
 // Fallback loop check — used when app is backgrounded (Web Audio suspended)
