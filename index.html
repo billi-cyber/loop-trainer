@@ -19,6 +19,27 @@ h1{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:var
 #fileInput{position:fixed;top:-999px;left:-999px;width:1px;height:1px;opacity:0}
 .open-lbl{display:inline-block;background:var(--acc);color:#fff;padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;margin-left:auto}
 .open-lbl:active{opacity:.7}
+.rec-lbl{display:inline-block;background:var(--red);color:#fff;padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;margin-left:6px;border:none}
+.rec-lbl:active{opacity:.7}
+.rec-lbl::before{content:'\25CF  ';font-size:10px}
+/* Recorder modal */
+.rec-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.rec-modal.show{display:flex}
+.rec-card{background:var(--sur);border-radius:18px;padding:24px;max-width:360px;width:100%;text-align:center}
+.rec-title{font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:4px}
+.rec-sub{font-size:11px;color:var(--dim);margin-bottom:18px}
+.rec-timer{font-size:42px;font-weight:700;color:var(--txt);font-variant-numeric:tabular-nums;margin:14px 0}
+.rec-btn{width:92px;height:92px;border-radius:46px;background:var(--red);border:4px solid var(--sur2);cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;justify-content:center;margin:6px auto}
+.rec-btn:active{opacity:.8}
+.rec-btn.recording{background:var(--sur2);border-color:var(--red)}
+.rec-btn-inner{width:40px;height:40px;border-radius:20px;background:var(--red);transition:all .15s}
+.rec-btn.recording .rec-btn-inner{width:28px;height:28px;border-radius:4px}
+.rec-level{height:6px;background:var(--sur2);border-radius:3px;overflow:hidden;margin:14px 0 4px}
+.rec-level-bar{height:100%;width:0;background:linear-gradient(90deg,var(--grn),var(--yel),var(--red));transition:width .05s}
+.rec-hint{font-size:11px;color:var(--dim);margin-bottom:14px;min-height:14px}
+.rec-actions{display:flex;gap:8px;margin-top:14px}
+.rec-cancel{flex:1;background:var(--sur2);color:var(--txt);border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation}
+.rec-cancel:active{opacity:.6}
 .lib-header{display:flex;align-items:center;gap:8px;margin-bottom:13px}
 .track-name-top{font-size:13px;color:var(--txt);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
 .status{background:var(--sur2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--dim);text-align:center;margin-bottom:10px;display:none}
@@ -266,8 +287,25 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
   <div class="lib-header">
     <span class="sec-lbl" style="margin-bottom:0">Library</span>
     <label for="fileInput" class="open-lbl">Open Audio File</label>
+    <button class="rec-lbl" onclick="openRecorder()">Record</button>
   </div>
   <div id="libList"><div class="lib-empty">No saved tracks</div></div>
+</div>
+<!-- Recorder modal -->
+<div class="rec-modal" id="recModal">
+  <div class="rec-card">
+    <div class="rec-title">Microphone Recorder</div>
+    <div class="rec-sub">Tap to start / stop recording</div>
+    <div class="rec-timer" id="recTimer">0:00</div>
+    <div>
+      <button class="rec-btn" id="recBtn" onclick="toggleRecording()"><span class="rec-btn-inner"></span></button>
+    </div>
+    <div class="rec-level"><div class="rec-level-bar" id="recLevelBar"></div></div>
+    <div class="rec-hint" id="recHint">Ready</div>
+    <div class="rec-actions">
+      <button class="rec-cancel" onclick="closeRecorder()">Close</button>
+    </div>
+  </div>
 </div>
 <button class="log-toggle" onclick="toggleLogPanel()">Show Debug Log</button>
 <div id="logPanel">
@@ -1672,12 +1710,169 @@ function esc(s) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  Microphone Recorder
+// ══════════════════════════════════════════════════════════════════════════════
+var mediaRec = null, micStream = null, recChunks = [], recMime = '';
+var recStartMs = 0, recTimerIv = null, recRafId = null;
+var recAnalyser = null, recAnalyserCtx = null;
+
+function openRecorder() {
+  document.getElementById('recModal').classList.add('show');
+  document.getElementById('recTimer').textContent = '0:00';
+  document.getElementById('recHint').textContent = 'Tap the red button to start';
+  document.getElementById('recLevelBar').style.width = '0%';
+  setRecBtnState(false);
+}
+function closeRecorder() {
+  if (mediaRec && mediaRec.state === 'recording') {
+    try { mediaRec.stop(); } catch(e) {}
+  }
+  stopMicStream();
+  document.getElementById('recModal').classList.remove('show');
+}
+function setRecBtnState(recording) {
+  var btn = document.getElementById('recBtn');
+  if (recording) btn.classList.add('recording'); else btn.classList.remove('recording');
+}
+function pickRecMime() {
+  var cands = ['audio/webm;codecs=opus','audio/webm','audio/mp4;codecs=mp4a.40.2','audio/mp4',''];
+  for (var i = 0; i < cands.length; i++) {
+    try { if (cands[i] === '' || MediaRecorder.isTypeSupported(cands[i])) return cands[i]; } catch(e) {}
+  }
+  return '';
+}
+function mimeExt(m) {
+  if (!m) return 'bin';
+  if (m.indexOf('webm') >= 0) return 'webm';
+  if (m.indexOf('mp4') >= 0 || m.indexOf('aac') >= 0) return 'm4a';
+  if (m.indexOf('mpeg') >= 0) return 'mp3';
+  if (m.indexOf('wav') >= 0) return 'wav';
+  if (m.indexOf('ogg') >= 0) return 'ogg';
+  return 'bin';
+}
+function toggleRecording() {
+  if (mediaRec && mediaRec.state === 'recording') { stopRecording(); }
+  else { startRecording(); }
+}
+function startRecording() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    document.getElementById('recHint').textContent = 'Mic not available';
+    return;
+  }
+  if (typeof MediaRecorder === 'undefined') {
+    document.getElementById('recHint').textContent = 'MediaRecorder not supported';
+    return;
+  }
+  unlockSilentMode();
+  document.getElementById('recHint').textContent = 'Requesting microphone...';
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+    micStream = stream;
+    recMime = pickRecMime();
+    try {
+      mediaRec = recMime ? new MediaRecorder(stream, { mimeType: recMime })
+                         : new MediaRecorder(stream);
+    } catch(e) {
+      try { mediaRec = new MediaRecorder(stream); } catch(e2) {
+        document.getElementById('recHint').textContent = 'Recorder error: ' + e2.message;
+        stopMicStream(); return;
+      }
+    }
+    if (!recMime && mediaRec.mimeType) recMime = mediaRec.mimeType;
+    recChunks = [];
+    mediaRec.ondataavailable = function(e) { if (e.data && e.data.size > 0) recChunks.push(e.data); };
+    mediaRec.onstop = function() { onRecStop(); };
+    mediaRec.start();
+    recStartMs = Date.now();
+    setRecBtnState(true);
+    document.getElementById('recHint').textContent = 'Recording...';
+    recTimerIv = setInterval(updateRecTimer, 200);
+    startLevelMeter(stream);
+    log('Rec start: ' + (recMime || 'default'));
+  }).catch(function(err) {
+    document.getElementById('recHint').textContent = 'Mic permission denied';
+    log('Mic err: ' + (err && err.message));
+  });
+}
+function stopRecording() {
+  if (!mediaRec || mediaRec.state !== 'recording') return;
+  document.getElementById('recHint').textContent = 'Processing...';
+  try { mediaRec.stop(); } catch(e) {}
+  setRecBtnState(false);
+  if (recTimerIv) { clearInterval(recTimerIv); recTimerIv = null; }
+  if (recRafId) { cancelAnimationFrame(recRafId); recRafId = null; }
+}
+function onRecStop() {
+  var blob = new Blob(recChunks, { type: recMime || 'audio/webm' });
+  recChunks = [];
+  stopMicStream();
+  var durSec = (Date.now() - recStartMs) / 1000;
+  if (blob.size < 100) {
+    document.getElementById('recHint').textContent = 'Recording too short';
+    return;
+  }
+  var now = new Date();
+  var pad = function(n){ return n < 10 ? '0' + n : '' + n; };
+  var stamp = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + '_' +
+              pad(now.getHours()) + '-' + pad(now.getMinutes()) + '-' + pad(now.getSeconds());
+  var name = 'Recording_' + stamp + '.' + mimeExt(recMime);
+  blob.arrayBuffer().then(function(ab) {
+    document.getElementById('recModal').classList.remove('show');
+    setStatus('Analyzing recording...');
+    decodeAndLoad(name, ab.byteLength, ab, true);
+  }).catch(function(e) {
+    document.getElementById('recHint').textContent = 'Failed to read recording';
+    log('Blob read err: ' + e.message);
+  });
+  log('Rec stop: ' + durSec.toFixed(1) + 's, ' + (blob.size/1024).toFixed(1) + 'KB');
+}
+function stopMicStream() {
+  if (micStream) {
+    micStream.getTracks().forEach(function(t){ try { t.stop(); } catch(e) {} });
+    micStream = null;
+  }
+  if (recAnalyserCtx) { try { recAnalyserCtx.close(); } catch(e) {} recAnalyserCtx = null; }
+  recAnalyser = null;
+  if (recRafId) { cancelAnimationFrame(recRafId); recRafId = null; }
+  document.getElementById('recLevelBar').style.width = '0%';
+}
+function updateRecTimer() {
+  var s = Math.floor((Date.now() - recStartMs) / 1000);
+  var m = Math.floor(s / 60);
+  var sec = s % 60;
+  document.getElementById('recTimer').textContent = m + ':' + (sec < 10 ? '0' + sec : sec);
+}
+function startLevelMeter(stream) {
+  try {
+    recAnalyserCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var src = recAnalyserCtx.createMediaStreamSource(stream);
+    recAnalyser = recAnalyserCtx.createAnalyser();
+    recAnalyser.fftSize = 512;
+    src.connect(recAnalyser);
+    var data = new Uint8Array(recAnalyser.frequencyBinCount);
+    var bar = document.getElementById('recLevelBar');
+    function tick() {
+      if (!recAnalyser) return;
+      recAnalyser.getByteTimeDomainData(data);
+      var peak = 0;
+      for (var i = 0; i < data.length; i++) {
+        var v = Math.abs(data[i] - 128);
+        if (v > peak) peak = v;
+      }
+      var pct = Math.min(100, Math.round(peak / 128 * 140));
+      bar.style.width = pct + '%';
+      recRafId = requestAnimationFrame(tick);
+    }
+    tick();
+  } catch(e) { log('Level meter err: ' + e.message); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  Boot
 // ══════════════════════════════════════════════════════════════════════════════
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v10');
+log('Boot OK v11 (rec)');
 </script>
 </body>
 </html>
