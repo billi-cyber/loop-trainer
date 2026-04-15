@@ -402,6 +402,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="bb-pill" onclick="bbCopy()">Copy</button>
     <button class="bb-pill" onclick="bbPasteArm()">Paste</button>
     <button class="bb-pill" onclick="bbDeleteSel()" style="color:var(--red)">Del</button>
+    <button class="bb-pill" onclick="bbUndo()">Undo</button>
   </div>
   <div class="bb-scroll" id="bbScroll">
     <div class="bb-inner" id="bbInner">
@@ -1890,7 +1891,7 @@ function esc(s) {
 // ══════════════════════════════════════════════════════════════════════════════
 var mediaRec = null, micStream = null, recChunks = [], recMime = '';
 var sharedMicStream = null;
-var recStartMs = 0, recTimerIv = null, recRafId = null;
+var recStartMs = 0, recTimerIv = null, recRafId = null, recAborted = false;
 var recAnalyser = null, recAnalyserCtx = null;
 
 function openRecorder() {
@@ -1902,8 +1903,16 @@ function openRecorder() {
 }
 function closeRecorder() {
   if (mediaRec && mediaRec.state === 'recording') {
+    recAborted = true;
     try { mediaRec.stop(); } catch(e) {}
   }
+  if (recTimerIv) { clearInterval(recTimerIv); recTimerIv = null; }
+  if (recRafId) { cancelAnimationFrame(recRafId); recRafId = null; }
+  recChunks = [];
+  setRecBtnState(false);
+  document.getElementById('recTimer').textContent = '0:00';
+  document.getElementById('recHint').textContent = 'Ready';
+  document.getElementById('recLevelBar').style.width = '0%';
   stopMicStream();
   if (typeof bb !== 'undefined') bb.recordingRowId = 0;
   document.getElementById('recModal').classList.remove('show');
@@ -1972,6 +1981,7 @@ function startRecording() {
     recChunks = [];
     mediaRec.ondataavailable = function(e) { if (e.data && e.data.size > 0) recChunks.push(e.data); };
     mediaRec.onstop = function() { onRecStop(); };
+    recAborted = false;
     mediaRec.start();
     recStartMs = Date.now();
     setRecBtnState(true);
@@ -1993,6 +2003,14 @@ function stopRecording() {
   if (recRafId) { cancelAnimationFrame(recRafId); recRafId = null; }
 }
 function onRecStop() {
+  if (recAborted) {
+    recAborted = false;
+    recChunks = [];
+    stopMicStream();
+    if (typeof bb !== 'undefined') bb.recordingRowId = 0;
+    log('Rec aborted');
+    return;
+  }
   var blob = new Blob(recChunks, { type: recMime || 'audio/webm' });
   recChunks = [];
   stopMicStream();
@@ -2090,8 +2108,30 @@ var bb = {
   selectedClipIds: [],
   clipboard: null,
   pasteArmed: false,
-  marquee: null
+  marquee: null,
+  history: []
 };
+function bbSnapshot(label) {
+  try {
+    bb.history.push({
+      label: label || '',
+      clips: JSON.parse(JSON.stringify(bb.clips)),
+      selectedClipId: bb.selectedClipId,
+      selectedClipIds: bb.selectedClipIds.slice()
+    });
+    if (bb.history.length > 50) bb.history.shift();
+  } catch(e) {}
+}
+function bbUndo() {
+  if (bb.history.length === 0) { setStatus('Nothing to undo', 'err'); setTimeout(function(){setStatus('');}, 1000); return; }
+  var s = bb.history.pop();
+  bb.clips = s.clips;
+  bb.selectedClipId = s.selectedClipId;
+  bb.selectedClipIds = s.selectedClipIds;
+  bbRedrawAll();
+  setStatus('Undo' + (s.label ? ': ' + s.label : ''), 'ok');
+  setTimeout(function(){setStatus('');}, 900);
+}
 
 function bbOpen() {
   unlockSilentMode();
@@ -2296,7 +2336,7 @@ function bbAttachRowCanvas(cv, rowId) {
         if (rel > cw - 14) mode = 'resize-right';
         else if (rel < 14) mode = 'resize-left';
       }
-      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, origDurTicks: clip.durTicks, origTrimStart: clip.trimStart, origTrimEnd: clip.trimEnd, mode: mode, moved: false };
+      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, origDurTicks: clip.durTicks, origTrimStart: clip.trimStart, origTrimEnd: clip.trimEnd, mode: mode, moved: false, snapped: false };
       bbDrawRowCanvas(cv, rowId);
       bb.longPressTimer = setTimeout(function() {
         if (bb.dragState && !bb.dragState.moved) {
@@ -2308,10 +2348,11 @@ function bbAttachRowCanvas(cv, rowId) {
       var row = bbRowById(rowId);
       if (!row || !row.buffer) { setStatus('Load a sample for this row first', 'err'); setTimeout(function(){setStatus('');}, 1500); return; }
       var t = bbSnap(bbPxToTick(x));
+      bbSnapshot('add clip');
       var clip = bbMakeClip(rowId, t);
       bb.clips.push(clip);
       bb.selectedClipId = clip.id;
-      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, origDurTicks: clip.durTicks, origTrimStart: clip.trimStart, origTrimEnd: clip.trimEnd, mode: 'move', moved: false };
+      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, origDurTicks: clip.durTicks, origTrimStart: clip.trimStart, origTrimEnd: clip.trimEnd, mode: 'move', moved: false, snapped: true };
       bbDrawRowCanvas(cv, rowId);
     }
   };
@@ -2320,7 +2361,10 @@ function bbAttachRowCanvas(cv, rowId) {
     e.preventDefault();
     var x = getX(e);
     var dx = x - bb.dragState.startX;
-    if (Math.abs(dx) > 3) bb.dragState.moved = true;
+    if (Math.abs(dx) > 3 && !bb.dragState.moved) {
+      bb.dragState.moved = true;
+      if (!bb.dragState.snapped) { bbSnapshot(bb.dragState.mode); bb.dragState.snapped = true; }
+    }
     var clip = bbClipById(bb.dragState.clipId);
     if (!clip) return;
     var row = bbRowById(clip.rowId);
@@ -2501,17 +2545,20 @@ function bbToggleMute(id) {
 }
 
 // ── Context menu ────────────────────────────────────────────────────────────
+var bbCtxOpenAt = 0;
 function bbShowCtx(e, clipId) {
   bb.selectedClipId = clipId;
   bbRedrawAll();
   var c = bbClipById(clipId);
   document.getElementById('bbCtxReverse').textContent = (c && c.reverse) ? 'Un-reverse' : 'Reverse';
   var ctx = document.getElementById('bbCtx');
-  var cx = (e.touches ? e.changedTouches[0].clientX : e.clientX);
-  var cy = (e.touches ? e.changedTouches[0].clientY : e.clientY);
-  ctx.style.left = Math.min(window.innerWidth - 130, cx) + 'px';
-  ctx.style.top = Math.min(window.innerHeight - 60, cy) + 'px';
+  var tx = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+  var cx = tx ? tx.clientX : e.clientX;
+  var cy = tx ? tx.clientY : e.clientY;
+  ctx.style.left = Math.min(window.innerWidth - 160, Math.max(8, cx)) + 'px';
+  ctx.style.top = Math.min(window.innerHeight - 240, Math.max(8, cy)) + 'px';
   ctx.classList.add('show');
+  bbCtxOpenAt = Date.now();
 }
 function bbHideCtx() { document.getElementById('bbCtx').classList.remove('show'); }
 function bbCtxAction(action) {
@@ -2519,13 +2566,16 @@ function bbCtxAction(action) {
   var c = bbClipById(bb.selectedClipId);
   if (!c) return;
   if (action === 'delete') {
+    bbSnapshot('delete');
     bb.clips = bb.clips.filter(function(x) { return x.id !== c.id; });
     bb.selectedClipId = 0;
     bbRedrawAll();
   } else if (action === 'reverse') {
+    bbSnapshot('reverse');
     c.reverse = !c.reverse;
     bbRedrawAll();
   } else if (action === 'duplicate') {
+    bbSnapshot('duplicate');
     var nc = {
       id: bb.nextId++, rowId: c.rowId,
       startTick: c.startTick + c.durTicks,
@@ -2537,6 +2587,7 @@ function bbCtxAction(action) {
     bb.selectedClipId = nc.id;
     bbRedrawAll();
   } else if (action === 'reset') {
+    bbSnapshot('reset');
     var row = bbRowById(c.rowId);
     if (row && row.buffer) {
       c.trimStart = 0; c.trimEnd = row.buffer.duration;
@@ -2553,6 +2604,7 @@ var bbSpeedClipId = 0;
 function bbSpeedOpen(clipId) {
   var c = bbClipById(clipId); if (!c) return;
   bbSpeedClipId = clipId;
+  bb._speedSnapDone = false;
   var row = bbRowById(c.rowId);
   document.getElementById('bbSpeedClipName').textContent = (row ? row.name : '') + (row && row.sampleName ? ' — ' + row.sampleName : '');
   document.getElementById('bbSpeedSlider').value = c.speed;
@@ -2567,6 +2619,7 @@ function bbSpeedClose() {
 }
 function bbSpeedChange(v) {
   var c = bbClipById(bbSpeedClipId); if (!c) return;
+  if (!bb._speedSnapDone) { bbSnapshot('speed'); bb._speedSnapDone = true; }
   var sp = parseFloat(v);
   c.speed = sp;
   document.getElementById('bbSpeedVal').textContent = sp.toFixed(2) + '\u00D7';
@@ -2720,6 +2773,7 @@ function bbPasteArm() {
 }
 function bbPasteAt(rowId, tick) {
   if (!bb.clipboard) return;
+  bbSnapshot('paste');
   var tRowIdx = bbRowIndex(rowId);
   var tTick = bbSnap(tick);
   var newIds = [];
@@ -2746,10 +2800,13 @@ function bbPasteAt(rowId, tick) {
   setTimeout(function(){setStatus('');}, 1200);
 }
 function bbDeleteSel() {
-  if (bb.selectedClipIds.length === 0) return;
   var ids = bb.selectedClipIds.slice();
+  if (ids.length === 0 && bb.selectedClipId) ids = [bb.selectedClipId];
+  if (ids.length === 0) { setStatus('Nothing selected', 'err'); setTimeout(function(){setStatus('');}, 1000); return; }
+  bbSnapshot('delete');
   bb.clips = bb.clips.filter(function(c){ return ids.indexOf(c.id) < 0; });
   bb.selectedClipIds = [];
+  bb.selectedClipId = 0;
   bbRedrawAll();
   setStatus('Deleted ' + ids.length + ' clip(s)', 'ok');
   setTimeout(function(){setStatus('');}, 1000);
@@ -2757,6 +2814,7 @@ function bbDeleteSel() {
 function bbRowIndex(id) { for (var i = 0; i < bb.rows.length; i++) if (bb.rows[i].id === id) return i; return -1; }
 
 document.addEventListener('click', function(e) {
+  if (Date.now() - bbCtxOpenAt < 400) return;
   var ctx = document.getElementById('bbCtx');
   if (!ctx.contains(e.target)) bbHideCtx();
 });
@@ -2919,6 +2977,7 @@ function bbSEStopPreview() {
 }
 function bbSEApply() {
   var r = bbRowById(bbSE.rowId); if (!r || !r.buffer) return;
+  bbSnapshot('trim sample');
   var src = r.buffer;
   var sr = src.sampleRate;
   var s0 = Math.floor(bbSE.startSec * sr);
@@ -3032,7 +3091,7 @@ function bbAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v20 (bb phase 2 + mic/BT fixes)');
+log('Boot OK v21 (bb undo + delete/rec-close fixes)');
 </script>
 </body>
 </html>
