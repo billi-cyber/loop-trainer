@@ -193,6 +193,8 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .bb-row-info{font-size:9px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bb-row-canvas{display:block;height:62px;flex-shrink:0;background:var(--sur);cursor:crosshair;touch-action:none}
 .bb-playhead{position:absolute;top:22px;bottom:0;width:2px;background:var(--grn);pointer-events:none;z-index:5;display:none;box-shadow:0 0 6px var(--grn)}
+.bb-marquee{position:absolute;border:1.5px dashed var(--acc);background:rgba(10,132,255,.18);pointer-events:none;z-index:6;display:none}
+.bb-pill#bbSelBtn.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 .bb-add-row{background:var(--sur2);color:var(--dim);border:1px dashed var(--brd);border-radius:8px;padding:8px;width:100%;margin:6px 0 0;font-size:11px;font-weight:600;cursor:pointer}
 .bb-add-row:active{opacity:.6}
 .bb-ctx{position:fixed;background:var(--sur2);border:1px solid var(--brd);border-radius:10px;padding:5px;z-index:1100;display:none;box-shadow:0 6px 24px rgba(0,0,0,.6)}
@@ -396,6 +398,10 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="bb-pill" id="bbLoopBtn" onclick="bbToggleLoop()">Loop</button>
     <button class="bb-pill" onclick="bbZoom(1.25)">Z+</button>
     <button class="bb-pill" onclick="bbZoom(0.8)">Z&minus;</button>
+    <button class="bb-pill" id="bbSelBtn" onclick="bbToggleSelMode()">Sel</button>
+    <button class="bb-pill" onclick="bbCopy()">Copy</button>
+    <button class="bb-pill" onclick="bbPasteArm()">Paste</button>
+    <button class="bb-pill" onclick="bbDeleteSel()" style="color:var(--red)">Del</button>
   </div>
   <div class="bb-scroll" id="bbScroll">
     <div class="bb-inner" id="bbInner">
@@ -406,6 +412,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <div id="bbRows"></div>
       <button class="bb-add-row" onclick="bbAddRows(8)">+ Add 8 more rows</button>
       <div class="bb-playhead" id="bbPlayhead"></div>
+      <div class="bb-marquee" id="bbMarquee"></div>
     </div>
   </div>
   <input type="file" id="bbFileInput" accept="audio/*" style="display:none">
@@ -433,7 +440,31 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 </div>
 <!-- Clip context menu -->
 <div class="bb-ctx" id="bbCtx">
+  <button onclick="bbCtxAction('reverse')" id="bbCtxReverse">Reverse</button>
+  <button onclick="bbCtxAction('speed')">Speed / Pitch...</button>
+  <button onclick="bbCtxAction('duplicate')">Duplicate</button>
+  <button onclick="bbCtxAction('reset')">Reset trim/speed</button>
   <button onclick="bbCtxAction('delete')" class="bb-ctx-del">Delete clip</button>
+</div>
+<!-- Clip speed panel -->
+<div class="bb-samed" id="bbSpeedModal">
+  <div class="bb-samed-card" style="max-width:340px">
+    <div class="bb-samed-title" style="color:var(--acc)">Clip Speed</div>
+    <div class="bb-samed-name" id="bbSpeedClipName">&mdash;</div>
+    <div style="display:flex;align-items:center;gap:10px;margin:10px 0">
+      <span style="font-size:12px;color:var(--dim)">Speed</span>
+      <input type="range" id="bbSpeedSlider" min="0.25" max="2.5" step="0.05" value="1" style="flex:1;margin:0" oninput="bbSpeedChange(this.value)">
+      <span id="bbSpeedVal" style="font-size:14px;font-weight:700;color:var(--acc);min-width:42px;text-align:right">1.00&times;</span>
+    </div>
+    <div class="loop-row" style="margin:4px 0">
+      <span class="loop-row-lbl">Preserve Pitch (Master Tempo)</span>
+      <div class="toggle" id="bbPresPitchTog" onclick="bbTogglePresPitch()"></div>
+    </div>
+    <div class="bb-samed-row">
+      <button class="bb-samed-prev" onclick="bbSpeedPreview()">&#9654; Preview</button>
+      <button class="bb-samed-apply" onclick="bbSpeedClose()">Done</button>
+    </div>
+  </div>
 </div>
 <button class="log-toggle" onclick="toggleLogPanel()">Show Debug Log</button>
 <div id="logPanel">
@@ -1030,6 +1061,7 @@ document.addEventListener('visibilitychange', function() {
   } else {
     // Foregrounded: restore original source and switch to Web Audio loop
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    unlockSilentMode(); // re-arm iOS audio session (helps after BT route changes)
     if (bgLoopActive && playing) {
       var t = audTime(); // uses bgLoop position mapping
       stopBgLoop();
@@ -1050,6 +1082,22 @@ document.addEventListener('visibilitychange', function() {
     }
   }
 });
+
+// Audio route change (Bluetooth connect/disconnect, headphones plug/unplug)
+// iOS occasionally silences Web Audio when the output device swaps; re-unlocking
+// the silent session and resuming the context forces re-routing.
+if (navigator.mediaDevices && typeof navigator.mediaDevices.addEventListener === 'function') {
+  navigator.mediaDevices.addEventListener('devicechange', function() {
+    log('Audio device changed — re-arming output');
+    try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
+    unlockSilentMode();
+    // Nudge <audio> element to flush output to the new device
+    if (audioEl && !audioEl.paused) {
+      var t = audioEl.currentTime;
+      try { audioEl.currentTime = t; } catch(e) {}
+    }
+  });
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  Loop points
@@ -1841,6 +1889,7 @@ function esc(s) {
 //  Microphone Recorder
 // ══════════════════════════════════════════════════════════════════════════════
 var mediaRec = null, micStream = null, recChunks = [], recMime = '';
+var sharedMicStream = null;
 var recStartMs = 0, recTimerIv = null, recRafId = null;
 var recAnalyser = null, recAnalyserCtx = null;
 
@@ -1883,18 +1932,31 @@ function toggleRecording() {
   if (mediaRec && mediaRec.state === 'recording') { stopRecording(); }
   else { startRecording(); }
 }
+function getMicStream() {
+  return new Promise(function(resolve, reject) {
+    if (sharedMicStream) {
+      var tr = sharedMicStream.getTracks();
+      if (tr.length && tr[0].readyState === 'live') { resolve(sharedMicStream); return; }
+      sharedMicStream = null;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      reject(new Error('Mic not available')); return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function(s) {
+      sharedMicStream = s;
+      log('Mic stream acquired (persistent)');
+      resolve(s);
+    }).catch(reject);
+  });
+}
 function startRecording() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    document.getElementById('recHint').textContent = 'Mic not available';
-    return;
-  }
   if (typeof MediaRecorder === 'undefined') {
     document.getElementById('recHint').textContent = 'MediaRecorder not supported';
     return;
   }
   unlockSilentMode();
   document.getElementById('recHint').textContent = 'Requesting microphone...';
-  navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+  getMicStream().then(function(stream) {
     micStream = stream;
     recMime = pickRecMime();
     try {
@@ -1961,14 +2023,13 @@ function onRecStop() {
   log('Rec stop: ' + durSec.toFixed(1) + 's, ' + (blob.size/1024).toFixed(1) + 'KB');
 }
 function stopMicStream() {
-  if (micStream) {
-    micStream.getTracks().forEach(function(t){ try { t.stop(); } catch(e) {} });
-    micStream = null;
-  }
+  // Do NOT stop the shared stream tracks — keep alive to avoid permission re-prompts.
+  // Only detach our local reference and close analyser.
+  micStream = null;
   if (recAnalyserCtx) { try { recAnalyserCtx.close(); } catch(e) {} recAnalyserCtx = null; }
   recAnalyser = null;
   if (recRafId) { cancelAnimationFrame(recRafId); recRafId = null; }
-  document.getElementById('recLevelBar').style.width = '0%';
+  var lb = document.getElementById('recLevelBar'); if (lb) lb.style.width = '0%';
 }
 function updateRecTimer() {
   var s = Math.floor((Date.now() - recStartMs) / 1000);
@@ -2024,7 +2085,12 @@ var bb = {
   dragState: null,
   longPressTimer: 0,
   rowHeadW: 140,
-  rowH: 62
+  rowH: 62,
+  selMode: false,
+  selectedClipIds: [],
+  clipboard: null,
+  pasteArmed: false,
+  marquee: null
 };
 
 function bbOpen() {
@@ -2143,6 +2209,29 @@ function bbRenderRows() {
 }
 function bbDrawTimeline() {
   var tl = document.getElementById('bbTimelineCanvas');
+  if (!tl._bbBound) {
+    tl._bbBound = true;
+    tl.style.cursor = 'pointer';
+    tl.addEventListener('click', function(e) {
+      var rect = tl.getBoundingClientRect();
+      var x = e.clientX - rect.left;
+      var beatsPerBar = bb.tsNum * (4 / bb.tsDen);
+      var barPx = beatsPerBar * bb.pxPerBeat;
+      var bar = Math.floor(x / barPx);
+      if (bar < 0 || bar >= bb.bars) return;
+      var ticksPerBar = bbTicksPerBar();
+      var t0 = bar * ticksPerBar, t1 = (bar + 1) * ticksPerBar;
+      bb.selectedClipIds = [];
+      for (var i = 0; i < bb.clips.length; i++) {
+        var c = bb.clips[i];
+        if (c.startTick < t1 && c.startTick + c.durTicks > t0) bb.selectedClipIds.push(c.id);
+      }
+      bb.selMode = true;
+      document.getElementById('bbSelBtn').classList.add('on');
+      bbRedrawAll();
+      setStatus('Bar ' + (bar + 1) + ': ' + bb.selectedClipIds.length + ' clip(s) selected', 'ok');
+    });
+  }
   var w = bbPatternPx();
   var dpr = window.devicePixelRatio || 1;
   tl.style.width = w + 'px';
@@ -2174,10 +2263,41 @@ function bbAttachRowCanvas(cv, rowId) {
   var downFn = function(e) {
     e.preventDefault();
     var x = getX(e);
+    // Paste armed: next tap places clipboard
+    if (bb.pasteArmed && bb.clipboard) {
+      bbPasteAt(rowId, bbPxToTick(x));
+      bb.pasteArmed = false;
+      setStatus('', '');
+      return;
+    }
+    // Select mode
+    if (bb.selMode) {
+      var clipInSel = bbClipAt(rowId, bbPxToTick(x));
+      if (clipInSel) {
+        var ix = bb.selectedClipIds.indexOf(clipInSel.id);
+        if (ix >= 0) bb.selectedClipIds.splice(ix, 1);
+        else bb.selectedClipIds.push(clipInSel.id);
+        bbRedrawAll();
+      } else {
+        bbStartMarquee(e, cv, rowId);
+      }
+      return;
+    }
     var clip = bbClipAt(rowId, bbPxToTick(x));
     if (clip) {
+      var wasSelected = (bb.selectedClipId === clip.id);
       bb.selectedClipId = clip.id;
-      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, moved: false };
+      // edge-resize detection (only when already selected, handles ~14px)
+      var cx0 = clip.startTick / TPQ * bb.pxPerBeat;
+      var cw = Math.max(4, clip.durTicks / TPQ * bb.pxPerBeat);
+      var rel = x - cx0;
+      var mode = 'move';
+      if (wasSelected && cw > 30) {
+        if (rel > cw - 14) mode = 'resize-right';
+        else if (rel < 14) mode = 'resize-left';
+      }
+      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, origDurTicks: clip.durTicks, origTrimStart: clip.trimStart, origTrimEnd: clip.trimEnd, mode: mode, moved: false };
+      bbDrawRowCanvas(cv, rowId);
       bb.longPressTimer = setTimeout(function() {
         if (bb.dragState && !bb.dragState.moved) {
           bbShowCtx(e, clip.id);
@@ -2188,11 +2308,10 @@ function bbAttachRowCanvas(cv, rowId) {
       var row = bbRowById(rowId);
       if (!row || !row.buffer) { setStatus('Load a sample for this row first', 'err'); setTimeout(function(){setStatus('');}, 1500); return; }
       var t = bbSnap(bbPxToTick(x));
-      var durT = bbSecToTick(row.buffer.duration);
-      var clip = { id: bb.nextId++, rowId: rowId, startTick: t, durTicks: durT };
+      var clip = bbMakeClip(rowId, t);
       bb.clips.push(clip);
       bb.selectedClipId = clip.id;
-      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, moved: false };
+      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, origDurTicks: clip.durTicks, origTrimStart: clip.trimStart, origTrimEnd: clip.trimEnd, mode: 'move', moved: false };
       bbDrawRowCanvas(cv, rowId);
     }
   };
@@ -2204,12 +2323,38 @@ function bbAttachRowCanvas(cv, rowId) {
     if (Math.abs(dx) > 3) bb.dragState.moved = true;
     var clip = bbClipById(bb.dragState.clipId);
     if (!clip) return;
-    var newTick = bb.dragState.origStartTick + bbPxToTick(dx);
-    newTick = bbSnap(Math.max(0, newTick));
-    if (newTick !== clip.startTick) {
-      clip.startTick = newTick;
-      bbDrawRowCanvas(cv, rowId);
+    var row = bbRowById(clip.rowId);
+    var sampleDur = row && row.buffer ? row.buffer.duration : 0;
+    var ds = bb.dragState;
+    var changed = false;
+    if (ds.mode === 'move') {
+      var newTick = bbSnap(Math.max(0, ds.origStartTick + bbPxToTick(dx)));
+      if (newTick !== clip.startTick) { clip.startTick = newTick; changed = true; }
+    } else if (ds.mode === 'resize-right') {
+      var dTicks = bbSnap(bbPxToTick(dx));
+      var newDur = Math.max(bbSnapTicks(), ds.origDurTicks + dTicks);
+      // corresponding trimEnd
+      var addSec = bbTickToSec(newDur - ds.origDurTicks) * clip.speed;
+      var newTrimEnd = Math.min(sampleDur, ds.origTrimEnd + addSec);
+      // if clamped by sample end, cap newDur accordingly
+      var maxDur = bbSecToTick((newTrimEnd - clip.trimStart) / clip.speed);
+      newDur = Math.min(newDur, maxDur);
+      if (newDur !== clip.durTicks) { clip.durTicks = newDur; clip.trimEnd = newTrimEnd; changed = true; }
+    } else if (ds.mode === 'resize-left') {
+      var dTicks2 = bbSnap(bbPxToTick(dx));
+      // only positive dx (drag right) trims from left; negative moves origin back to 0
+      var newStart = Math.max(0, ds.origStartTick + dTicks2);
+      var delta = newStart - ds.origStartTick;
+      var newDur2 = ds.origDurTicks - delta;
+      if (newDur2 < bbSnapTicks()) { newDur2 = bbSnapTicks(); newStart = ds.origStartTick + (ds.origDurTicks - newDur2); }
+      var addSec2 = bbTickToSec(delta) * clip.speed;
+      var newTrimStart = Math.max(0, ds.origTrimStart + addSec2);
+      if (newTrimStart >= clip.trimEnd - 0.01) { newTrimStart = clip.trimEnd - 0.01; }
+      if (clip.startTick !== newStart || clip.durTicks !== newDur2) {
+        clip.startTick = newStart; clip.durTicks = newDur2; clip.trimStart = newTrimStart; changed = true;
+      }
     }
+    if (changed) bbDrawRowCanvas(cv, rowId);
   };
   var upFn = function(e) {
     if (bb.longPressTimer) { clearTimeout(bb.longPressTimer); bb.longPressTimer = 0; }
@@ -2265,7 +2410,7 @@ function bbDrawRowCanvas(cv, rowId) {
     if (c.rowId !== rowId) continue;
     var cx = c.startTick / TPQ * bb.pxPerBeat;
     var cw = Math.max(4, c.durTicks / TPQ * bb.pxPerBeat);
-    var sel = (c.id === bb.selectedClipId);
+    var sel = (c.id === bb.selectedClipId) || (bb.selectedClipIds.indexOf(c.id) >= 0);
     ctx.fillStyle = row.color;
     ctx.globalAlpha = 0.75;
     ctx.fillRect(cx, 4, cw, bb.rowH - 8);
@@ -2284,6 +2429,21 @@ function bbDrawRowCanvas(cv, rowId) {
     ctx.globalAlpha = 0.6;
     ctx.fillRect(cx, 4, 2, bb.rowH - 8);
     ctx.globalAlpha = 1;
+    // Indicators: reverse arrow + speed label
+    if (cw > 24) {
+      ctx.fillStyle = 'rgba(0,0,0,.55)';
+      ctx.font = 'bold 10px -apple-system,sans-serif';
+      var lbl = '';
+      if (c.reverse) lbl += '\u21A9 ';
+      if (c.speed && c.speed !== 1) lbl += c.speed.toFixed(2) + 'x';
+      if (lbl) ctx.fillText(lbl, cx + 4, bb.rowH - 7);
+    }
+    // resize handles when selected
+    if (sel && cw > 30) {
+      ctx.fillStyle = 'rgba(255,255,255,.8)';
+      ctx.fillRect(cx + cw - 3, 10, 3, bb.rowH - 20);
+      ctx.fillRect(cx, 10, 3, bb.rowH - 20);
+    }
   }
 }
 function bbRedrawAll() {
@@ -2292,6 +2452,31 @@ function bbRedrawAll() {
     var rid = parseInt(cvs[i].dataset.rowId, 10);
     bbDrawRowCanvas(cvs[i], rid);
   }
+}
+function bbMakeClip(rowId, startTick) {
+  var r = bbRowById(rowId);
+  var dur = r && r.buffer ? r.buffer.duration : 0.1;
+  var clip = {
+    id: bb.nextId++, rowId: rowId, startTick: startTick,
+    trimStart: 0, trimEnd: dur, speed: 1.0, preservePitch: true, reverse: false,
+    durTicks: 0
+  };
+  clip.durTicks = bbSecToTick((clip.trimEnd - clip.trimStart) / clip.speed);
+  return clip;
+}
+function bbGetReversed(row) {
+  if (row._reversedBuffer && row._reversedFor === row.buffer) return row._reversedBuffer;
+  var src = row.buffer;
+  var out = audioCtx.createBuffer(src.numberOfChannels, src.length, src.sampleRate);
+  for (var ch = 0; ch < src.numberOfChannels; ch++) {
+    var from = src.getChannelData(ch);
+    var to = out.getChannelData(ch);
+    var L = from.length;
+    for (var i = 0; i < L; i++) to[i] = from[L - 1 - i];
+  }
+  row._reversedBuffer = out;
+  row._reversedFor = src;
+  return out;
 }
 function bbRowById(id) { for (var i = 0; i < bb.rows.length; i++) if (bb.rows[i].id === id) return bb.rows[i]; return null; }
 function bbClipById(id) { for (var i = 0; i < bb.clips.length; i++) if (bb.clips[i].id === id) return bb.clips[i]; return null; }
@@ -2319,6 +2504,8 @@ function bbToggleMute(id) {
 function bbShowCtx(e, clipId) {
   bb.selectedClipId = clipId;
   bbRedrawAll();
+  var c = bbClipById(clipId);
+  document.getElementById('bbCtxReverse').textContent = (c && c.reverse) ? 'Un-reverse' : 'Reverse';
   var ctx = document.getElementById('bbCtx');
   var cx = (e.touches ? e.changedTouches[0].clientX : e.clientX);
   var cy = (e.touches ? e.changedTouches[0].clientY : e.clientY);
@@ -2329,12 +2516,246 @@ function bbShowCtx(e, clipId) {
 function bbHideCtx() { document.getElementById('bbCtx').classList.remove('show'); }
 function bbCtxAction(action) {
   bbHideCtx();
-  if (action === 'delete' && bb.selectedClipId) {
-    bb.clips = bb.clips.filter(function(c) { return c.id !== bb.selectedClipId; });
+  var c = bbClipById(bb.selectedClipId);
+  if (!c) return;
+  if (action === 'delete') {
+    bb.clips = bb.clips.filter(function(x) { return x.id !== c.id; });
     bb.selectedClipId = 0;
     bbRedrawAll();
+  } else if (action === 'reverse') {
+    c.reverse = !c.reverse;
+    bbRedrawAll();
+  } else if (action === 'duplicate') {
+    var nc = {
+      id: bb.nextId++, rowId: c.rowId,
+      startTick: c.startTick + c.durTicks,
+      trimStart: c.trimStart, trimEnd: c.trimEnd,
+      speed: c.speed, preservePitch: c.preservePitch, reverse: c.reverse,
+      durTicks: c.durTicks
+    };
+    bb.clips.push(nc);
+    bb.selectedClipId = nc.id;
+    bbRedrawAll();
+  } else if (action === 'reset') {
+    var row = bbRowById(c.rowId);
+    if (row && row.buffer) {
+      c.trimStart = 0; c.trimEnd = row.buffer.duration;
+      c.speed = 1.0; c.preservePitch = true; c.reverse = false;
+      c.durTicks = bbSecToTick(c.trimEnd - c.trimStart);
+      bbRedrawAll();
+    }
+  } else if (action === 'speed') {
+    bbSpeedOpen(c.id);
   }
 }
+// ── Clip speed panel ────────────────────────────────────────────────────────
+var bbSpeedClipId = 0;
+function bbSpeedOpen(clipId) {
+  var c = bbClipById(clipId); if (!c) return;
+  bbSpeedClipId = clipId;
+  var row = bbRowById(c.rowId);
+  document.getElementById('bbSpeedClipName').textContent = (row ? row.name : '') + (row && row.sampleName ? ' — ' + row.sampleName : '');
+  document.getElementById('bbSpeedSlider').value = c.speed;
+  document.getElementById('bbSpeedVal').textContent = c.speed.toFixed(2) + '\u00D7';
+  document.getElementById('bbPresPitchTog').classList.toggle('on', !!c.preservePitch);
+  document.getElementById('bbSpeedModal').classList.add('show');
+}
+function bbSpeedClose() {
+  bbSpeedStopPreview();
+  document.getElementById('bbSpeedModal').classList.remove('show');
+  bbSpeedClipId = 0;
+}
+function bbSpeedChange(v) {
+  var c = bbClipById(bbSpeedClipId); if (!c) return;
+  var sp = parseFloat(v);
+  c.speed = sp;
+  document.getElementById('bbSpeedVal').textContent = sp.toFixed(2) + '\u00D7';
+  // resync durTicks on grid so visual length matches new playback time
+  c.durTicks = bbSecToTick((c.trimEnd - c.trimStart) / c.speed);
+  bbRedrawAll();
+}
+function bbTogglePresPitch() {
+  var c = bbClipById(bbSpeedClipId); if (!c) return;
+  c.preservePitch = !c.preservePitch;
+  document.getElementById('bbPresPitchTog').classList.toggle('on', c.preservePitch);
+}
+var _bbSpeedPrevSrc = null;
+function bbSpeedPreview() {
+  bbSpeedStopPreview();
+  var c = bbClipById(bbSpeedClipId); if (!c) return;
+  var row = bbRowById(c.rowId); if (!row || !row.buffer) return;
+  ensureCtx();
+  var src = audioCtx.createBufferSource();
+  src.buffer = c.reverse ? bbGetReversed(row) : row.buffer;
+  src.playbackRate.value = c.speed;
+  if ('preservesPitch' in src) src.preservesPitch = !!c.preservePitch;
+  if ('webkitPreservesPitch' in src) src.webkitPreservesPitch = !!c.preservePitch;
+  src.connect(audioCtx.destination);
+  var srcDur = row.buffer.duration;
+  var off = c.reverse ? Math.max(0, srcDur - c.trimEnd) : c.trimStart;
+  try { src.start(0, off, Math.max(0.01, c.trimEnd - c.trimStart)); } catch(e) {}
+  _bbSpeedPrevSrc = src;
+}
+function bbSpeedStopPreview() {
+  if (_bbSpeedPrevSrc) { try { _bbSpeedPrevSrc.stop(); } catch(e) {} _bbSpeedPrevSrc = null; }
+}
+
+// ── Select mode, marquee, copy/paste ───────────────────────────────────────
+function bbToggleSelMode() {
+  bb.selMode = !bb.selMode;
+  document.getElementById('bbSelBtn').classList.toggle('on', bb.selMode);
+  if (!bb.selMode) { bb.selectedClipIds = []; bbRedrawAll(); }
+  setStatus(bb.selMode ? 'Select mode: tap clips or drag marquee' : '', bb.selMode ? 'ok' : '');
+}
+function bbStartMarquee(e, cv, rowId) {
+  var rect = cv.getBoundingClientRect();
+  var x0 = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+  var y0 = (e.touches ? e.touches[0].clientY : e.clientY);
+  var rowEl = cv.parentElement;
+  var rowRect = rowEl.getBoundingClientRect();
+  var startRowY = y0;
+  // Origin in bbInner coords
+  var inner = document.getElementById('bbInner');
+  var innerRect = inner.getBoundingClientRect();
+  var mx0 = rect.left - innerRect.left + x0;
+  var my0 = rowRect.top - innerRect.top;
+  bb.marquee = { mx0: mx0, my0: my0, mx1: mx0, my1: my0 + bb.rowH, startRowId: rowId };
+  var box = document.getElementById('bbMarquee');
+  box.style.display = 'block';
+  bbUpdateMarqueeBox();
+  var moveFn = function(ev) {
+    ev.preventDefault();
+    var cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+    var cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
+    bb.marquee.mx1 = cx - innerRect.left;
+    bb.marquee.my1 = cy - innerRect.top;
+    bbUpdateMarqueeBox();
+  };
+  var upFn = function() {
+    document.removeEventListener('touchmove', moveFn, { passive: false });
+    document.removeEventListener('touchend', upFn);
+    document.removeEventListener('mousemove', moveFn);
+    document.removeEventListener('mouseup', upFn);
+    bbFinishMarquee();
+  };
+  document.addEventListener('touchmove', moveFn, { passive: false });
+  document.addEventListener('touchend', upFn);
+  document.addEventListener('mousemove', moveFn);
+  document.addEventListener('mouseup', upFn);
+}
+function bbUpdateMarqueeBox() {
+  if (!bb.marquee) return;
+  var m = bb.marquee;
+  var left = Math.min(m.mx0, m.mx1), top = Math.min(m.my0, m.my1);
+  var w = Math.abs(m.mx1 - m.mx0), h = Math.abs(m.my1 - m.my0);
+  var box = document.getElementById('bbMarquee');
+  box.style.left = left + 'px'; box.style.top = top + 'px';
+  box.style.width = w + 'px'; box.style.height = h + 'px';
+}
+function bbFinishMarquee() {
+  if (!bb.marquee) return;
+  var m = bb.marquee;
+  var left = Math.min(m.mx0, m.mx1), right = Math.max(m.mx0, m.mx1);
+  var top = Math.min(m.my0, m.my1), bot = Math.max(m.my0, m.my1);
+  // Convert to ticks (row canvases start after rowHeadW in scrollable area,
+  // and marquee coords are relative to bbInner's content box).
+  var tickLeft = bbPxToTick(Math.max(0, left - bb.rowHeadW));
+  var tickRight = bbPxToTick(Math.max(0, right - bb.rowHeadW));
+  // Find rows whose row element overlaps [top, bot]
+  var rowEls = document.querySelectorAll('#bbRows .bb-row');
+  var inner = document.getElementById('bbInner');
+  var innerRect = inner.getBoundingClientRect();
+  var hits = [];
+  for (var i = 0; i < rowEls.length; i++) {
+    var rEl = rowEls[i];
+    var rect = rEl.getBoundingClientRect();
+    var rTop = rect.top - innerRect.top, rBot = rect.bottom - innerRect.top;
+    if (rBot < top || rTop > bot) continue;
+    hits.push(parseInt(rEl.dataset.rowId, 10));
+  }
+  // Select all clips in those rows whose time range overlaps [tickLeft, tickRight]
+  bb.selectedClipIds = [];
+  for (var j = 0; j < bb.clips.length; j++) {
+    var c = bb.clips[j];
+    if (hits.indexOf(c.rowId) < 0) continue;
+    var cS = c.startTick, cE = c.startTick + c.durTicks;
+    if (cE < tickLeft || cS > tickRight) continue;
+    bb.selectedClipIds.push(c.id);
+  }
+  document.getElementById('bbMarquee').style.display = 'none';
+  bb.marquee = null;
+  bbRedrawAll();
+  setStatus(bb.selectedClipIds.length + ' clip(s) selected', 'ok');
+  setTimeout(function(){ if (bb.selMode) setStatus('Select mode: tap clips or drag marquee', 'ok'); }, 1200);
+}
+function bbCopy() {
+  if (bb.selectedClipIds.length === 0) { setStatus('Nothing selected', 'err'); setTimeout(function(){setStatus('');}, 1200); return; }
+  var sel = bb.clips.filter(function(c){ return bb.selectedClipIds.indexOf(c.id) >= 0; });
+  var minTick = Infinity, minRowIdx = Infinity;
+  for (var i = 0; i < sel.length; i++) {
+    if (sel[i].startTick < minTick) minTick = sel[i].startTick;
+    var ri = bbRowIndex(sel[i].rowId);
+    if (ri < minRowIdx) minRowIdx = ri;
+  }
+  bb.clipboard = {
+    anchorTick: minTick,
+    anchorRowIdx: minRowIdx,
+    items: sel.map(function(c){
+      return {
+        rowOffset: bbRowIndex(c.rowId) - minRowIdx,
+        tickOffset: c.startTick - minTick,
+        durTicks: c.durTicks,
+        trimStart: c.trimStart, trimEnd: c.trimEnd,
+        speed: c.speed, preservePitch: c.preservePitch, reverse: c.reverse
+      };
+    })
+  };
+  setStatus('Copied ' + sel.length + ' clip(s)', 'ok');
+  setTimeout(function(){setStatus('');}, 1200);
+}
+function bbPasteArm() {
+  if (!bb.clipboard) { setStatus('Clipboard empty', 'err'); setTimeout(function(){setStatus('');}, 1200); return; }
+  bb.pasteArmed = true;
+  setStatus('Tap grid position to paste', 'ok');
+}
+function bbPasteAt(rowId, tick) {
+  if (!bb.clipboard) return;
+  var tRowIdx = bbRowIndex(rowId);
+  var tTick = bbSnap(tick);
+  var newIds = [];
+  for (var i = 0; i < bb.clipboard.items.length; i++) {
+    var it = bb.clipboard.items[i];
+    var destRowIdx = tRowIdx + it.rowOffset;
+    if (destRowIdx < 0 || destRowIdx >= bb.rows.length) continue;
+    var destRow = bb.rows[destRowIdx];
+    if (!destRow.buffer) continue;
+    var nc = {
+      id: bb.nextId++, rowId: destRow.id,
+      startTick: tTick + it.tickOffset,
+      trimStart: Math.min(it.trimStart, destRow.buffer.duration - 0.01),
+      trimEnd: Math.min(it.trimEnd, destRow.buffer.duration),
+      speed: it.speed, preservePitch: it.preservePitch, reverse: it.reverse,
+      durTicks: it.durTicks
+    };
+    bb.clips.push(nc);
+    newIds.push(nc.id);
+  }
+  bb.selectedClipIds = newIds;
+  bbRedrawAll();
+  setStatus('Pasted ' + newIds.length + ' clip(s)', 'ok');
+  setTimeout(function(){setStatus('');}, 1200);
+}
+function bbDeleteSel() {
+  if (bb.selectedClipIds.length === 0) return;
+  var ids = bb.selectedClipIds.slice();
+  bb.clips = bb.clips.filter(function(c){ return ids.indexOf(c.id) < 0; });
+  bb.selectedClipIds = [];
+  bbRedrawAll();
+  setStatus('Deleted ' + ids.length + ' clip(s)', 'ok');
+  setTimeout(function(){setStatus('');}, 1000);
+}
+function bbRowIndex(id) { for (var i = 0; i < bb.rows.length; i++) if (bb.rows[i].id === id) return i; return -1; }
+
 document.addEventListener('click', function(e) {
   var ctx = document.getElementById('bbCtx');
   if (!ctx.contains(e.target)) bbHideCtx();
@@ -2558,11 +2979,19 @@ function bbScheduleAll() {
       var when = baseCtxT + startSec;
       if (when < audioCtx.currentTime) continue;
       var src = audioCtx.createBufferSource();
-      src.buffer = row.buffer;
+      var buf = c.reverse ? bbGetReversed(row) : row.buffer;
+      src.buffer = buf;
+      if (c.speed && c.speed !== 1) src.playbackRate.value = c.speed;
+      if ('preservesPitch' in src) src.preservesPitch = !!c.preservePitch;
+      if ('webkitPreservesPitch' in src) src.webkitPreservesPitch = !!c.preservePitch;
       var g = audioCtx.createGain();
       g.gain.value = row.vol;
       src.connect(g).connect(audioCtx.destination);
-      try { src.start(when); } catch (e) {}
+      // offset into source buffer; for reverse, flip
+      var srcDur = row.buffer.duration;
+      var off = c.reverse ? Math.max(0, srcDur - c.trimEnd) : (c.trimStart || 0);
+      var segLen = Math.max(0.001, (c.trimEnd - c.trimStart));
+      try { src.start(when, off, segLen); } catch (e) {}
       bb.activeSources.push(src);
     }
   }
@@ -2603,7 +3032,7 @@ function bbAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v19 (bb phase 1 + sample trim)');
+log('Boot OK v20 (bb phase 2 + mic/BT fixes)');
 </script>
 </body>
 </html>
