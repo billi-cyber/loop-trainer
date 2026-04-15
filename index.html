@@ -200,6 +200,23 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .bb-ctx button{display:block;width:100%;background:none;border:none;color:var(--txt);padding:9px 14px;font-size:12px;text-align:left;cursor:pointer;border-radius:6px;font-weight:600}
 .bb-ctx button:active{background:var(--sur)}
 .bb-ctx .bb-ctx-del{color:var(--red)}
+.bb-row-btns .bbr-edit{color:var(--grn)}
+/* Sample trim modal */
+.bb-samed{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1050;display:none;align-items:center;justify-content:center;padding:14px}
+.bb-samed.show{display:flex}
+.bb-samed-card{background:var(--sur);border-radius:16px;padding:16px;max-width:460px;width:100%}
+.bb-samed-title{font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--grn);margin-bottom:4px;text-align:center}
+.bb-samed-name{font-size:11px;color:var(--dim);text-align:center;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#bbSECanvas{display:block;width:100%;height:140px;background:var(--sur2);border-radius:8px;touch-action:none}
+.bb-samed-times{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;margin:8px 2px}
+.bb-samed-times b{color:var(--txt);font-weight:600}
+.bb-samed-row{display:flex;gap:6px;margin-top:10px}
+.bb-samed-row button{flex:1;border:none;border-radius:10px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.bb-samed-row button:active{opacity:.7}
+.bb-samed-prev{background:var(--ora);color:#000}
+.bb-samed-apply{background:var(--grn);color:#000}
+.bb-samed-cancel{background:var(--sur2);color:var(--txt)}
+.bb-samed-hint{font-size:10px;color:var(--dim);text-align:center;margin-top:8px;font-style:italic}
 </style>
 </head>
 <body>
@@ -392,6 +409,27 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     </div>
   </div>
   <input type="file" id="bbFileInput" accept="audio/*" style="display:none">
+</div>
+<!-- Sample trim editor -->
+<div class="bb-samed" id="bbSEModal">
+  <div class="bb-samed-card">
+    <div class="bb-samed-title">Trim Sample</div>
+    <div class="bb-samed-name" id="bbSEName">&mdash;</div>
+    <canvas id="bbSECanvas"></canvas>
+    <div class="bb-samed-times">
+      <span>Start: <b id="bbSEStartTime">0.000</b>s</span>
+      <span>Len: <b id="bbSELenTime">0.000</b>s</span>
+      <span>End: <b id="bbSEEndTime">0.000</b>s</span>
+    </div>
+    <div class="bb-samed-row">
+      <button class="bb-samed-prev" onclick="bbSEPreview()">&#9654; Preview</button>
+      <button class="bb-samed-apply" onclick="bbSEApply()">Apply Trim</button>
+    </div>
+    <div class="bb-samed-row">
+      <button class="bb-samed-cancel" onclick="bbSEClose()">Cancel</button>
+    </div>
+    <div class="bb-samed-hint">Drag the green/red handles to set start and end</div>
+  </div>
 </div>
 <!-- Clip context menu -->
 <div class="bb-ctx" id="bbCtx">
@@ -1911,7 +1949,7 @@ function onRecStop() {
     if (bb.recordingRowId) {
       var rid = bb.recordingRowId; bb.recordingRowId = 0;
       setStatus('Decoding sample...');
-      bbAssignBufferToRow(rid, name, ab);
+      bbAssignBufferToRow(rid, name, ab, true);
       return;
     }
     setStatus('Analyzing recording...');
@@ -2090,6 +2128,7 @@ function bbRenderRows() {
       '<div class="bb-row-btns">' +
         '<button class="bbr-rec" onclick="bbRowRec(' + r.id + ')">REC</button>' +
         '<button class="bbr-load" onclick="bbRowLoad(' + r.id + ')">File</button>' +
+        '<button class="bbr-edit" onclick="bbSEOpen(' + r.id + ')">E</button>' +
         '<button class="bbr-mute' + (r.mute ? ' on' : '') + '" onclick="bbToggleMute(' + r.id + ')">M</button>' +
       '</div>' +
       '<input type="range" class="bb-row-vol" min="0" max="1" step="0.05" value="' + r.vol + '" oninput="bbSetVol(' + r.id + ',this.value)">';
@@ -2315,11 +2354,11 @@ document.getElementById('bbFileInput').addEventListener('change', function(e) {
   var f = e.target.files[0]; if (!f) return;
   var rid = bb.loadRowId; bb.loadRowId = 0;
   var reader = new FileReader();
-  reader.onload = function(ev) { bbAssignBufferToRow(rid, f.name, ev.target.result); };
+  reader.onload = function(ev) { bbAssignBufferToRow(rid, f.name, ev.target.result, true); };
   reader.readAsArrayBuffer(f);
   e.target.value = '';
 });
-function bbAssignBufferToRow(rowId, name, arrayBuf) {
+function bbAssignBufferToRow(rowId, name, arrayBuf, autoEdit) {
   ensureCtx();
   var copy = arrayBuf.slice(0);
   audioCtx.decodeAudioData(copy).then(function(buf) {
@@ -2330,11 +2369,165 @@ function bbAssignBufferToRow(rowId, name, arrayBuf) {
     bbRedrawAll();
     setStatus('Sample loaded: ' + name, 'ok');
     setTimeout(function(){setStatus('');}, 1200);
+    if (autoEdit) bbSEOpen(rowId);
   }).catch(function(err) {
     setStatus('Decode failed: ' + err.message, 'err');
     log('BB decode err: ' + err.message);
   });
 }
+
+// ── Sample Trim Editor ──────────────────────────────────────────────────────
+var bbSE = { rowId: 0, startSec: 0, endSec: 0, dragging: null, previewSrc: null };
+function bbSEOpen(rowId) {
+  var r = bbRowById(rowId);
+  if (!r || !r.buffer) { setStatus('No sample to edit', 'err'); setTimeout(function(){setStatus('');}, 1200); return; }
+  bbSE.rowId = rowId;
+  bbSE.startSec = 0;
+  bbSE.endSec = r.buffer.duration;
+  document.getElementById('bbSEName').textContent = r.name + ' — ' + (r.sampleName || '');
+  document.getElementById('bbSEModal').classList.add('show');
+  bbSEDraw();
+  bbSEUpdateTimes();
+  bbSEAttachHandlers();
+}
+function bbSEClose() {
+  bbSEStopPreview();
+  document.getElementById('bbSEModal').classList.remove('show');
+}
+function bbSECanvas() { return document.getElementById('bbSECanvas'); }
+function bbSEDraw() {
+  var r = bbRowById(bbSE.rowId); if (!r || !r.buffer) return;
+  var cv = bbSECanvas();
+  var dpr = window.devicePixelRatio || 1;
+  var rect = cv.getBoundingClientRect();
+  var w = rect.width, h = 140;
+  cv.width = Math.floor(w * dpr); cv.height = Math.floor(h * dpr);
+  var ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = '#2c2c2e'; ctx.fillRect(0, 0, w, h);
+  // waveform
+  var data = r.buffer.getChannelData(0);
+  var len = data.length;
+  var bins = Math.floor(w);
+  var step = len / bins;
+  var mid = h / 2;
+  ctx.fillStyle = '#6e6e73';
+  for (var i = 0; i < bins; i++) {
+    var s = Math.floor(i * step), e = Math.min(len, Math.floor((i + 1) * step));
+    var min = 1, max = -1;
+    for (var j = s; j < e; j += 4) { var v = data[j]; if (v < min) min = v; if (v > max) max = v; }
+    var y1 = mid - max * (mid - 4);
+    var y2 = mid - min * (mid - 4);
+    ctx.fillRect(i, y1, 1, Math.max(1, y2 - y1));
+  }
+  // selection overlay (darken outside)
+  var dur = r.buffer.duration;
+  var xs = bbSE.startSec / dur * w;
+  var xe = bbSE.endSec / dur * w;
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.fillRect(0, 0, xs, h);
+  ctx.fillRect(xe, 0, w - xe, h);
+  // handles
+  ctx.fillStyle = '#30d158'; ctx.fillRect(xs - 1, 0, 3, h);
+  ctx.fillStyle = '#ff453a'; ctx.fillRect(xe - 1, 0, 3, h);
+  // handle grab zones (top/bottom triangles)
+  ctx.fillStyle = '#30d158';
+  ctx.fillRect(xs - 8, 0, 16, 8); ctx.fillRect(xs - 8, h - 8, 16, 8);
+  ctx.fillStyle = '#ff453a';
+  ctx.fillRect(xe - 8, 0, 16, 8); ctx.fillRect(xe - 8, h - 8, 16, 8);
+}
+function bbSEUpdateTimes() {
+  document.getElementById('bbSEStartTime').textContent = bbSE.startSec.toFixed(3);
+  document.getElementById('bbSEEndTime').textContent = bbSE.endSec.toFixed(3);
+  document.getElementById('bbSELenTime').textContent = (bbSE.endSec - bbSE.startSec).toFixed(3);
+}
+function bbSEAttachHandlers() {
+  var cv = bbSECanvas();
+  if (cv._bbSEBound) return;
+  cv._bbSEBound = true;
+  var getX = function(e) {
+    var rect = cv.getBoundingClientRect();
+    var cx = (e.touches ? e.touches[0].clientX : e.clientX);
+    return cx - rect.left;
+  };
+  var xToSec = function(x) {
+    var r = bbRowById(bbSE.rowId); if (!r || !r.buffer) return 0;
+    var w = cv.getBoundingClientRect().width;
+    return Math.max(0, Math.min(r.buffer.duration, x / w * r.buffer.duration));
+  };
+  var down = function(e) {
+    e.preventDefault();
+    var r = bbRowById(bbSE.rowId); if (!r || !r.buffer) return;
+    var w = cv.getBoundingClientRect().width;
+    var x = getX(e);
+    var xs = bbSE.startSec / r.buffer.duration * w;
+    var xe = bbSE.endSec / r.buffer.duration * w;
+    bbSE.dragging = (Math.abs(x - xs) < Math.abs(x - xe)) ? 'start' : 'end';
+    move(e);
+  };
+  var move = function(e) {
+    if (!bbSE.dragging) return;
+    e.preventDefault();
+    var sec = xToSec(getX(e));
+    if (bbSE.dragging === 'start') bbSE.startSec = Math.min(sec, bbSE.endSec - 0.01);
+    else bbSE.endSec = Math.max(sec, bbSE.startSec + 0.01);
+    bbSEDraw(); bbSEUpdateTimes();
+  };
+  var up = function() { bbSE.dragging = null; };
+  cv.addEventListener('touchstart', down, { passive: false });
+  cv.addEventListener('touchmove', move, { passive: false });
+  cv.addEventListener('touchend', up);
+  cv.addEventListener('mousedown', down);
+  cv.addEventListener('mousemove', move);
+  cv.addEventListener('mouseup', up);
+  cv.addEventListener('mouseleave', up);
+}
+function bbSEPreview() {
+  bbSEStopPreview();
+  var r = bbRowById(bbSE.rowId); if (!r || !r.buffer) return;
+  ensureCtx();
+  var src = audioCtx.createBufferSource();
+  src.buffer = r.buffer;
+  src.connect(audioCtx.destination);
+  var dur = bbSE.endSec - bbSE.startSec;
+  try { src.start(0, bbSE.startSec, dur); } catch(e) {}
+  bbSE.previewSrc = src;
+}
+function bbSEStopPreview() {
+  if (bbSE.previewSrc) { try { bbSE.previewSrc.stop(); } catch(e) {} bbSE.previewSrc = null; }
+}
+function bbSEApply() {
+  var r = bbRowById(bbSE.rowId); if (!r || !r.buffer) return;
+  var src = r.buffer;
+  var sr = src.sampleRate;
+  var s0 = Math.floor(bbSE.startSec * sr);
+  var s1 = Math.floor(bbSE.endSec * sr);
+  var len = Math.max(1, s1 - s0);
+  var nb = audioCtx.createBuffer(src.numberOfChannels, len, sr);
+  for (var ch = 0; ch < src.numberOfChannels; ch++) {
+    var from = src.getChannelData(ch);
+    var to = nb.getChannelData(ch);
+    for (var i = 0; i < len; i++) to[i] = from[s0 + i] || 0;
+  }
+  // update row and any existing clips that used the old duration to new duration
+  var oldDur = src.duration;
+  r.buffer = nb;
+  for (var i = 0; i < bb.clips.length; i++) {
+    var c = bb.clips[i];
+    if (c.rowId === r.id) {
+      // rescale clip length proportionally (clips used old sample length)
+      var oldSec = c.durTicks / TPQ * 60 / bb.bpm;
+      if (Math.abs(oldSec - oldDur) < 0.001) {
+        c.durTicks = bbSecToTick(nb.duration);
+      }
+    }
+  }
+  setStatus('Sample trimmed', 'ok');
+  setTimeout(function(){setStatus('');}, 1000);
+  bbSEClose();
+  bbRedrawAll();
+}
+
 
 // ── Playback ────────────────────────────────────────────────────────────────
 function bbTogglePlay() {
@@ -2410,7 +2603,7 @@ function bbAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v18 (beat builder phase 1)');
+log('Boot OK v19 (bb phase 1 + sample trim)');
 </script>
 </body>
 </html>
