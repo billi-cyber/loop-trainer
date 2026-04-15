@@ -158,6 +158,48 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 #logPanel.show{display:block}
 #logContent{font-family:monospace;font-size:10px;color:var(--dim);white-space:pre-wrap;word-break:break-all}
 .log-copy{background:var(--sur2);color:var(--dim);border:none;border-radius:8px;padding:8px 14px;font-size:11px;cursor:pointer;margin-top:8px}
+/* Beat Builder */
+.bb-open-lbl{display:inline-block;background:var(--ora);color:#000;padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;margin-left:6px;border:none}
+.bb-open-lbl:active{opacity:.7}
+#beatBuilder{position:fixed;inset:0;background:var(--bg);z-index:900;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
+#beatBuilder.show{display:flex}
+.bb-top{display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding-bottom:6px;border-bottom:1px solid var(--brd);margin-bottom:6px}
+.bb-top .cbtn{padding:7px 9px;font-size:12px;border-radius:8px}
+.bb-title{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--ora);flex:1;text-align:center;text-transform:uppercase}
+.bb-mini-inp{background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:7px;padding:6px 4px;font-size:12px;width:48px;text-align:center;font-variant-numeric:tabular-nums;-webkit-appearance:none;-moz-appearance:textfield}
+.bb-mini-sel{background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:7px;padding:6px 6px;font-size:12px;-webkit-appearance:none;appearance:none}
+.bb-pill{background:var(--sur2);color:var(--dim);border:1px solid var(--brd);border-radius:7px;padding:6px 9px;font-size:11px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.bb-pill:active{opacity:.6}
+.bb-pill.on{background:var(--ora);color:#000;border-color:var(--ora)}
+.bb-play{background:var(--grn)!important;color:#000!important;font-weight:800}
+.bb-stop{background:var(--red)!important;color:#fff!important;font-weight:800}
+.bb-scroll{flex:1;overflow:auto;position:relative;background:var(--sur);border-radius:10px;-webkit-overflow-scrolling:touch}
+.bb-inner{position:relative}
+.bb-timeline{position:sticky;top:0;height:22px;background:var(--sur2);z-index:3;border-bottom:1px solid var(--brd);display:flex}
+.bb-timeline-head{position:sticky;left:0;width:140px;background:var(--sur2);z-index:4;border-right:1px solid var(--brd);flex-shrink:0;font-size:10px;color:var(--dim);display:flex;align-items:center;padding:0 6px;text-transform:uppercase;letter-spacing:1px}
+.bb-timeline canvas{display:block;height:22px;flex-shrink:0}
+.bb-row{display:flex;border-bottom:1px solid var(--brd);height:62px;position:relative}
+.bb-row-head{position:sticky;left:0;width:140px;background:var(--sur);z-index:2;padding:3px 5px;display:flex;flex-direction:column;gap:3px;border-right:1px solid var(--brd);flex-shrink:0;justify-content:space-between}
+.bb-row-name{background:var(--sur2);border:none;color:var(--txt);border-radius:5px;padding:3px 5px;font-size:11px;font-weight:600;width:100%;-webkit-appearance:none}
+.bb-row-name:focus{outline:1px solid var(--ora)}
+.bb-row-btns{display:flex;gap:2px}
+.bb-row-btns button{background:var(--sur2);border:none;color:var(--txt);border-radius:4px;padding:3px 4px;font-size:10px;cursor:pointer;flex:1;touch-action:manipulation;font-weight:600}
+.bb-row-btns button:active{opacity:.6}
+.bb-row-btns .bbr-rec{color:var(--red)}
+.bb-row-btns .bbr-load{color:var(--acc)}
+.bb-row-btns .bbr-mute.on{background:var(--red);color:#fff}
+.bb-row-vol{width:100%;margin:0;height:10px}
+.bb-row-vol::-webkit-slider-thumb{width:14px;height:14px}
+.bb-row-info{font-size:9px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bb-row-canvas{display:block;height:62px;flex-shrink:0;background:var(--sur);cursor:crosshair;touch-action:none}
+.bb-playhead{position:absolute;top:22px;bottom:0;width:2px;background:var(--grn);pointer-events:none;z-index:5;display:none;box-shadow:0 0 6px var(--grn)}
+.bb-add-row{background:var(--sur2);color:var(--dim);border:1px dashed var(--brd);border-radius:8px;padding:8px;width:100%;margin:6px 0 0;font-size:11px;font-weight:600;cursor:pointer}
+.bb-add-row:active{opacity:.6}
+.bb-ctx{position:fixed;background:var(--sur2);border:1px solid var(--brd);border-radius:10px;padding:5px;z-index:1100;display:none;box-shadow:0 6px 24px rgba(0,0,0,.6)}
+.bb-ctx.show{display:block}
+.bb-ctx button{display:block;width:100%;background:none;border:none;color:var(--txt);padding:9px 14px;font-size:12px;text-align:left;cursor:pointer;border-radius:6px;font-weight:600}
+.bb-ctx button:active{background:var(--sur)}
+.bb-ctx .bb-ctx-del{color:var(--red)}
 </style>
 </head>
 <body>
@@ -288,6 +330,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <span class="sec-lbl" style="margin-bottom:0">Library</span>
     <label for="fileInput" class="open-lbl">Open Audio File</label>
     <button class="rec-lbl" onclick="openRecorder()">Record</button>
+    <button class="bb-open-lbl" onclick="bbOpen()">Beat</button>
   </div>
   <div id="libList"><div class="lib-empty">No saved tracks</div></div>
 </div>
@@ -306,6 +349,53 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <button class="rec-cancel" onclick="closeRecorder()">Close</button>
     </div>
   </div>
+</div>
+<!-- Beat Builder overlay -->
+<div id="beatBuilder">
+  <div class="bb-top">
+    <button class="cbtn" onclick="bbClose()">&larr;</button>
+    <span class="bb-title">Beat Builder</span>
+    <button class="cbtn bb-play" id="bbPlayBtn" onclick="bbTogglePlay()">&#9654;</button>
+    <button class="cbtn bb-stop" onclick="bbStop()">&#9632;</button>
+  </div>
+  <div class="bb-top" style="border-bottom:none;margin-bottom:4px">
+    <span style="font-size:10px;color:var(--dim);font-weight:700">BPM</span>
+    <input type="number" class="bb-mini-inp" id="bbBpm" min="20" max="300" step="0.5" value="120" inputmode="decimal" onchange="bbSetBpm(this.value)">
+    <span style="font-size:10px;color:var(--dim);font-weight:700">TS</span>
+    <select class="bb-mini-sel" id="bbTs" onchange="bbSetTs(this.value)">
+      <option value="4/4">4/4</option><option value="3/4">3/4</option><option value="2/4">2/4</option>
+      <option value="6/8">6/8</option><option value="5/4">5/4</option><option value="7/8">7/8</option>
+    </select>
+    <span style="font-size:10px;color:var(--dim);font-weight:700">Bars</span>
+    <button class="bb-pill" onclick="bbChangeBars(-1)">&minus;</button>
+    <span id="bbBarsDisp" style="font-size:13px;font-weight:700;min-width:22px;text-align:center">2</span>
+    <button class="bb-pill" onclick="bbChangeBars(1)">+</button>
+    <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:4px">Snap</span>
+    <select class="bb-mini-sel" id="bbSnap" onchange="bbSetSnap(this.value)">
+      <option value="4">1/4</option><option value="8">1/8</option>
+      <option value="16" selected>1/16</option><option value="32">1/32</option>
+      <option value="8t">1/8T</option><option value="16t">1/16T</option>
+    </select>
+    <button class="bb-pill" id="bbLoopBtn" onclick="bbToggleLoop()">Loop</button>
+    <button class="bb-pill" onclick="bbZoom(1.25)">Z+</button>
+    <button class="bb-pill" onclick="bbZoom(0.8)">Z&minus;</button>
+  </div>
+  <div class="bb-scroll" id="bbScroll">
+    <div class="bb-inner" id="bbInner">
+      <div class="bb-timeline">
+        <div class="bb-timeline-head">Timeline</div>
+        <canvas id="bbTimelineCanvas"></canvas>
+      </div>
+      <div id="bbRows"></div>
+      <button class="bb-add-row" onclick="bbAddRows(8)">+ Add 8 more rows</button>
+      <div class="bb-playhead" id="bbPlayhead"></div>
+    </div>
+  </div>
+  <input type="file" id="bbFileInput" accept="audio/*" style="display:none">
+</div>
+<!-- Clip context menu -->
+<div class="bb-ctx" id="bbCtx">
+  <button onclick="bbCtxAction('delete')" class="bb-ctx-del">Delete clip</button>
 </div>
 <button class="log-toggle" onclick="toggleLogPanel()">Show Debug Log</button>
 <div id="logPanel">
@@ -1728,6 +1818,7 @@ function closeRecorder() {
     try { mediaRec.stop(); } catch(e) {}
   }
   stopMicStream();
+  if (typeof bb !== 'undefined') bb.recordingRowId = 0;
   document.getElementById('recModal').classList.remove('show');
 }
 function setRecBtnState(recording) {
@@ -1817,6 +1908,12 @@ function onRecStop() {
   var name = 'Recording_' + stamp + '.' + mimeExt(recMime);
   blob.arrayBuffer().then(function(ab) {
     document.getElementById('recModal').classList.remove('show');
+    if (bb.recordingRowId) {
+      var rid = bb.recordingRowId; bb.recordingRowId = 0;
+      setStatus('Decoding sample...');
+      bbAssignBufferToRow(rid, name, ab);
+      return;
+    }
     setStatus('Analyzing recording...');
     decodeAndLoad(name, ab.byteLength, ab, true);
   }).catch(function(e) {
@@ -1867,12 +1964,453 @@ function startLevelMeter(stream) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  Beat Builder (Phase 1)
+// ══════════════════════════════════════════════════════════════════════════════
+var TPQ = 192; // ticks per quarter note (supports 32nd + triplets)
+var bb = {
+  bpm: 120, tsNum: 4, tsDen: 4, bars: 2,
+  snap: '16',        // '4','8','16','32','8t','16t'
+  pxPerBeat: 80,
+  rows: [],          // {id,name,buffer,url,mute,vol,color,sampleName}
+  clips: [],         // {id,rowId,startTick,durTicks}
+  nextId: 1,
+  playing: false,
+  loopOn: true,
+  playStartCtxT: 0,
+  playStartTick: 0,
+  activeSources: [],
+  rafId: 0,
+  selectedClipId: 0,
+  recordingRowId: 0,
+  loadRowId: 0,
+  dragState: null,
+  longPressTimer: 0,
+  rowHeadW: 140,
+  rowH: 62
+};
+
+function bbOpen() {
+  unlockSilentMode();
+  ensureCtx();
+  if (bb.rows.length === 0) {
+    for (var i = 0; i < 8; i++) bbAddRow();
+  }
+  document.getElementById('beatBuilder').classList.add('show');
+  bbRender();
+}
+function bbClose() {
+  bbStop();
+  document.getElementById('beatBuilder').classList.remove('show');
+}
+function bbAddRow() {
+  var idx = bb.rows.length;
+  var hue = (idx * 47) % 360;
+  bb.rows.push({
+    id: bb.nextId++, name: 'Inst ' + (idx + 1),
+    buffer: null, mute: false, vol: 0.8,
+    color: 'hsl(' + hue + ',70%,55%)',
+    sampleName: ''
+  });
+}
+function bbAddRows(n) {
+  for (var i = 0; i < n; i++) bbAddRow();
+  bbRender();
+}
+function bbSetBpm(v) {
+  var n = parseFloat(v);
+  if (isNaN(n) || n < 20 || n > 300) return;
+  bb.bpm = n;
+  bbRender();
+}
+function bbSetTs(v) {
+  var p = v.split('/');
+  bb.tsNum = parseInt(p[0], 10);
+  bb.tsDen = parseInt(p[1], 10);
+  bbRender();
+}
+function bbChangeBars(d) {
+  bb.bars = Math.max(1, Math.min(64, bb.bars + d));
+  document.getElementById('bbBarsDisp').textContent = bb.bars;
+  bbRender();
+}
+function bbSetSnap(v) { bb.snap = v; bbRender(); }
+function bbToggleLoop() {
+  bb.loopOn = !bb.loopOn;
+  document.getElementById('bbLoopBtn').classList.toggle('on', bb.loopOn);
+}
+function bbZoom(f) {
+  bb.pxPerBeat = Math.max(20, Math.min(300, bb.pxPerBeat * f));
+  bbRender();
+}
+// ── Grid math ───────────────────────────────────────────────────────────────
+function bbTicksPerBar() { return bb.tsNum * (TPQ * 4 / bb.tsDen); }
+function bbTotalTicks() { return bb.bars * bbTicksPerBar(); }
+function bbSnapTicks() {
+  var s = bb.snap;
+  if (s === '8t') return TPQ / 3;         // 1/8 triplet = 64 ticks
+  if (s === '16t') return TPQ / 6;        // 1/16 triplet = 32 ticks
+  var n = parseInt(s, 10);
+  return TPQ * 4 / n;                      // 1/n note in ticks
+}
+function bbTickToPx(t) {
+  var secsPerTick = 60 / bb.bpm / TPQ;
+  return t * secsPerTick * bb.bpm / 60 * bb.pxPerBeat;
+  // simplified: t / TPQ * pxPerBeat
+}
+function bbPatternPx() { return bbTotalTicks() / TPQ * bb.pxPerBeat; }
+function bbPxToTick(px) { return px / bb.pxPerBeat * TPQ; }
+function bbSecToTick(sec) { return sec * bb.bpm / 60 * TPQ; }
+function bbTickToSec(t) { return t / TPQ * 60 / bb.bpm; }
+
+// ── Render ──────────────────────────────────────────────────────────────────
+function bbRender() {
+  document.getElementById('bbBpm').value = bb.bpm;
+  document.getElementById('bbTs').value = bb.tsNum + '/' + bb.tsDen;
+  document.getElementById('bbBarsDisp').textContent = bb.bars;
+  document.getElementById('bbSnap').value = bb.snap;
+  document.getElementById('bbLoopBtn').classList.toggle('on', bb.loopOn);
+  bbRenderRows();
+  bbDrawTimeline();
+  bbRedrawAll();
+}
+function bbRenderRows() {
+  var container = document.getElementById('bbRows');
+  container.innerHTML = '';
+  for (var i = 0; i < bb.rows.length; i++) {
+    var r = bb.rows[i];
+    var rowEl = document.createElement('div');
+    rowEl.className = 'bb-row';
+    rowEl.dataset.rowId = r.id;
+    var head = document.createElement('div');
+    head.className = 'bb-row-head';
+    head.style.borderLeft = '4px solid ' + r.color;
+    head.innerHTML =
+      '<input class="bb-row-name" value="' + esc(r.name) + '" onchange="bbSetRowName(' + r.id + ',this.value)">' +
+      '<div class="bb-row-info">' + (r.sampleName ? esc(r.sampleName.substring(0,20)) : '(no sample)') + '</div>' +
+      '<div class="bb-row-btns">' +
+        '<button class="bbr-rec" onclick="bbRowRec(' + r.id + ')">REC</button>' +
+        '<button class="bbr-load" onclick="bbRowLoad(' + r.id + ')">File</button>' +
+        '<button class="bbr-mute' + (r.mute ? ' on' : '') + '" onclick="bbToggleMute(' + r.id + ')">M</button>' +
+      '</div>' +
+      '<input type="range" class="bb-row-vol" min="0" max="1" step="0.05" value="' + r.vol + '" oninput="bbSetVol(' + r.id + ',this.value)">';
+    rowEl.appendChild(head);
+    var cv = document.createElement('canvas');
+    cv.className = 'bb-row-canvas';
+    cv.dataset.rowId = r.id;
+    rowEl.appendChild(cv);
+    container.appendChild(rowEl);
+    bbAttachRowCanvas(cv, r.id);
+  }
+}
+function bbDrawTimeline() {
+  var tl = document.getElementById('bbTimelineCanvas');
+  var w = bbPatternPx();
+  var dpr = window.devicePixelRatio || 1;
+  tl.style.width = w + 'px';
+  tl.width = Math.floor(w * dpr);
+  tl.height = Math.floor(22 * dpr);
+  var ctx = tl.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = '#2c2c2e';
+  ctx.fillRect(0, 0, w, 22);
+  var beatsPerBar = bb.tsNum * (4 / bb.tsDen);
+  ctx.fillStyle = '#8e8e93';
+  ctx.font = '10px -apple-system,sans-serif';
+  for (var bar = 0; bar <= bb.bars; bar++) {
+    var x = bar * beatsPerBar * bb.pxPerBeat;
+    ctx.fillStyle = '#ff9f0a';
+    ctx.fillRect(x, 0, 1, 22);
+    ctx.fillStyle = '#f2f2f7';
+    if (bar < bb.bars) ctx.fillText((bar + 1), x + 3, 13);
+  }
+}
+function bbAttachRowCanvas(cv, rowId) {
+  bbDrawRowCanvas(cv, rowId);
+  // Touch / mouse handlers
+  var getX = function(e) {
+    var rect = cv.getBoundingClientRect();
+    var cx = (e.touches ? e.touches[0].clientX : e.clientX);
+    return cx - rect.left;
+  };
+  var downFn = function(e) {
+    e.preventDefault();
+    var x = getX(e);
+    var clip = bbClipAt(rowId, bbPxToTick(x));
+    if (clip) {
+      bb.selectedClipId = clip.id;
+      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, moved: false };
+      bb.longPressTimer = setTimeout(function() {
+        if (bb.dragState && !bb.dragState.moved) {
+          bbShowCtx(e, clip.id);
+        }
+      }, 550);
+    } else {
+      // Place new clip at snapped position
+      var row = bbRowById(rowId);
+      if (!row || !row.buffer) { setStatus('Load a sample for this row first', 'err'); setTimeout(function(){setStatus('');}, 1500); return; }
+      var t = bbSnap(bbPxToTick(x));
+      var durT = bbSecToTick(row.buffer.duration);
+      var clip = { id: bb.nextId++, rowId: rowId, startTick: t, durTicks: durT };
+      bb.clips.push(clip);
+      bb.selectedClipId = clip.id;
+      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, moved: false };
+      bbDrawRowCanvas(cv, rowId);
+    }
+  };
+  var moveFn = function(e) {
+    if (!bb.dragState) return;
+    e.preventDefault();
+    var x = getX(e);
+    var dx = x - bb.dragState.startX;
+    if (Math.abs(dx) > 3) bb.dragState.moved = true;
+    var clip = bbClipById(bb.dragState.clipId);
+    if (!clip) return;
+    var newTick = bb.dragState.origStartTick + bbPxToTick(dx);
+    newTick = bbSnap(Math.max(0, newTick));
+    if (newTick !== clip.startTick) {
+      clip.startTick = newTick;
+      bbDrawRowCanvas(cv, rowId);
+    }
+  };
+  var upFn = function(e) {
+    if (bb.longPressTimer) { clearTimeout(bb.longPressTimer); bb.longPressTimer = 0; }
+    bb.dragState = null;
+  };
+  cv.addEventListener('touchstart', downFn, { passive: false });
+  cv.addEventListener('touchmove', moveFn, { passive: false });
+  cv.addEventListener('touchend', upFn);
+  cv.addEventListener('mousedown', downFn);
+  cv.addEventListener('mousemove', moveFn);
+  cv.addEventListener('mouseup', upFn);
+  cv.addEventListener('mouseleave', upFn);
+}
+function bbDrawRowCanvas(cv, rowId) {
+  var w = bbPatternPx();
+  var dpr = window.devicePixelRatio || 1;
+  cv.style.width = w + 'px';
+  cv.width = Math.floor(w * dpr);
+  cv.height = Math.floor(bb.rowH * dpr);
+  var ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = '#1c1c1e';
+  ctx.fillRect(0, 0, w, bb.rowH);
+  // Grid lines
+  var beatsPerBar = bb.tsNum * (4 / bb.tsDen);
+  var totalBeats = bb.bars * beatsPerBar;
+  // subdivisions (32nd or triplet)
+  var subTicks = bbSnapTicks();
+  var subPx = subTicks / TPQ * bb.pxPerBeat;
+  if (subPx >= 4) {
+    ctx.fillStyle = '#2a2a2c';
+    for (var t = subTicks; t < bbTotalTicks(); t += subTicks) {
+      var x = t / TPQ * bb.pxPerBeat;
+      ctx.fillRect(x, 0, 1, bb.rowH);
+    }
+  }
+  // Beat lines
+  ctx.fillStyle = '#3a3a3c';
+  for (var b = 0; b <= totalBeats; b++) {
+    var x = b * bb.pxPerBeat;
+    ctx.fillRect(x, 0, 1, bb.rowH);
+  }
+  // Bar lines
+  ctx.fillStyle = '#ff9f0a';
+  for (var bar = 0; bar <= bb.bars; bar++) {
+    var x = bar * beatsPerBar * bb.pxPerBeat;
+    ctx.fillRect(x, 0, (bar === 0 || bar === bb.bars) ? 2 : 1, bb.rowH);
+  }
+  // Clips
+  var row = bbRowById(rowId);
+  for (var i = 0; i < bb.clips.length; i++) {
+    var c = bb.clips[i];
+    if (c.rowId !== rowId) continue;
+    var cx = c.startTick / TPQ * bb.pxPerBeat;
+    var cw = Math.max(4, c.durTicks / TPQ * bb.pxPerBeat);
+    var sel = (c.id === bb.selectedClipId);
+    ctx.fillStyle = row.color;
+    ctx.globalAlpha = 0.75;
+    ctx.fillRect(cx, 4, cw, bb.rowH - 8);
+    ctx.globalAlpha = 1;
+    if (sel) {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cx + 1, 5, cw - 2, bb.rowH - 10);
+    } else {
+      ctx.strokeStyle = 'rgba(0,0,0,.4)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cx + 0.5, 4.5, cw - 1, bb.rowH - 9);
+    }
+    // left edge bright
+    ctx.fillStyle = '#fff';
+    ctx.globalAlpha = 0.6;
+    ctx.fillRect(cx, 4, 2, bb.rowH - 8);
+    ctx.globalAlpha = 1;
+  }
+}
+function bbRedrawAll() {
+  var cvs = document.querySelectorAll('.bb-row-canvas');
+  for (var i = 0; i < cvs.length; i++) {
+    var rid = parseInt(cvs[i].dataset.rowId, 10);
+    bbDrawRowCanvas(cvs[i], rid);
+  }
+}
+function bbRowById(id) { for (var i = 0; i < bb.rows.length; i++) if (bb.rows[i].id === id) return bb.rows[i]; return null; }
+function bbClipById(id) { for (var i = 0; i < bb.clips.length; i++) if (bb.clips[i].id === id) return bb.clips[i]; return null; }
+function bbClipAt(rowId, tick) {
+  for (var i = bb.clips.length - 1; i >= 0; i--) {
+    var c = bb.clips[i];
+    if (c.rowId === rowId && tick >= c.startTick && tick <= c.startTick + c.durTicks) return c;
+  }
+  return null;
+}
+function bbSnap(tick) {
+  var s = bbSnapTicks();
+  return Math.round(tick / s) * s;
+}
+function bbSetRowName(id, v) { var r = bbRowById(id); if (r) r.name = v; }
+function bbSetVol(id, v) { var r = bbRowById(id); if (r) r.vol = parseFloat(v); }
+function bbToggleMute(id) {
+  var r = bbRowById(id); if (!r) return;
+  r.mute = !r.mute;
+  bbRenderRows(); // refresh button state
+  bbRedrawAll();
+}
+
+// ── Context menu ────────────────────────────────────────────────────────────
+function bbShowCtx(e, clipId) {
+  bb.selectedClipId = clipId;
+  bbRedrawAll();
+  var ctx = document.getElementById('bbCtx');
+  var cx = (e.touches ? e.changedTouches[0].clientX : e.clientX);
+  var cy = (e.touches ? e.changedTouches[0].clientY : e.clientY);
+  ctx.style.left = Math.min(window.innerWidth - 130, cx) + 'px';
+  ctx.style.top = Math.min(window.innerHeight - 60, cy) + 'px';
+  ctx.classList.add('show');
+}
+function bbHideCtx() { document.getElementById('bbCtx').classList.remove('show'); }
+function bbCtxAction(action) {
+  bbHideCtx();
+  if (action === 'delete' && bb.selectedClipId) {
+    bb.clips = bb.clips.filter(function(c) { return c.id !== bb.selectedClipId; });
+    bb.selectedClipId = 0;
+    bbRedrawAll();
+  }
+}
+document.addEventListener('click', function(e) {
+  var ctx = document.getElementById('bbCtx');
+  if (!ctx.contains(e.target)) bbHideCtx();
+});
+
+// ── Sample loading ──────────────────────────────────────────────────────────
+function bbRowRec(rowId) {
+  bb.recordingRowId = rowId;
+  openRecorder();
+  document.getElementById('recHint').textContent = 'Recording for: ' + bbRowById(rowId).name;
+}
+function bbRowLoad(rowId) {
+  bb.loadRowId = rowId;
+  document.getElementById('bbFileInput').click();
+}
+document.getElementById('bbFileInput').addEventListener('change', function(e) {
+  var f = e.target.files[0]; if (!f) return;
+  var rid = bb.loadRowId; bb.loadRowId = 0;
+  var reader = new FileReader();
+  reader.onload = function(ev) { bbAssignBufferToRow(rid, f.name, ev.target.result); };
+  reader.readAsArrayBuffer(f);
+  e.target.value = '';
+});
+function bbAssignBufferToRow(rowId, name, arrayBuf) {
+  ensureCtx();
+  var copy = arrayBuf.slice(0);
+  audioCtx.decodeAudioData(copy).then(function(buf) {
+    var r = bbRowById(rowId); if (!r) return;
+    r.buffer = buf;
+    r.sampleName = name;
+    bbRenderRows();
+    bbRedrawAll();
+    setStatus('Sample loaded: ' + name, 'ok');
+    setTimeout(function(){setStatus('');}, 1200);
+  }).catch(function(err) {
+    setStatus('Decode failed: ' + err.message, 'err');
+    log('BB decode err: ' + err.message);
+  });
+}
+
+// ── Playback ────────────────────────────────────────────────────────────────
+function bbTogglePlay() {
+  if (bb.playing) bbStop(); else bbPlay();
+}
+function bbPlay() {
+  ensureCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  bbStop();
+  bb.playing = true;
+  bb.playStartCtxT = audioCtx.currentTime + 0.05;
+  bb.playStartTick = 0;
+  bbScheduleAll();
+  document.getElementById('bbPlayBtn').innerHTML = '&#10074;&#10074;';
+  bbAnim();
+}
+function bbScheduleAll() {
+  var loopDurSec = bbTickToSec(bbTotalTicks());
+  var repeats = bb.loopOn ? 200 : 1; // ~long enough
+  for (var rep = 0; rep < repeats; rep++) {
+    var baseCtxT = bb.playStartCtxT + rep * loopDurSec;
+    if (!bb.loopOn && rep > 0) break;
+    for (var i = 0; i < bb.clips.length; i++) {
+      var c = bb.clips[i];
+      var row = bbRowById(c.rowId);
+      if (!row || !row.buffer || row.mute) continue;
+      var startSec = bbTickToSec(c.startTick);
+      var when = baseCtxT + startSec;
+      if (when < audioCtx.currentTime) continue;
+      var src = audioCtx.createBufferSource();
+      src.buffer = row.buffer;
+      var g = audioCtx.createGain();
+      g.gain.value = row.vol;
+      src.connect(g).connect(audioCtx.destination);
+      try { src.start(when); } catch (e) {}
+      bb.activeSources.push(src);
+    }
+  }
+}
+function bbStop() {
+  bb.playing = false;
+  for (var i = 0; i < bb.activeSources.length; i++) {
+    try { bb.activeSources[i].stop(); } catch (e) {}
+  }
+  bb.activeSources = [];
+  if (bb.rafId) { cancelAnimationFrame(bb.rafId); bb.rafId = 0; }
+  document.getElementById('bbPlayBtn').innerHTML = '&#9654;';
+  var ph = document.getElementById('bbPlayhead');
+  ph.style.display = 'none';
+}
+function bbAnim() {
+  if (!bb.playing) return;
+  var ph = document.getElementById('bbPlayhead');
+  var elapsed = audioCtx.currentTime - bb.playStartCtxT;
+  var loopDurSec = bbTickToSec(bbTotalTicks());
+  if (elapsed < 0) { bb.rafId = requestAnimationFrame(bbAnim); return; }
+  var t;
+  if (bb.loopOn) t = elapsed % loopDurSec;
+  else {
+    if (elapsed >= loopDurSec) { bbStop(); return; }
+    t = elapsed;
+  }
+  var tickPos = bbSecToTick(t);
+  var px = tickPos / TPQ * bb.pxPerBeat;
+  ph.style.display = 'block';
+  ph.style.left = (bb.rowHeadW + px) + 'px';
+  bb.rafId = requestAnimationFrame(bbAnim);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  Boot
 // ══════════════════════════════════════════════════════════════════════════════
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v11 (rec)');
+log('Boot OK v18 (beat builder phase 1)');
 </script>
 </body>
 </html>
