@@ -1,5 +1,5 @@
 // Loop Trainer Service Worker — enables full offline use
-var CACHE_NAME = 'loop-trainer-v22';
+var CACHE_NAME = 'loop-trainer-v23';
 var URLS_TO_CACHE = [
   './',
   './index.html',

@@ -1006,8 +1006,9 @@ function stopBgLoop() {
   if (audioEl) { audioEl.loop = false; audioEl.pause(); }
 }
 
-// Pre-render loop segment as 16-bit PCM WAV for background playback.
-// The segment is repeated ~5 minutes worth (capped at 50MB) so <audio> just
+// Pre-render loop segment as 32-bit float WAV for background/MT playback.
+// 32-bit float preserves exact sample values from AudioBuffer — no volume loss.
+// The segment is repeated ~5 minutes worth (capped at 80MB) so <audio> just
 // plays straight through without hitting any loop boundary — no gap possible.
 // loop=true is set as a safety net but only triggers after minutes of playback.
 function prepareBgLoop() {
@@ -1016,34 +1017,32 @@ function prepareBgLoop() {
   var s0 = Math.floor(loopIn * sr), s1 = Math.ceil(loopOut * sr);
   var segSamp = s1 - s0, nCh = audioBuf.numberOfChannels;
   var segDur = segSamp / sr;
-  var segBytes = segSamp * nCh * 2;
+  var segBytes = segSamp * nCh * 4;
 
-  // Repeat for ~5 min of audio, capped at 50MB
-  var reps = Math.max(3, Math.min(Math.floor(300 / segDur), Math.floor(50*1024*1024 / segBytes)));
+  var reps = Math.max(3, Math.min(Math.floor(300 / segDur), Math.floor(80*1024*1024 / segBytes)));
 
-  // Build one interleaved PCM segment using TypedArray (fast)
+  // Build one interleaved float32 segment (bit-for-bit from AudioBuffer)
   var chs = [];
   for (var c = 0; c < nCh; c++) chs.push(audioBuf.getChannelData(c).subarray(s0, s1));
-  var oneSeg = new Int16Array(segSamp * nCh);
+  var oneSeg = new Float32Array(segSamp * nCh);
   for (var i = 0; i < segSamp; i++) {
     for (var c = 0; c < nCh; c++) {
-      var v = Math.max(-1, Math.min(1, chs[c][i]));
-      oneSeg[i * nCh + c] = v < 0 ? v * 0x8000 : v * 0x7FFF;
+      oneSeg[i * nCh + c] = chs[c][i];
     }
   }
 
   // Stamp repeated copies via fast TypedArray.set()
   var totalSamp = segSamp * reps;
-  var dataSize = totalSamp * nCh * 2;
+  var dataSize = totalSamp * nCh * 4;
   var buf = new ArrayBuffer(44 + dataSize);
   var dv = new DataView(buf);
   function ws(o, s) { for (var i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); }
   ws(0,'RIFF'); dv.setUint32(4, 36 + dataSize, true); ws(8,'WAVE');
-  ws(12,'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true);
+  ws(12,'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 3, true); // 3 = IEEE float
   dv.setUint16(22, nCh, true); dv.setUint32(24, sr, true);
-  dv.setUint32(28, sr * nCh * 2, true); dv.setUint16(32, nCh * 2, true);
-  dv.setUint16(34, 16, true); ws(36,'data'); dv.setUint32(40, dataSize, true);
-  var pcm = new Int16Array(buf, 44);
+  dv.setUint32(28, sr * nCh * 4, true); dv.setUint16(32, nCh * 4, true);
+  dv.setUint16(34, 32, true); ws(36,'data'); dv.setUint32(40, dataSize, true);
+  var pcm = new Float32Array(buf, 44);
   for (var r = 0; r < reps; r++) pcm.set(oneSeg, r * segSamp * nCh);
 
   if (bgLoopBlobUrl) { try { URL.revokeObjectURL(bgLoopBlobUrl); } catch(e) {} }
@@ -1843,7 +1842,7 @@ function handleDrag(x) {
   if (drgType === 'playhead') {
     var t = Math.max(0, Math.min(duration, x2t(x)));
     seekTo(t);
-    if (!playing) scrubAt(t);
+    scrubAt(t);
   } else if (drgType === 'in') {
     loopIn = Math.max(0, Math.min(loopOut !== null ? loopOut - 0.05 : duration, x2t(x)));
     document.getElementById('inTime').textContent = fmt(loopIn); drawWave();
@@ -1858,7 +1857,7 @@ function handleDrag(x) {
     var tpp = (drgVE0 - drgVS0) / cvW, len = drgVE0 - drgVS0;
     vStart = Math.max(0, Math.min(duration - len, drgVS0 - (x - drgX0) * tpp));
     vEnd = vStart + len; drawWave();
-    if (!playing) scrubAt(x2t(x));
+    scrubAt(x2t(x));
   }
 }
 
@@ -2421,7 +2420,7 @@ function bbAttachRowCanvas(cv, rowId) {
         if (rel > cw - 14) mode = 'resize-right';
         else if (rel < 14) mode = 'resize-left';
       }
-      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, origDurTicks: clip.durTicks, origTrimStart: clip.trimStart, origTrimEnd: clip.trimEnd, mode: mode, moved: false, snapped: false };
+      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, origDurTicks: clip.durTicks, origTrimStart: clip.trimStart, origTrimEnd: clip.trimEnd, origSpeed: clip.speed, mode: mode, moved: false, snapped: false };
       bbDrawRowCanvas(cv, rowId);
       bb.longPressTimer = setTimeout(function() {
         if (bb.dragState && !bb.dragState.moved) {
@@ -2460,27 +2459,38 @@ function bbAttachRowCanvas(cv, rowId) {
       var newTick = bbSnap(Math.max(0, ds.origStartTick + bbPxToTick(dx)));
       if (newTick !== clip.startTick) { clip.startTick = newTick; changed = true; }
     } else if (ds.mode === 'resize-right') {
+      // Time-stretch: change speed to fit new duration, keep trim unchanged
       var dTicks = bbSnap(bbPxToTick(dx));
       var newDur = Math.max(bbSnapTicks(), ds.origDurTicks + dTicks);
-      // corresponding trimEnd
-      var addSec = bbTickToSec(newDur - ds.origDurTicks) * clip.speed;
-      var newTrimEnd = Math.min(sampleDur, ds.origTrimEnd + addSec);
-      // if clamped by sample end, cap newDur accordingly
-      var maxDur = bbSecToTick((newTrimEnd - clip.trimStart) / clip.speed);
-      newDur = Math.min(newDur, maxDur);
-      if (newDur !== clip.durTicks) { clip.durTicks = newDur; clip.trimEnd = newTrimEnd; changed = true; }
+      var origSampleSec = ds.origTrimEnd - ds.origTrimStart;
+      if (origSampleSec > 0.001) {
+        var newSec = bbTickToSec(newDur);
+        var newSpeed = Math.max(0.1, Math.min(4, origSampleSec / newSec));
+        if (newDur !== clip.durTicks || newSpeed !== clip.speed) {
+          clip.durTicks = newDur;
+          clip.speed = newSpeed;
+          clip.preservePitch = true;
+          changed = true;
+        }
+      }
     } else if (ds.mode === 'resize-left') {
+      // Time-stretch from left: move start + adjust speed
       var dTicks2 = bbSnap(bbPxToTick(dx));
-      // only positive dx (drag right) trims from left; negative moves origin back to 0
       var newStart = Math.max(0, ds.origStartTick + dTicks2);
-      var delta = newStart - ds.origStartTick;
-      var newDur2 = ds.origDurTicks - delta;
-      if (newDur2 < bbSnapTicks()) { newDur2 = bbSnapTicks(); newStart = ds.origStartTick + (ds.origDurTicks - newDur2); }
-      var addSec2 = bbTickToSec(delta) * clip.speed;
-      var newTrimStart = Math.max(0, ds.origTrimStart + addSec2);
-      if (newTrimStart >= clip.trimEnd - 0.01) { newTrimStart = clip.trimEnd - 0.01; }
-      if (clip.startTick !== newStart || clip.durTicks !== newDur2) {
-        clip.startTick = newStart; clip.durTicks = newDur2; clip.trimStart = newTrimStart; changed = true;
+      var endTick = ds.origStartTick + ds.origDurTicks;
+      var newDur2 = Math.max(bbSnapTicks(), endTick - newStart);
+      newStart = endTick - newDur2;
+      var origSampleSec2 = ds.origTrimEnd - ds.origTrimStart;
+      if (origSampleSec2 > 0.001) {
+        var newSec2 = bbTickToSec(newDur2);
+        var newSpeed2 = Math.max(0.1, Math.min(4, origSampleSec2 / newSec2));
+        if (clip.startTick !== newStart || clip.durTicks !== newDur2 || clip.speed !== newSpeed2) {
+          clip.startTick = newStart;
+          clip.durTicks = newDur2;
+          clip.speed = newSpeed2;
+          clip.preservePitch = true;
+          changed = true;
+        }
       }
     }
     if (changed) bbDrawRowCanvas(cv, rowId);
@@ -3240,7 +3250,7 @@ function bbAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v22 (redo, scratch, MT-loop, live-BB, row-speed)');
+log('Boot OK v23 (scratch-play, MT-vol-fix, timestretch-resize)');
 </script>
 </body>
 </html>
