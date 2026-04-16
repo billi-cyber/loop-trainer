@@ -403,6 +403,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="bb-pill" onclick="bbPasteArm()">Paste</button>
     <button class="bb-pill" onclick="bbDeleteSel()" style="color:var(--red)">Del</button>
     <button class="bb-pill" onclick="bbUndo()">Undo</button>
+    <button class="bb-pill" onclick="bbRedo()">Redo</button>
   </div>
   <div class="bb-scroll" id="bbScroll">
     <div class="bb-inner" id="bbInner">
@@ -416,7 +417,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <div class="bb-marquee" id="bbMarquee"></div>
     </div>
   </div>
-  <input type="file" id="bbFileInput" accept="audio/*" style="display:none">
+  <input type="file" id="bbFileInput" accept="audio/*,.mp3,.mp4,.m4a,.wav,.aiff,.aif,.flac,.aac,.ogg,.webm" style="display:none">
 </div>
 <!-- Sample trim editor -->
 <div class="bb-samed" id="bbSEModal">
@@ -428,6 +429,14 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <span>Start: <b id="bbSEStartTime">0.000</b>s</span>
       <span>Len: <b id="bbSELenTime">0.000</b>s</span>
       <span>End: <b id="bbSEEndTime">0.000</b>s</span>
+    </div>
+    <div class="bb-samed-row" style="gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0">
+      <span style="font-size:11px;color:var(--dim);font-weight:700">Row Speed</span>
+      <input type="range" id="bbSERowSpeed" min="0.25" max="3" step="0.05" value="1" style="flex:1;min-width:80px" oninput="bbSERowSpeedChange(this.value)">
+      <span id="bbSERowSpeedVal" style="font-size:12px;font-weight:700;min-width:42px">1.00&times;</span>
+      <button class="bb-pill" id="bbSERowReverse" onclick="bbSERowToggleReverse()" style="font-size:11px">Reverse</button>
+      <button class="bb-pill" id="bbSERowPP" onclick="bbSERowTogglePP()" style="font-size:11px">M.Tempo</button>
+      <button class="bb-pill" onclick="bbSERowApplyAll()" style="font-size:11px;background:var(--acc);color:#fff">Apply to all clips</button>
     </div>
     <div class="bb-samed-row">
       <button class="bb-samed-prev" onclick="bbSEPreview()">&#9654; Preview</button>
@@ -568,6 +577,30 @@ var loopIn = null, loopOut = null, loopOn = false;
 var masterTempo = false;
 var audioEl = null, audioBlobUrl = null;
 var loopCheckInterval = null;
+
+// Scratch scrub state
+var scrubSrc = null, scrubGain = null, scrubLastT = -1;
+function scrubAt(t) {
+  if (!audioBuf || !audioCtx) return;
+  if (Math.abs(t - scrubLastT) < 0.005) return;
+  scrubLastT = t;
+  scrubStop();
+  ensureCtx();
+  var g = audioCtx.createGain();
+  g.gain.value = 0.7;
+  g.connect(audioCtx.destination);
+  var src = audioCtx.createBufferSource();
+  src.buffer = audioBuf;
+  src.connect(g);
+  var dur = 0.08;
+  try { src.start(0, Math.max(0, Math.min(t, audioBuf.duration - dur)), dur); } catch(e) {}
+  scrubSrc = src; scrubGain = g;
+}
+function scrubStop() {
+  if (scrubSrc) { try { scrubSrc.stop(); } catch(e) {} scrubSrc = null; }
+  if (scrubGain) { try { scrubGain.disconnect(); } catch(e) {} scrubGain = null; }
+  scrubLastT = -1;
+}
 
 // Web Audio gapless loop state
 var waLoopSrc = null;
@@ -910,6 +943,10 @@ function toggleMasterTempo() {
   document.getElementById('masterTempoToggle').className = 'toggle' + (masterTempo ? ' on' : '');
   document.getElementById('masterTempoLbl').textContent = masterTempo ? 'ON' : 'OFF';
   log('Master Tempo ' + (masterTempo ? 'ON' : 'OFF'));
+  if (playing && loopOn && (waLoopActive || bgLoopActive)) {
+    var t = audTime();
+    startWALoop(t);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -918,9 +955,27 @@ function toggleMasterTempo() {
 //  <audio> element stays alive (muted) to keep iOS background audio session.
 // ══════════════════════════════════════════════════════════════════════════════
 function startWALoop(offset) {
-  stopWALoop(); stopLoopCheck();
+  stopWALoop(); stopLoopCheck(); stopBgLoop();
   if (!audioCtx || !audioBuf || loopIn === null || loopOut === null || loopIn >= loopOut) return;
   ensureCtx();
+  prepareBgLoop();
+  // Master Tempo ON: use <audio> with pre-rendered WAV (preservesPitch works)
+  if (masterTempo && bgLoopBlobUrl && audioEl) {
+    var off = offset;
+    if (off < loopIn || off >= loopOut) off = loopIn;
+    var posInLoop = off - loopIn;
+    if (posInLoop < 0 || posInLoop >= bgLoopLen) posInLoop = 0;
+    audioEl.src = bgLoopBlobUrl;
+    audioEl.loop = true;
+    audioEl.playbackRate = speed;
+    audioEl.preservesPitch = true;
+    if (audioEl.webkitPreservesPitch !== undefined) audioEl.webkitPreservesPitch = true;
+    audioEl.currentTime = posInLoop;
+    audioEl.play().catch(function(e) { log('MT loop error: ' + e.message); });
+    bgLoopActive = true;
+    log('MT Loop ON (audio) [' + loopIn.toFixed(3) + '-' + loopOut.toFixed(3) + '] from ' + off.toFixed(3));
+    return;
+  }
   waLoopSrc = audioCtx.createBufferSource();
   waLoopSrc.buffer = audioBuf;
   waLoopSrc.loop = true;
@@ -934,12 +989,8 @@ function startWALoop(offset) {
   waLoopStartOff = off;
   waLoopSrc.start(0, off);
   waLoopActive = true;
-  // PAUSE <audio> — iOS Safari ignores volume=0, so we must fully pause to
-  // prevent double playback.  The silent-mode unlock audio keeps the audio
-  // session alive; <audio> is resumed in stopWALoop / visibility handler.
   if (audioEl) audioEl.pause();
   log('WA Loop ON [' + loopIn.toFixed(3) + '-' + loopOut.toFixed(3) + '] from ' + off.toFixed(3));
-  prepareBgLoop(); // pre-render WAV so it's ready if app goes to background
 }
 function stopWALoop() {
   if (waLoopSrc) {
@@ -1065,14 +1116,17 @@ document.addEventListener('visibilitychange', function() {
     unlockSilentMode(); // re-arm iOS audio session (helps after BT route changes)
     if (bgLoopActive && playing) {
       var t = audTime(); // uses bgLoop position mapping
-      stopBgLoop();
-      // Restore original audio source
-      if (audioEl && audioBlobUrl) {
-        audioEl.src = audioBlobUrl;
-        audioEl.currentTime = t;
+      if (masterTempo) {
+        log('FG: keeping MT bg loop at ' + t.toFixed(3));
+      } else {
+        stopBgLoop();
+        if (audioEl && audioBlobUrl) {
+          audioEl.src = audioBlobUrl;
+          audioEl.currentTime = t;
+        }
+        startWALoop(t);
+        log('FG: restored WA loop at ' + t.toFixed(3));
       }
-      startWALoop(t);
-      log('FG: restored WA loop at ' + t.toFixed(3));
     } else {
       if (audioEl && playing && audioEl.paused) {
         audioEl.play().catch(function(e) { log('Resume error: ' + e.message); });
@@ -1753,6 +1807,7 @@ function onTE(e) {
   if ((drgType === 'in' || drgType === 'out') && loopOn && playing) applyLoop();
   if (drgType === 'gridshift' && drgMoved) saveGridSettings();
   if ((drgType === 'pan' || drgType === 'gridshift') && !drgMoved) seekTo(x2t(drgX0));
+  scrubStop();
   drgType = null; pnDist0 = null;
 }
 
@@ -1780,12 +1835,15 @@ function onMU(e) {
   if ((drgType === 'in' || drgType === 'out') && loopOn && playing) applyLoop();
   if (drgType === 'gridshift' && drgMoved) saveGridSettings();
   if ((drgType === 'pan' || drgType === 'gridshift') && !drgMoved) seekTo(x2t(e.clientX - cv.getBoundingClientRect().left));
+  scrubStop();
   drgType = null;
 }
 
 function handleDrag(x) {
   if (drgType === 'playhead') {
-    seekTo(Math.max(0, Math.min(duration, x2t(x))));
+    var t = Math.max(0, Math.min(duration, x2t(x)));
+    seekTo(t);
+    if (!playing) scrubAt(t);
   } else if (drgType === 'in') {
     loopIn = Math.max(0, Math.min(loopOut !== null ? loopOut - 0.05 : duration, x2t(x)));
     document.getElementById('inTime').textContent = fmt(loopIn); drawWave();
@@ -1800,6 +1858,7 @@ function handleDrag(x) {
     var tpp = (drgVE0 - drgVS0) / cvW, len = drgVE0 - drgVS0;
     vStart = Math.max(0, Math.min(duration - len, drgVS0 - (x - drgX0) * tpp));
     vEnd = vStart + len; drawWave();
+    if (!playing) scrubAt(x2t(x));
   }
 }
 
@@ -2109,7 +2168,8 @@ var bb = {
   clipboard: null,
   pasteArmed: false,
   marquee: null,
-  history: []
+  history: [],
+  redoStack: []
 };
 function bbSnapshot(label) {
   try {
@@ -2120,16 +2180,41 @@ function bbSnapshot(label) {
       selectedClipIds: bb.selectedClipIds.slice()
     });
     if (bb.history.length > 50) bb.history.shift();
+    bb.redoStack = [];
   } catch(e) {}
 }
 function bbUndo() {
   if (bb.history.length === 0) { setStatus('Nothing to undo', 'err'); setTimeout(function(){setStatus('');}, 1000); return; }
+  bb.redoStack.push({
+    label: 'redo',
+    clips: JSON.parse(JSON.stringify(bb.clips)),
+    selectedClipId: bb.selectedClipId,
+    selectedClipIds: bb.selectedClipIds.slice()
+  });
   var s = bb.history.pop();
   bb.clips = s.clips;
   bb.selectedClipId = s.selectedClipId;
   bb.selectedClipIds = s.selectedClipIds;
   bbRedrawAll();
+  if (bb.playing) bbRestart();
   setStatus('Undo' + (s.label ? ': ' + s.label : ''), 'ok');
+  setTimeout(function(){setStatus('');}, 900);
+}
+function bbRedo() {
+  if (bb.redoStack.length === 0) { setStatus('Nothing to redo', 'err'); setTimeout(function(){setStatus('');}, 1000); return; }
+  bb.history.push({
+    label: 'undo',
+    clips: JSON.parse(JSON.stringify(bb.clips)),
+    selectedClipId: bb.selectedClipId,
+    selectedClipIds: bb.selectedClipIds.slice()
+  });
+  var s = bb.redoStack.pop();
+  bb.clips = s.clips;
+  bb.selectedClipId = s.selectedClipId;
+  bb.selectedClipIds = s.selectedClipIds;
+  bbRedrawAll();
+  if (bb.playing) bbRestart();
+  setStatus('Redo', 'ok');
   setTimeout(function(){setStatus('');}, 900);
 }
 
@@ -2401,8 +2486,10 @@ function bbAttachRowCanvas(cv, rowId) {
     if (changed) bbDrawRowCanvas(cv, rowId);
   };
   var upFn = function(e) {
+    var wasDrag = bb.dragState && bb.dragState.moved;
     if (bb.longPressTimer) { clearTimeout(bb.longPressTimer); bb.longPressTimer = 0; }
     bb.dragState = null;
+    if (wasDrag && bb.playing) bbRestart();
   };
   cv.addEventListener('touchstart', downFn, { passive: false });
   cv.addEventListener('touchmove', moveFn, { passive: false });
@@ -2536,12 +2623,13 @@ function bbSnap(tick) {
   return Math.round(tick / s) * s;
 }
 function bbSetRowName(id, v) { var r = bbRowById(id); if (r) r.name = v; }
-function bbSetVol(id, v) { var r = bbRowById(id); if (r) r.vol = parseFloat(v); }
+function bbSetVol(id, v) { var r = bbRowById(id); if (r) { r.vol = parseFloat(v); if (bb.playing) bbRestart(); } }
 function bbToggleMute(id) {
   var r = bbRowById(id); if (!r) return;
   r.mute = !r.mute;
-  bbRenderRows(); // refresh button state
+  bbRenderRows();
   bbRedrawAll();
+  if (bb.playing) bbRestart();
 }
 
 // ── Context menu ────────────────────────────────────────────────────────────
@@ -2597,7 +2685,9 @@ function bbCtxAction(action) {
     }
   } else if (action === 'speed') {
     bbSpeedOpen(c.id);
+    return;
   }
+  if (bb.playing) bbRestart();
 }
 // ── Clip speed panel ────────────────────────────────────────────────────────
 var bbSpeedClipId = 0;
@@ -2626,6 +2716,7 @@ function bbSpeedChange(v) {
   // resync durTicks on grid so visual length matches new playback time
   c.durTicks = bbSecToTick((c.trimEnd - c.trimStart) / c.speed);
   bbRedrawAll();
+  if (bb.playing) bbRestart();
 }
 function bbTogglePresPitch() {
   var c = bbClipById(bbSpeedClipId); if (!c) return;
@@ -2798,6 +2889,7 @@ function bbPasteAt(rowId, tick) {
   bbRedrawAll();
   setStatus('Pasted ' + newIds.length + ' clip(s)', 'ok');
   setTimeout(function(){setStatus('');}, 1200);
+  if (bb.playing) bbRestart();
 }
 function bbDeleteSel() {
   var ids = bb.selectedClipIds.slice();
@@ -2810,6 +2902,7 @@ function bbDeleteSel() {
   bbRedrawAll();
   setStatus('Deleted ' + ids.length + ' clip(s)', 'ok');
   setTimeout(function(){setStatus('');}, 1000);
+  if (bb.playing) bbRestart();
 }
 function bbRowIndex(id) { for (var i = 0; i < bb.rows.length; i++) if (bb.rows[i].id === id) return i; return -1; }
 
@@ -2868,6 +2961,7 @@ function bbSEOpen(rowId) {
   bbSEDraw();
   bbSEUpdateTimes();
   bbSEAttachHandlers();
+  bbSEInitRowControls();
 }
 function bbSEClose() {
   bbSEStopPreview();
@@ -2961,6 +3055,48 @@ function bbSEAttachHandlers() {
   cv.addEventListener('mouseup', up);
   cv.addEventListener('mouseleave', up);
 }
+// Row-level speed/reverse/pitch controls
+var bbSERowState = { speed: 1, reverse: false, preservePitch: true };
+function bbSEInitRowControls() {
+  bbSERowState = { speed: 1, reverse: false, preservePitch: true };
+  document.getElementById('bbSERowSpeed').value = 1;
+  document.getElementById('bbSERowSpeedVal').textContent = '1.00\u00D7';
+  document.getElementById('bbSERowReverse').classList.remove('on');
+  document.getElementById('bbSERowPP').classList.remove('on');
+}
+function bbSERowSpeedChange(v) {
+  bbSERowState.speed = parseFloat(v);
+  document.getElementById('bbSERowSpeedVal').textContent = bbSERowState.speed.toFixed(2) + '\u00D7';
+}
+function bbSERowToggleReverse() {
+  bbSERowState.reverse = !bbSERowState.reverse;
+  document.getElementById('bbSERowReverse').classList.toggle('on', bbSERowState.reverse);
+}
+function bbSERowTogglePP() {
+  bbSERowState.preservePitch = !bbSERowState.preservePitch;
+  document.getElementById('bbSERowPP').classList.toggle('on', bbSERowState.preservePitch);
+}
+function bbSERowApplyAll() {
+  var rowId = bbSE.rowId;
+  bbSnapshot('row speed/reverse');
+  var count = 0;
+  for (var i = 0; i < bb.clips.length; i++) {
+    var c = bb.clips[i];
+    if (c.rowId !== rowId) continue;
+    if (bbSERowState.speed !== 1) {
+      c.speed = bbSERowState.speed;
+      c.durTicks = bbSecToTick((c.trimEnd - c.trimStart) / c.speed);
+    }
+    c.reverse = bbSERowState.reverse;
+    c.preservePitch = bbSERowState.preservePitch;
+    count++;
+  }
+  bbRedrawAll();
+  if (bb.playing) bbRestart();
+  setStatus('Applied to ' + count + ' clip(s)', 'ok');
+  setTimeout(function(){setStatus('');}, 1200);
+}
+
 function bbSEPreview() {
   bbSEStopPreview();
   var r = bbRowById(bbSE.rowId); if (!r || !r.buffer) return;
@@ -3012,6 +3148,19 @@ function bbSEApply() {
 // ── Playback ────────────────────────────────────────────────────────────────
 function bbTogglePlay() {
   if (bb.playing) bbStop(); else bbPlay();
+}
+function bbRestart() {
+  if (!bb.playing) return;
+  var elapsed = audioCtx.currentTime - bb.playStartCtxT;
+  var loopDurSec = bbTickToSec(bbTotalTicks());
+  var posInLoop = bb.loopOn ? (elapsed % loopDurSec) : elapsed;
+  bbStop();
+  bb.playing = true;
+  bb.playStartCtxT = audioCtx.currentTime - posInLoop + 0.02;
+  bb.playStartTick = 0;
+  bbScheduleAll();
+  document.getElementById('bbPlayBtn').innerHTML = '&#10074;&#10074;';
+  bbAnim();
 }
 function bbPlay() {
   ensureCtx();
@@ -3091,7 +3240,7 @@ function bbAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v21 (bb undo + delete/rec-close fixes)');
+log('Boot OK v22 (redo, scratch, MT-loop, live-BB, row-speed)');
 </script>
 </body>
 </html>
