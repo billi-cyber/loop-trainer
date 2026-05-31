@@ -247,6 +247,19 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .dm-cell.playing{background:rgba(255,255,255,.08)}
 .dm-cell.playing.on::after{background:var(--grn);box-shadow:0 0 8px var(--grn)}
 .dm-range{flex:0 0 auto;width:84px;margin:0;height:12px}
+.dm-ruler{display:flex;height:20px;position:sticky;top:0;z-index:3;background:var(--sur2);border-bottom:1px solid var(--brd)}
+.dm-ruler-label{position:sticky;left:0;z-index:2;width:96px;flex-shrink:0;background:var(--sur2);border-right:1px solid var(--brd)}
+.dm-rcell{width:26px;flex-shrink:0;font-size:9px;color:var(--dim);display:flex;align-items:center;padding-left:2px;font-variant-numeric:tabular-nums;overflow:hidden}
+.dm-rcell.bar{border-left:2px solid var(--txt)}
+.dm-rcell.bar b{font-size:10px;color:var(--ora)}
+.dm-rcell.q{border-left:1px solid var(--dim);color:var(--txt)}
+.dm-rcell.e{border-left:1px solid rgba(255,255,255,.20)}
+.dm-rcell.s16{border-left:1px solid rgba(255,255,255,.08)}
+.dm-inst-item{display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-radius:8px;background:var(--sur2);margin-bottom:5px;cursor:pointer;font-size:12px;font-weight:600;color:var(--txt);touch-action:manipulation}
+.dm-inst-item:active{opacity:.7}
+.dm-inst-item.off{opacity:.45}
+.dm-inst-item .dm-inst-state{font-size:10px;color:var(--acc);font-weight:700}
+.dm-inst-item.off .dm-inst-state{color:var(--dim)}
 </style>
 </head>
 <body>
@@ -463,18 +476,35 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <input type="number" class="bb-mini-inp" id="dmTsNum" min="1" max="32" step="1" value="4" style="width:40px" inputmode="numeric" onchange="dmSetTs()">
     <span style="font-weight:800">/</span>
     <select class="bb-mini-sel" id="dmTsDen" onchange="dmSetTs()">
-      <option>1</option><option>2</option><option selected>4</option><option>8</option><option>16</option>
+      <option>1</option><option>2</option><option selected>4</option><option>8</option><option>16</option><option>32</option>
     </select>
+    <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:4px">Bars</span>
+    <button class="bb-pill" onclick="dmChangeBars(-1)">&minus;</button>
+    <span id="dmBarsDisp" style="font-size:13px;font-weight:700;min-width:20px;text-align:center">1</span>
+    <button class="bb-pill" onclick="dmChangeBars(1)">+</button>
     <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:4px">Grid</span>
     <button class="bb-pill" onclick="dmSubFiner()" title="Finer (halve note value)">&divide;2</button>
     <span id="dmSubDisp" style="font-size:12px;font-weight:700;min-width:34px;text-align:center">1/16</span>
     <button class="bb-pill" onclick="dmSubCoarser()" title="Coarser (double note value)">&times;2</button>
     <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:4px">Swing</span>
     <input type="range" class="dm-range" id="dmSwing" min="50" max="75" step="1" value="50" oninput="dmSetSwing(this.value)">
-    <span id="dmSwingDisp" style="font-size:12px;font-weight:700;min-width:34px">50%</span>
+    <span id="dmSwingDisp" style="font-size:11px;font-weight:700;min-width:92px">50% &middot; Straight</span>
+    <button class="bb-pill" onclick="dmInstOpen()" style="margin-left:4px">Inst</button>
   </div>
   <div class="dm-grid-wrap" id="dmGridWrap">
     <div class="dm-grid" id="dmGrid"></div>
+  </div>
+</div>
+<!-- Drum Machine: show/hide instruments -->
+<div class="bb-samed" id="dmInstModal">
+  <div class="bb-samed-card">
+    <div class="bb-samed-title">Show / Hide Instruments</div>
+    <div class="bb-samed-name">Tap a row to toggle. Hidden rows still play.</div>
+    <div id="dmInstList"></div>
+    <div class="bb-samed-row" style="margin-top:10px">
+      <button class="bb-samed-cancel" onclick="dmShowAllInst()">Show all</button>
+      <button class="bb-samed-apply" onclick="dmInstClose()">Done</button>
+    </div>
   </div>
 </div>
 <!-- Sample trim editor -->
@@ -3327,7 +3357,8 @@ var db = {
   sub: 16,               // current grid note value (16 = 16th notes); ÷2 ×2 change it
   swing: 50,             // 50 = straight … ~66 = triplet shuffle … 75 = hard
   cells: {},             // instId -> { tick(string) : velocity(1 ghost|2 normal|3 accent) }
-  mutes: {},             // instId -> bool
+  mutes: {},             // instId -> bool (silences playback)
+  hidden: {},            // instId -> bool (hides the row; still plays)
   vol: 0.9,
   noiseBuf: null,
   master: null,
@@ -3343,7 +3374,8 @@ var db = {
 };
 
 // All positions are in ticks (TPQ ticks per quarter note) so hits survive grid changes.
-function dmTicksPerBar() { return Math.round(db.tsNum * TPQ * 4 / db.tsDen); }
+function dmTicksPerBeat() { return TPQ * 4 / db.tsDen; }      // beat = one 1/tsDen note (3/4→quarter, 6/8→eighth)
+function dmTicksPerBar() { return Math.round(db.tsNum * dmTicksPerBeat()); }
 function dmPatternTicks() { return db.bars * dmTicksPerBar(); }
 function dmStepTicks() { return TPQ * 4 / db.sub; }          // ticks per grid step
 function dmTotalSteps() { return Math.round(dmPatternTicks() / dmStepTicks()); }
@@ -3381,8 +3413,9 @@ function dmOpen() {
   document.getElementById('dmBpm').value = db.bpm;
   document.getElementById('dmTsNum').value = db.tsNum;
   document.getElementById('dmTsDen').value = db.tsDen;
+  document.getElementById('dmBarsDisp').textContent = db.bars;
   document.getElementById('dmSwing').value = db.swing;
-  document.getElementById('dmSwingDisp').textContent = db.swing + '%';
+  dmSetSwing(db.swing);
   dmUpdateSubDisp();
   document.getElementById('drumMachine').classList.add('show');
   dmRender();
@@ -3423,17 +3456,56 @@ function dmSubCoarser() { // double the note value: 1/16 -> 1/8 (off-grid hits p
 }
 function dmSetSwing(v) {
   db.swing = parseInt(v, 10);
-  document.getElementById('dmSwingDisp').textContent = db.swing + '%';
+  var lbl = db.swing === 50 ? ' · Straight' : (db.swing >= 65 && db.swing <= 67) ? ' · Triplet' : '';
+  document.getElementById('dmSwingDisp').textContent = db.swing + '%' + lbl;
   if (db.playing) dmRebuildEvents();  // live, no restart (loop length unchanged)
 }
+function dmChangeBars(d) {
+  db.bars = Math.max(1, Math.min(16, db.bars + d));      // hits beyond pattern are preserved internally
+  document.getElementById('dmBarsDisp').textContent = db.bars;
+  if (db.playing) dmRestart(); else dmRender();
+}
+// ── Show / hide instrument rows (does not affect playback) ──
+function dmInstOpen() {
+  var h = '';
+  for (var i = 0; i < DM_INSTRUMENTS.length; i++) {
+    var inst = DM_INSTRUMENTS[i], hidden = !!db.hidden[inst.id];
+    h += '<div class="dm-inst-item' + (hidden ? ' off' : '') + '" onclick="dmToggleHidden(\'' + inst.id + '\',this)">'
+       + '<span>' + inst.name + '</span>'
+       + '<span class="dm-inst-state">' + (hidden ? 'Hidden' : 'Shown') + '</span></div>';
+  }
+  document.getElementById('dmInstList').innerHTML = h;
+  document.getElementById('dmInstModal').classList.add('show');
+}
+function dmInstClose() { document.getElementById('dmInstModal').classList.remove('show'); }
+function dmToggleHidden(id, el) {
+  db.hidden[id] = !db.hidden[id];
+  el.classList.toggle('off', db.hidden[id]);
+  el.querySelector('.dm-inst-state').textContent = db.hidden[id] ? 'Hidden' : 'Shown';
+  dmRender();
+}
+function dmShowAllInst() { db.hidden = {}; dmInstOpen(); dmRender(); }
 
 // ── Grid rendering ──
 function dmVelClass(v) { return v === 1 ? ' on v1' : v === 3 ? ' on v3' : v > 0 ? ' on v2' : ''; }
 function dmLineClass(tickInBar) {
-  if (tickInBar % TPQ === 0) return ' q';                 // quarter
-  if (tickInBar % (TPQ / 2) === 0) return ' e';           // eighth
-  if (tickInBar % (TPQ / 4) === 0) return ' s16';         // 16th
-  return '';                                              // 32nd or finer → faint default
+  var tpb = dmTicksPerBeat();
+  if (tickInBar % tpb === 0) return ' q';                 // beat (strongest after bar)
+  if (tickInBar % (tpb / 2) === 0) return ' e';           // half-beat
+  if (tickInBar % (tpb / 4) === 0) return ' s16';         // quarter-beat
+  return '';                                              // finer → faint default
+}
+function dmRenderRuler(total, stepTicks, ticksPerBar) {
+  var tpb = dmTicksPerBeat();
+  var html = '<div class="dm-ruler"><div class="dm-ruler-label"></div><div class="dm-steps">';
+  for (var s = 0; s < total; s++) {
+    var tick = s * stepTicks, tickInBar = tick % ticksPerBar;
+    var cls = 'dm-rcell', label = '';
+    if (tickInBar === 0) { cls += ' bar'; label = '<b>' + (Math.floor(tick / ticksPerBar) + 1) + '</b>'; }
+    else { var lc = dmLineClass(tickInBar); cls += lc; if (lc === ' q') label = String(tickInBar / tpb + 1); }
+    html += '<div class="' + cls + '">' + label + '</div>';
+  }
+  return html + '</div></div>';
 }
 function dmRender() {
   dmEnsureCells();
@@ -3441,9 +3513,10 @@ function dmRender() {
   var total = dmTotalSteps();
   var stepTicks = dmStepTicks();
   var ticksPerBar = dmTicksPerBar();
-  var html = '';
+  var html = dmRenderRuler(total, stepTicks, ticksPerBar);
   for (var r = 0; r < DM_INSTRUMENTS.length; r++) {
     var inst = DM_INSTRUMENTS[r];
+    if (db.hidden[inst.id]) continue;
     var m = db.cells[inst.id];
     html += '<div class="dm-row">';
     html += '<div class="dm-row-label">'
@@ -3697,7 +3770,7 @@ function dmAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v25 (drum-machine step 2: time sigs + swing + subdivision + accents)');
+log('Boot OK v26 (drum-machine: meter-aware grid + ruler + bars + hide instruments + swing labels)');
 </script>
 </body>
 </html>
