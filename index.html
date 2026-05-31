@@ -489,6 +489,14 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:4px">Swing</span>
     <input type="range" class="dm-range" id="dmSwing" min="50" max="75" step="1" value="50" oninput="dmSetSwing(this.value)">
     <span id="dmSwingDisp" style="font-size:11px;font-weight:700;min-width:92px">50% &middot; Straight</span>
+    <button class="bb-pill" id="dmMetroBtn" onclick="dmToggleMetro()" style="margin-left:4px">Metro</button>
+    <select class="bb-mini-sel" id="dmMetroSub" onchange="dmSetMetroSub(this.value)" title="Metronome subdivision">
+      <option value="beat">Beat</option>
+      <option value="8th">8th</option>
+      <option value="16th">16th</option>
+      <option value="trip">Triplet</option>
+      <option value="shuffle">Shuffle</option>
+    </select>
     <button class="bb-pill" onclick="dmInstOpen()" style="margin-left:4px">Inst</button>
   </div>
   <div class="dm-grid-wrap" id="dmGridWrap">
@@ -3359,6 +3367,7 @@ var db = {
   cells: {},             // instId -> { tick(string) : velocity(1 ghost|2 normal|3 accent) }
   mutes: {},             // instId -> bool (silences playback)
   hidden: {},            // instId -> bool (hides the row; still plays)
+  metro: { on: false, sub: 'beat' },  // metronome: sub = beat|8th|16th|trip|shuffle
   vol: 0.9,
   noiseBuf: null,
   master: null,
@@ -3416,6 +3425,8 @@ function dmOpen() {
   document.getElementById('dmBarsDisp').textContent = db.bars;
   document.getElementById('dmSwing').value = db.swing;
   dmSetSwing(db.swing);
+  document.getElementById('dmMetroSub').value = db.metro.sub;
+  document.getElementById('dmMetroBtn').classList.toggle('on', db.metro.on);
   dmUpdateSubDisp();
   document.getElementById('drumMachine').classList.add('show');
   dmRender();
@@ -3485,6 +3496,15 @@ function dmToggleHidden(id, el) {
   dmRender();
 }
 function dmShowAllInst() { db.hidden = {}; dmInstOpen(); dmRender(); }
+function dmToggleMetro() {
+  db.metro.on = !db.metro.on;
+  document.getElementById('dmMetroBtn').classList.toggle('on', db.metro.on);
+  if (db.playing) dmRebuildEvents();
+}
+function dmSetMetroSub(v) {
+  db.metro.sub = v;
+  if (db.playing) dmRebuildEvents();
+}
 
 // ── Grid rendering ──
 function dmVelClass(v) { return v === 1 ? ' on v1' : v === 3 ? ' on v3' : v > 0 ? ' on v2' : ''; }
@@ -3661,6 +3681,41 @@ function dmTrigger(id, when, vel) {
   }
 }
 
+// ── Metronome (coupled to BPM + time signature) ──
+// level 2 = accented downbeat, 1 = other beats, 0 = subdivision click.
+function dmClick(when, level) {
+  var freq = level === 2 ? 1600 : level === 1 ? 1100 : 820;
+  var peak = (level === 2 ? 0.9 : level === 1 ? 0.55 : 0.3) * db.vol;
+  var o = audioCtx.createOscillator(); o.type = level === 0 ? 'sine' : 'square';
+  o.frequency.value = freq;
+  var g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), when + 0.001);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.035);
+  o.connect(g).connect(dmMaster()); o.start(when); o.stop(when + 0.05);
+}
+function dmMetroEvents() {
+  if (!db.metro.on) return [];
+  var evs = [], tpb = dmTicksPerBeat(), ticksPerBar = dmTicksPerBar(), ptot = dmPatternTicks();
+  var offs;
+  switch (db.metro.sub) {
+    case '8th':     offs = [0, tpb / 2]; break;
+    case '16th':    offs = [0, tpb / 4, tpb / 2, tpb * 3 / 4]; break;
+    case 'trip':    offs = [0, tpb / 3, tpb * 2 / 3]; break;
+    case 'shuffle': offs = [0, tpb * 2 / 3]; break;   // 1st & 3rd of an eighth-note triplet
+    default:        offs = [0]; break;                // beat
+  }
+  for (var t = 0; t < ptot; t += tpb) {
+    var beatInBar = t % ticksPerBar;
+    for (var j = 0; j < offs.length; j++) {
+      var tick = t + offs[j];
+      if (tick >= ptot) continue;
+      var level = j === 0 ? (beatInBar === 0 ? 2 : 1) : 0;
+      evs.push({ sec: dmTickToSec(tick), id: '_metro', vel: level });
+    }
+  }
+  return evs;
+}
 // ── Event-based look-ahead scheduler (A-Tale-of-Two-Clocks pattern) ──
 // Hits are scheduled from a sorted event list (one loop iteration), so off-grid
 // (preserved) hits play and swing offsets apply, independent of the display grid.
@@ -3675,6 +3730,8 @@ function dmBuildEvents() {
       evs.push({ sec: dmSwingSec(t), id: id, vel: m[k] });
     }
   }
+  var me = dmMetroEvents();
+  for (var q = 0; q < me.length; q++) evs.push(me[q]);
   evs.sort(function (a, b) { return a.sec - b.sec; });
   db.events = evs;
 }
@@ -3707,7 +3764,10 @@ function dmScheduler() {
     var ev = db.events[db.evIdx];
     var when = db.loopBase + ev.sec;
     if (when >= horizon) break;
-    if (when >= audioCtx.currentTime - 0.005 && !db.mutes[ev.id]) dmTrigger(ev.id, when, dmVelGain(ev.vel));
+    if (when >= audioCtx.currentTime - 0.005) {
+      if (ev.id === '_metro') dmClick(when, ev.vel);
+      else if (!db.mutes[ev.id]) dmTrigger(ev.id, when, dmVelGain(ev.vel));
+    }
     db.evIdx++;
   }
 }
@@ -3770,7 +3830,7 @@ function dmAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v26 (drum-machine: meter-aware grid + ruler + bars + hide instruments + swing labels)');
+log('Boot OK v27 (drum-machine: metronome with subdivisions + earlier meter/ruler/bars/hide)');
 </script>
 </body>
 </html>
