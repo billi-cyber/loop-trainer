@@ -489,6 +489,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:4px">Swing</span>
     <input type="range" class="dm-range" id="dmSwing" min="50" max="75" step="1" value="50" oninput="dmSetSwing(this.value)">
     <span id="dmSwingDisp" style="font-size:11px;font-weight:700;min-width:92px">50% &middot; Straight</span>
+    <button class="bb-pill" onclick="dmTestTone()" style="margin-left:4px;color:var(--grn)">Test</button>
     <button class="bb-pill" id="dmMetroBtn" onclick="dmToggleMetro()" style="margin-left:4px">Metro</button>
     <select class="bb-mini-sel" id="dmMetroSub" onchange="dmSetMetroSub(this.value)" title="Metronome subdivision">
       <option value="beat">Beat</option>
@@ -3771,12 +3772,37 @@ function dmScheduler() {
     db.evIdx++;
   }
 }
+// Force iOS to route Web Audio to the speaker: resume + play a 1-sample buffer
+// through the context within the user gesture (also re-arms the silent-mode session).
+function dmUnlockAudio() {
+  ensureCtx();
+  unlockSilentMode();
+  var p = audioCtx.resume && audioCtx.resume();
+  if (p && p.then) p.then(function () { log('dm ctx resumed -> ' + audioCtx.state); });
+  try {
+    var b = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+    var s = audioCtx.createBufferSource();
+    s.buffer = b; s.connect(audioCtx.destination); s.start(0);
+  } catch (e) { log('dm warm err: ' + e.message); }
+}
+function dmTestTone() {
+  dmUnlockAudio();
+  var when = audioCtx.currentTime + 0.04;
+  var o = audioCtx.createOscillator(); o.type = 'square'; o.frequency.value = 440;
+  var g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(0.5, when + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.28);
+  o.connect(g).connect(audioCtx.destination);   // straight to output, bypassing dmMaster + scheduler
+  o.start(when); o.stop(when + 0.32);
+  log('Test tone: state=' + audioCtx.state + ' t=' + audioCtx.currentTime.toFixed(2) + ' sr=' + audioCtx.sampleRate);
+}
 function dmTogglePlay() { if (db.playing) dmStop(); else dmPlay(); }
 function dmPlay() {
-  ensureCtx();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  dmUnlockAudio();
   dmEnsureCells();
   dmBuildEvents();
+  log('dmPlay: state=' + audioCtx.state + ' t=' + audioCtx.currentTime.toFixed(2) + ' events=' + db.events.length + ' metro=' + db.metro.on);
   db.playing = true;
   db.startTime = audioCtx.currentTime + 0.08;
   db.loopBase = db.startTime;
@@ -3830,7 +3856,7 @@ function dmAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v27 (drum-machine: metronome with subdivisions + earlier meter/ruler/bars/hide)');
+log('Boot OK v28 (drum-machine: audio-unlock + test tone + play diagnostics)');
 </script>
 </body>
 </html>
