@@ -219,6 +219,28 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .bb-samed-apply{background:var(--grn);color:#000}
 .bb-samed-cancel{background:var(--sur2);color:var(--txt)}
 .bb-samed-hint{font-size:10px;color:var(--dim);text-align:center;margin-top:8px;font-style:italic}
+/* Drum Machine */
+.dm-open-lbl{display:inline-block;background:var(--acc);color:#fff;padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;margin-left:6px;border:none}
+.dm-open-lbl:active{opacity:.7}
+#drumMachine{position:fixed;inset:0;background:var(--bg);z-index:901;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
+#drumMachine.show{display:flex}
+.dm-title{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--acc);flex:1;text-align:center;text-transform:uppercase}
+.dm-grid-wrap{flex:1;overflow:auto;position:relative;background:var(--sur);border-radius:10px;-webkit-overflow-scrolling:touch}
+.dm-grid{display:flex;flex-direction:column;min-width:max-content}
+.dm-row{display:flex;align-items:stretch;border-bottom:1px solid var(--brd);height:34px}
+.dm-row:last-child{border-bottom:none}
+.dm-row.grp-top{border-top:2px solid var(--brd)}
+.dm-row-label{position:sticky;left:0;z-index:2;width:96px;flex-shrink:0;background:var(--sur);border-right:1px solid var(--brd);display:flex;align-items:center;gap:4px;padding:0 5px}
+.dm-row-name{font-size:11px;font-weight:600;color:var(--txt);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dm-mute{background:var(--sur2);border:none;color:var(--dim);border-radius:4px;padding:3px 5px;font-size:9px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.dm-mute.on{background:var(--red);color:#fff}
+.dm-steps{display:flex;flex:1}
+.dm-cell{width:26px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.05);position:relative;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center}
+.dm-cell.beat{border-left:1px solid var(--dim)}
+.dm-cell.bar{border-left:2px solid var(--txt)}
+.dm-cell.on::after{content:"";width:16px;height:16px;border-radius:50%;background:var(--acc);box-shadow:0 0 5px var(--acc)}
+.dm-cell.playing{background:rgba(255,255,255,.08)}
+.dm-cell.playing.on::after{background:var(--grn);box-shadow:0 0 8px var(--grn)}
 </style>
 </head>
 <body>
@@ -350,6 +372,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <label for="fileInput" class="open-lbl">Open Audio File</label>
     <button class="rec-lbl" onclick="openRecorder()">Record</button>
     <button class="bb-open-lbl" onclick="bbOpen()">Beat</button>
+    <button class="dm-open-lbl" onclick="dmOpen()">Drum</button>
   </div>
   <div id="libList"><div class="lib-empty">No saved tracks</div></div>
 </div>
@@ -418,6 +441,22 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     </div>
   </div>
   <input type="file" id="bbFileInput" accept="audio/*,.mp3,.mp4,.m4a,.wav,.aiff,.aif,.flac,.aac,.ogg,.webm" style="display:none">
+</div>
+<!-- Drum Machine overlay -->
+<div id="drumMachine">
+  <div class="bb-top">
+    <button class="cbtn" onclick="dmClose()">&larr;</button>
+    <span class="dm-title">Drum Machine</span>
+    <button class="cbtn bb-play" id="dmPlayBtn" onclick="dmTogglePlay()">&#9654;</button>
+    <button class="cbtn bb-stop" onclick="dmStop()">&#9632;</button>
+  </div>
+  <div class="bb-top" style="border-bottom:none;margin-bottom:4px">
+    <span style="font-size:10px;color:var(--dim);font-weight:700">BPM</span>
+    <input type="number" class="bb-mini-inp" id="dmBpm" min="20" max="300" step="0.5" value="120" inputmode="decimal" onchange="dmSetBpm(this.value)">
+  </div>
+  <div class="dm-grid-wrap" id="dmGridWrap">
+    <div class="dm-grid" id="dmGrid"></div>
+  </div>
 </div>
 <!-- Sample trim editor -->
 <div class="bb-samed" id="bbSEModal">
@@ -3245,12 +3284,288 @@ function bbAnim() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  Drum Machine (synthesized step sequencer) — Step 1
+// ══════════════════════════════════════════════════════════════════════════════
+// Instruments top→bottom in drum-notation order (cymbals → drums → kick).
+var DM_INSTRUMENTS = [
+  { id:'crash1', name:'Crash 1' },
+  { id:'crash2', name:'Crash 2' },
+  { id:'ridebell', name:'Ride Bell' },
+  { id:'rideedge', name:'Ride Edge' },
+  { id:'riderim', name:'Ride Rim' },
+  { id:'hatopen', name:'HiHat Open' },
+  { id:'hatclosed', name:'HiHat Closed' },
+  { id:'tomhi', name:'Tom Hi' },
+  { id:'tommid', name:'Tom Mid' },
+  { id:'tomlo', name:'Tom Low' },
+  { id:'snare', name:'Snare' },
+  { id:'kick', name:'Kick' }
+];
+var db = {
+  bpm: 120,
+  tsNum: 4, tsDen: 4,    // fixed 4/4 in Step 1; arbitrary meters come in Step 2
+  bars: 1,
+  sub: 16,               // smallest division (16 = 16th notes); /2 *2 in Step 2
+  cells: {},             // instId -> array(totalSteps) of velocity (0 = off, >0 = hit)
+  mutes: {},             // instId -> bool
+  vol: 0.9,
+  noiseBuf: null,
+  master: null,
+  playing: false,
+  timerId: 0,
+  rafId: 0,
+  nextStepTime: 0,
+  currentStep: 0,
+  startTime: 0,
+  lastVisualStep: -1,
+  openHatGain: null      // for closed-hat choke of the open hat
+};
+
+function dmStepsPerBeat() { return db.sub / 4; }            // 16th → 4 steps per quarter
+function dmBeatsPerBar() { return db.tsNum; }                // 4/4 → 4 (Step 1)
+function dmTotalSteps() { return Math.round(db.bars * dmBeatsPerBar() * dmStepsPerBeat()); }
+function dmStepDur() { return (60 / db.bpm) / dmStepsPerBeat(); }
+function dmLoopDur() { return dmTotalSteps() * dmStepDur(); }
+
+function dmEnsureCells() {
+  var total = dmTotalSteps();
+  for (var i = 0; i < DM_INSTRUMENTS.length; i++) {
+    var id = DM_INSTRUMENTS[i].id;
+    var arr = db.cells[id];
+    if (!arr) arr = [];
+    if (arr.length < total) { while (arr.length < total) arr.push(0); }
+    else if (arr.length > total) arr = arr.slice(0, total);
+    db.cells[id] = arr;
+    if (!(id in db.mutes)) db.mutes[id] = false;
+  }
+}
+
+function dmOpen() {
+  unlockSilentMode();
+  ensureCtx();
+  dmEnsureCells();
+  document.getElementById('drumMachine').classList.add('show');
+  dmRender();
+}
+function dmClose() {
+  dmStop();
+  document.getElementById('drumMachine').classList.remove('show');
+}
+function dmSetBpm(v) {
+  var n = parseFloat(v);
+  if (isNaN(n) || n < 20 || n > 300) return;
+  db.bpm = n;
+  if (db.playing) dmRestart();
+}
+function dmToggleMute(id) {
+  db.mutes[id] = !db.mutes[id];
+  dmRender();
+}
+
+// ── Grid rendering ──
+function dmRender() {
+  dmEnsureCells();
+  var grid = document.getElementById('dmGrid');
+  var total = dmTotalSteps();
+  var spb = dmStepsPerBeat();
+  var html = '';
+  for (var r = 0; r < DM_INSTRUMENTS.length; r++) {
+    var inst = DM_INSTRUMENTS[r];
+    var arr = db.cells[inst.id];
+    html += '<div class="dm-row">';
+    html += '<div class="dm-row-label">'
+          + '<span class="dm-row-name">' + inst.name + '</span>'
+          + '<button class="dm-mute' + (db.mutes[inst.id] ? ' on' : '') + '" onclick="dmToggleMute(\'' + inst.id + '\')">M</button>'
+          + '</div>';
+    html += '<div class="dm-steps">';
+    for (var s = 0; s < total; s++) {
+      var cls = 'dm-cell';
+      if (s % (spb * dmBeatsPerBar()) === 0 && s !== 0) cls += ' bar';
+      else if (s % spb === 0 && s !== 0) cls += ' beat';
+      if (arr[s] > 0) cls += ' on';
+      html += '<div class="' + cls + '" data-inst="' + inst.id + '" data-step="' + s + '" onclick="dmCellTap(this)"></div>';
+    }
+    html += '</div></div>';
+  }
+  grid.innerHTML = html;
+  db.lastVisualStep = -1;  // grid rebuilt → re-apply playhead highlight next frame
+}
+function dmCellTap(el) {
+  var id = el.getAttribute('data-inst');
+  var s = parseInt(el.getAttribute('data-step'), 10);
+  var arr = db.cells[id];
+  arr[s] = arr[s] > 0 ? 0 : 1;   // Step 1: simple on/off (accents come in Step 2)
+  el.classList.toggle('on', arr[s] > 0);
+}
+
+// ── Synthesis ──
+function dmMaster() {
+  if (!db.master) {
+    db.master = audioCtx.createGain();
+    db.master.gain.value = db.vol;
+    db.master.connect(audioCtx.destination);
+  }
+  return db.master;
+}
+function dmNoise() {
+  if (!db.noiseBuf) {
+    var n = Math.floor(audioCtx.sampleRate * 2);
+    var b = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
+    var d = b.getChannelData(0);
+    for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    db.noiseBuf = b;
+  }
+  return db.noiseBuf;
+}
+function dmEnv(node, when, peak, decay) {
+  node.gain.setValueAtTime(0.0001, when);
+  node.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), when + 0.002);
+  node.gain.exponentialRampToValueAtTime(0.0001, when + decay);
+}
+function dmKick(when, g) {
+  var o = audioCtx.createOscillator(); o.type = 'sine';
+  o.frequency.setValueAtTime(150, when);
+  o.frequency.exponentialRampToValueAtTime(50, when + 0.08);
+  var ga = audioCtx.createGain(); dmEnv(ga, when, g, 0.4);
+  o.connect(ga).connect(dmMaster()); o.start(when); o.stop(when + 0.45);
+}
+function dmSnare(when, g) {
+  var n = audioCtx.createBufferSource(); n.buffer = dmNoise();
+  var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1500;
+  var ng = audioCtx.createGain(); dmEnv(ng, when, g * 0.9, 0.2);
+  n.connect(hp).connect(ng).connect(dmMaster()); n.start(when); n.stop(when + 0.25);
+  var o = audioCtx.createOscillator(); o.type = 'triangle'; o.frequency.value = 180;
+  var og = audioCtx.createGain(); dmEnv(og, when, g * 0.5, 0.12);
+  o.connect(og).connect(dmMaster()); o.start(when); o.stop(when + 0.15);
+}
+function dmHat(when, g, open) {
+  var n = audioCtx.createBufferSource(); n.buffer = dmNoise(); n.playbackRate.value = 1.5;
+  var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 8000;
+  var ng = audioCtx.createGain();
+  var dec = open ? 0.32 : 0.045;
+  dmEnv(ng, when, g * 0.6, dec);
+  n.connect(hp).connect(ng).connect(dmMaster()); n.start(when); n.stop(when + dec + 0.05);
+  // Choke: any hat cuts a still-ringing open hat.
+  if (db.openHatGain) { try { db.openHatGain.gain.cancelScheduledValues(when); db.openHatGain.gain.setTargetAtTime(0.0001, when, 0.008); } catch (e) {} }
+  db.openHatGain = open ? ng : null;
+}
+function dmTom(when, g, freq) {
+  var o = audioCtx.createOscillator(); o.type = 'sine';
+  o.frequency.setValueAtTime(freq * 1.8, when);
+  o.frequency.exponentialRampToValueAtTime(freq, when + 0.1);
+  var og = audioCtx.createGain(); dmEnv(og, when, g, 0.4);
+  o.connect(og).connect(dmMaster()); o.start(when); o.stop(when + 0.45);
+}
+function dmCymbal(when, g, bright, decay) {
+  var n = audioCtx.createBufferSource(); n.buffer = dmNoise();
+  var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = bright;
+  var bp = audioCtx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = bright * 1.4; bp.Q.value = 0.7;
+  var ng = audioCtx.createGain(); dmEnv(ng, when, g * 0.45, decay);
+  n.connect(hp).connect(bp).connect(ng).connect(dmMaster()); n.start(when); n.stop(when + decay + 0.05);
+}
+function dmBell(when, g) {
+  var freqs = [820, 1200, 2400];
+  for (var i = 0; i < freqs.length; i++) {
+    var o = audioCtx.createOscillator(); o.type = 'square'; o.frequency.value = freqs[i];
+    var og = audioCtx.createGain(); dmEnv(og, when, g * (0.18 - i * 0.04), 0.5);
+    o.connect(og).connect(dmMaster()); o.start(when); o.stop(when + 0.55);
+  }
+  dmCymbal(when, g * 0.4, 5000, 0.35);
+}
+function dmTrigger(id, when, vel) {
+  var g = vel * db.vol;
+  switch (id) {
+    case 'kick': dmKick(when, g); break;
+    case 'snare': dmSnare(when, g); break;
+    case 'hatclosed': dmHat(when, g, false); break;
+    case 'hatopen': dmHat(when, g, true); break;
+    case 'tomhi': dmTom(when, g, 200); break;
+    case 'tommid': dmTom(when, g, 145); break;
+    case 'tomlo': dmTom(when, g, 100); break;
+    case 'ridebell': dmBell(when, g); break;
+    case 'rideedge': dmCymbal(when, g, 5500, 0.6); break;
+    case 'riderim': dmCymbal(when, g, 4000, 0.12); break;
+    case 'crash1': dmCymbal(when, g, 4000, 1.4); break;
+    case 'crash2': dmCymbal(when, g, 6500, 1.6); break;
+  }
+}
+
+// ── Look-ahead scheduler (A-Tale-of-Two-Clocks pattern) ──
+function dmScheduleStep(step, when) {
+  for (var i = 0; i < DM_INSTRUMENTS.length; i++) {
+    var inst = DM_INSTRUMENTS[i];
+    if (db.mutes[inst.id]) continue;
+    var v = db.cells[inst.id][step];
+    if (v > 0) dmTrigger(inst.id, when, 1);  // velocity levels arrive in Step 2
+  }
+}
+function dmScheduler() {
+  var total = dmTotalSteps();
+  while (db.nextStepTime < audioCtx.currentTime + 0.12) {
+    dmScheduleStep(db.currentStep, db.nextStepTime);
+    db.nextStepTime += dmStepDur();
+    db.currentStep = (db.currentStep + 1) % total;
+  }
+}
+function dmTogglePlay() { if (db.playing) dmStop(); else dmPlay(); }
+function dmPlay() {
+  ensureCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  dmEnsureCells();
+  db.playing = true;
+  db.currentStep = 0;
+  db.startTime = audioCtx.currentTime + 0.08;
+  db.nextStepTime = db.startTime;
+  db.lastVisualStep = -1;
+  db.timerId = setInterval(dmScheduler, 25);
+  dmScheduler();
+  document.getElementById('dmPlayBtn').innerHTML = '&#10074;&#10074;';
+  dmAnim();
+}
+function dmRestart() {
+  if (!db.playing) return;
+  dmStop();
+  dmPlay();
+}
+function dmStop() {
+  db.playing = false;
+  if (db.timerId) { clearInterval(db.timerId); db.timerId = 0; }
+  if (db.rafId) { cancelAnimationFrame(db.rafId); db.rafId = 0; }
+  db.openHatGain = null;
+  var btn = document.getElementById('dmPlayBtn');
+  if (btn) btn.innerHTML = '&#9654;';
+  dmClearPlayhead();
+}
+function dmClearPlayhead() {
+  if (db.lastVisualStep < 0) return;
+  var prev = document.querySelectorAll('.dm-cell.playing');
+  for (var i = 0; i < prev.length; i++) prev[i].classList.remove('playing');
+  db.lastVisualStep = -1;
+}
+function dmAnim() {
+  if (!db.playing) return;
+  var total = dmTotalSteps();
+  var elapsed = audioCtx.currentTime - db.startTime;
+  if (elapsed >= 0) {
+    var vs = Math.floor(elapsed / dmStepDur()) % total;
+    if (vs !== db.lastVisualStep) {
+      var prev = document.querySelectorAll('.dm-cell.playing');
+      for (var i = 0; i < prev.length; i++) prev[i].classList.remove('playing');
+      var cur = document.querySelectorAll('.dm-cell[data-step="' + vs + '"]');
+      for (var j = 0; j < cur.length; j++) cur[j].classList.add('playing');
+      db.lastVisualStep = vs;
+    }
+  }
+  db.rafId = requestAnimationFrame(dmAnim);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  Boot
 // ══════════════════════════════════════════════════════════════════════════════
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v23 (scratch-play, MT-vol-fix, timestretch-resize)');
+log('Boot OK v24 (drum-machine step 1: synth engine + grid + playback)');
 </script>
 </body>
 </html>
