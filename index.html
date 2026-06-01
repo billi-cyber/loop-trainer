@@ -271,13 +271,24 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .dm-lib-item span:active{opacity:.6}
 .dm-lib-del{background:none;border:none;color:var(--red);font-size:14px;font-weight:800;cursor:pointer;padding:2px 6px}
 .dm-lib-empty{font-size:11px;color:var(--dim);text-align:center;padding:10px}
+.video-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+#videoEl{width:100%;max-height:42vh;border-radius:8px;background:#000;display:block}
+#videoCard.collapsed #videoEl{display:none}
 </style>
 </head>
 <body>
 <h1>LOOP TRAINER</h1>
 <p class="sub">Drum practice tool</p>
-<input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac">
+<input type="file" id="fileInput" accept="audio/*,video/*,.mp3,.m4a,.wav,.aac,.ogg,.flac,.mp4,.m4v,.mov,.webm">
 <div class="status" id="statusBar"></div>
+<!-- Video window (mp4 source) -->
+<div class="card" id="videoCard" style="display:none;padding:8px">
+  <div class="video-head">
+    <span class="sec-lbl" style="margin-bottom:0">Video</span>
+    <button class="cbtn" id="videoToggleBtn" onclick="toggleVideoPanel()" style="font-size:11px;padding:5px 10px">Hide</button>
+  </div>
+  <video id="videoEl" playsinline webkit-playsinline muted preload="auto"></video>
+</div>
 <!-- BPM / Grid card (above waveform) — includes track name -->
 <div class="card" id="gridCard" style="display:none">
   <div class="track-name-top" id="trackName">No track loaded</div>
@@ -399,7 +410,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 <div class="card" id="libCard">
   <div class="lib-header">
     <span class="sec-lbl" style="margin-bottom:0">Library</span>
-    <label for="fileInput" class="open-lbl">Open Audio File</label>
+    <label for="fileInput" class="open-lbl">Open Audio/Video</label>
     <button class="rec-lbl" onclick="openRecorder()">Record</button>
     <button class="bb-open-lbl" onclick="bbOpen()">Beat</button>
     <button class="dm-open-lbl" onclick="dmOpen()">Drum</button>
@@ -554,6 +565,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <div class="bb-samed-name">Tap a groove to load it.</div>
     <div id="dmLibList"></div>
     <div class="bb-samed-row" style="margin-top:10px">
+      <button class="bb-samed-cancel" onclick="dmNewEmpty()" style="background:var(--ora);color:#000">New empty grid</button>
       <button class="bb-samed-apply" onclick="dmLibClose()">Done</button>
     </div>
   </div>
@@ -716,6 +728,7 @@ var loopIn = null, loopOut = null, loopOn = false;
 var masterTempo = false;
 var audioEl = null, audioBlobUrl = null;
 var loopCheckInterval = null;
+var videoEl = null, videoUrl = null, videoActive = false;  // mp4 video source (muted, slaved to audio)
 
 // Scratch scrub state
 var scrubSrc = null, scrubGain = null, scrubLastT = -1;
@@ -863,6 +876,9 @@ function startAt(offset) {
     audioEl.play().catch(function(e) { log('Play error: ' + e.message); });
     startLoopCheck();
   }
+  if (videoActive && videoEl) {
+    try { videoEl.currentTime = off; videoEl.playbackRate = speed; videoEl.play().catch(function(){}); } catch (e) {}
+  }
   updPlayBtn();
   updateMediaSession();
 }
@@ -881,6 +897,7 @@ function killSrc() {
     playAudT = audioEl.currentTime || playAudT;
   }
   audioEl.pause();
+  if (videoActive && videoEl) { try { videoEl.pause(); } catch (e) {} }
   playing = false;
   stopLoopCheck();
 }
@@ -910,10 +927,51 @@ function seekTo(t) {
   } else {
     playAudT = target;
   }
+  if (videoActive && videoEl) { try { videoEl.currentTime = target; } catch (e) {} }
   drawWave();
 }
 function updPlayBtn() {
   document.getElementById('playBtn').innerHTML = playing ? '&#9646;&#9646;' : '&#9654;';
+}
+
+// ── mp4 video: muted <video> slaved to the audio engine's position ──
+function setupVideo(arrayBuf) {
+  if (videoUrl) URL.revokeObjectURL(videoUrl);
+  videoUrl = URL.createObjectURL(new Blob([arrayBuf], { type: 'video/mp4' }));
+  videoEl = document.getElementById('videoEl');
+  videoEl.muted = true; videoEl.loop = false; videoEl.playsInline = true;
+  videoEl.src = videoUrl;
+  videoActive = true;
+  var card = document.getElementById('videoCard');
+  card.style.display = 'block';
+  card.classList.remove('collapsed');
+  document.getElementById('videoToggleBtn').textContent = 'Hide';
+  try { videoEl.load(); } catch (e) {}
+}
+function teardownVideo() {
+  videoActive = false;
+  if (videoEl) { try { videoEl.pause(); videoEl.removeAttribute('src'); videoEl.load(); } catch (e) {} }
+  if (videoUrl) { URL.revokeObjectURL(videoUrl); videoUrl = null; }
+  var card = document.getElementById('videoCard');
+  if (card) card.style.display = 'none';
+}
+function toggleVideoPanel() {
+  var card = document.getElementById('videoCard');
+  var collapsed = card.classList.toggle('collapsed');
+  document.getElementById('videoToggleBtn').textContent = collapsed ? 'Show' : 'Hide';
+}
+// Keep video roughly in sync with the audio position (handles all loop modes;
+// big jumps at loop boundaries trigger a re-seek). Called every animation frame.
+function syncVideo() {
+  if (!videoActive || !videoEl) return;
+  if (videoEl.playbackRate !== speed) { try { videoEl.playbackRate = speed; } catch (e) {} }
+  if (playing) {
+    if (videoEl.paused) { videoEl.play().catch(function () {}); }
+    var at = audTime();
+    if (Math.abs(videoEl.currentTime - at) > 0.18) { try { videoEl.currentTime = at; } catch (e) {} }
+  } else if (!videoEl.paused) {
+    videoEl.pause();
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -924,13 +982,14 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
   if (!file) return;
   log('File: ' + file.name + ' ' + (file.size/1024/1024).toFixed(1) + 'MB');
   ensureCtx(); setStatus('Reading file...');
+  var isVid = (file.type && file.type.indexOf('video') === 0) || /\.(mp4|m4v|mov|webm|mkv)$/i.test(file.name);
   var reader = new FileReader();
-  reader.onload = function(ev) { decodeAndLoad(file.name, file.size, ev.target.result, true); };
+  reader.onload = function(ev) { decodeAndLoad(file.name, file.size, ev.target.result, true, isVid); };
   reader.onerror = function() { setStatus('Could not read file.', 'err'); };
   reader.readAsArrayBuffer(file);
 });
 
-function decodeAndLoad(name, size, arrayBuf, saveToLib) {
+function decodeAndLoad(name, size, arrayBuf, saveToLib, isVideo) {
   setStatus('Decoding audio...');
   var bufForDecode = arrayBuf.slice(0); // always clone — keep original for blob URL
   ensureCtx();
@@ -946,7 +1005,7 @@ function decodeAndLoad(name, size, arrayBuf, saveToLib) {
 
     // Create <audio> element for playback (enables background audio + master tempo)
     if (audioBlobUrl) URL.revokeObjectURL(audioBlobUrl);
-    audioBlobUrl = URL.createObjectURL(new Blob([arrayBuf]));
+    audioBlobUrl = URL.createObjectURL(isVideo ? new Blob([arrayBuf], { type: 'video/mp4' }) : new Blob([arrayBuf]));
     if (audioEl) { audioEl.pause(); audioEl.removeAttribute('src'); audioEl.load(); }
     audioEl = new Audio();
     audioEl.src = audioBlobUrl;
@@ -957,6 +1016,8 @@ function decodeAndLoad(name, size, arrayBuf, saveToLib) {
       if (!loopOn) { playing = false; playAudT = 0; stopLoopCheck(); updPlayBtn(); }
     });
     audioEl.addEventListener('timeupdate', function() { checkLoop(); }); // backup loop check for background
+
+    if (isVideo) setupVideo(arrayBuf); else teardownVideo();
 
     document.getElementById('trackName').textContent = name;
     ['gridCard','waveCard','deckCard','savedCard','hotcueCard'].forEach(function(id) {
@@ -1728,6 +1789,7 @@ function animLoop() {
     drawWave();
     document.getElementById('waveTime').textContent = fmt(t) + ' / ' + fmt(duration);
   }
+  syncVideo();
   requestAnimationFrame(animLoop);
 }
 
@@ -3684,6 +3746,13 @@ function dmLibOpen() {
   document.getElementById('dmLibModal').classList.add('show');
 }
 function dmLibClose() { document.getElementById('dmLibModal').classList.remove('show'); }
+function dmNewEmpty() {
+  if (!confirm('Clear all hits and start an empty grid? (Tempo, time signature and other settings are kept.)')) return;
+  dmStop();
+  db.cells = {}; dmEnsureCells();
+  dmLibClose();
+  dmRender();
+}
 function dmDeleteGroove(name, ev) {
   if (ev) ev.stopPropagation();
   var all = dmGrooves(); delete all[name];
@@ -4072,7 +4141,7 @@ function dmAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v29 (drum-machine: loop range + numeric in/out + save/load + tap tempo + any TS)');
+log('Boot OK v30 (mp4 video window + sync + drum Load>New empty grid)');
 </script>
 </body>
 </html>
