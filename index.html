@@ -729,6 +729,9 @@ var masterTempo = false;
 var audioEl = null, audioBlobUrl = null;
 var loopCheckInterval = null;
 var videoEl = null, videoUrl = null, videoActive = false, videoMode = false;  // video file = <video> is the player
+// Video waveform: tapped live from the video's audio (can't pre-decode .mov on iOS)
+var vidSrcNode = null, vidAnalyser = null, vidByte = null;
+var vidPkMin = null, vidPkMax = null, vidFilled = null, vidNPK = 0, vidLastBin = -1, vidPkAny = false;
 
 // Scratch scrub state
 var scrubSrc = null, scrubGain = null, scrubLastT = -1;
@@ -946,6 +949,38 @@ function toggleVideoPanel() {
   var collapsed = card.classList.toggle('collapsed');
   document.getElementById('videoToggleBtn').textContent = collapsed ? 'Show' : 'Hide';
 }
+// Route the video's audio through an analyser so we can draw a waveform as it plays.
+// A media element can only have ONE source node, so create it once and reuse it.
+function setupVideoAnalyser() {
+  ensureCtx();
+  if (vidSrcNode || !videoEl) return;
+  try {
+    vidSrcNode = audioCtx.createMediaElementSource(videoEl);
+    vidAnalyser = audioCtx.createAnalyser();
+    vidAnalyser.fftSize = 2048;
+    vidByte = new Uint8Array(vidAnalyser.fftSize);
+    vidSrcNode.connect(vidAnalyser);
+    vidAnalyser.connect(audioCtx.destination);  // keep the sound audible
+    log('video analyser ready');
+  } catch (e) { log('video analyser err: ' + e.message); }
+}
+// Called each frame during video playback: record peak amplitude into time bins.
+function videoSampleWave() {
+  if (!videoMode || !vidAnalyser || !vidPkMin || !duration) return;
+  vidAnalyser.getByteTimeDomainData(vidByte);
+  var mn = 1, mx = -1;
+  for (var i = 0; i < vidByte.length; i++) { var v = (vidByte[i] - 128) / 128; if (v < mn) mn = v; if (v > mx) mx = v; }
+  var cur = Math.floor(audTime() / duration * vidNPK);
+  if (cur < 0) cur = 0; if (cur >= vidNPK) cur = vidNPK - 1;
+  var from = (vidLastBin < 0 || Math.abs(cur - vidLastBin) > 40) ? cur : Math.min(vidLastBin, cur);
+  var to   = (vidLastBin < 0) ? cur : Math.max(vidLastBin, cur);
+  for (var b = from; b <= to; b++) {
+    if (!vidFilled[b] || mn < vidPkMin[b]) vidPkMin[b] = mn;
+    if (!vidFilled[b] || mx > vidPkMax[b]) vidPkMax[b] = mx;
+    vidFilled[b] = 1;
+  }
+  vidLastBin = cur; vidPkAny = true;
+}
 function loadVideoFile(name, size, arrayBuf) {
   ensureCtx();
   stopPlay();
@@ -974,6 +1009,8 @@ function loadVideoFile(name, size, arrayBuf) {
   }
   videoEl.src = videoUrl;
   audioEl = videoEl;   // transport (play/pause/seek/loop-check) reuses audioEl
+  setupVideoAnalyser();
+  vidPkAny = false; vidLastBin = -1; vidPkMin = null; vidPkMax = null; vidFilled = null;
 
   document.getElementById('trackName').textContent = name;
   var vc = document.getElementById('videoCard');
@@ -986,6 +1023,9 @@ function loadVideoFile(name, size, arrayBuf) {
     videoEl.removeEventListener('loadedmetadata', onMeta);
     duration = videoEl.duration || 0;
     vStart = 0; vEnd = duration;
+    vidNPK = Math.max(200, Math.min(4000, Math.round((duration || 1) * 50)));
+    vidPkMin = new Float32Array(vidNPK); vidPkMax = new Float32Array(vidNPK);
+    vidFilled = new Uint8Array(vidNPK); vidLastBin = -1; vidPkAny = false;
     updateGridDisplay();
     cuePoint = loadCuePoint(); updateCueDisplay(); renderHotCues(); renderLoops();
     setTimeout(function () {
@@ -1823,7 +1863,8 @@ function resizeCanvas() {
 }
 
 function animLoop() {
-  if (playing && audioBuf) {
+  if (playing && (audioBuf || videoMode)) {
+    if (videoMode) videoSampleWave();
     var t = audTime(), len = vEnd - vStart, px = (t - vStart) / len;
     if (!loopOn && (px > 0.85 || px < 0)) {
       vStart = Math.max(0, Math.min(duration - len, t - len * 0.2));
@@ -1900,10 +1941,19 @@ function drawWave() {
       var cy2 = waveH / 2, yT = cy2 - mx * cy2, yB = cy2 - mn * cy2;
       cx.fillRect(x, yT, 1, Math.max(1, yB - yT));
     }
+  } else if (videoMode && vidPkAny && vidPkMin) {
+    cx.fillStyle = '#5ac8fa';
+    for (var vx = 0; vx < W; vx++) {
+      var vt = vStart + (vx / W) * (vEnd - vStart);
+      var bin = Math.floor(vt / duration * vidNPK);
+      if (bin < 0 || bin >= vidNPK || !vidFilled[bin]) continue;
+      var vcy = waveH / 2, vT = vcy - vidPkMax[bin] * vcy, vB = vcy - vidPkMin[bin] * vcy;
+      cx.fillRect(vx, vT, 1, Math.max(1, vB - vT));
+    }
   } else if (videoMode) {
     cx.fillStyle = 'rgba(255,255,255,0.28)';
     cx.font = '12px -apple-system,system-ui,sans-serif'; cx.textAlign = 'center';
-    cx.fillText('Video — drag here to set loop In / Out', W / 2, waveH / 2);
+    cx.fillText('Video — press play; the waveform fills in as it plays', W / 2, waveH / 2);
     cx.textAlign = 'left';
   }
 
@@ -4188,7 +4238,7 @@ function dmAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v31 (video files play via <video> element: .mov/.mp4 + element-loop)');
+log('Boot OK v32 (video waveform via live analyser + playhead fix)');
 </script>
 </body>
 </html>
