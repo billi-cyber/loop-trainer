@@ -347,7 +347,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
   <!-- Transport row: skip / cue / play / skip / transfer -->
   <div class="controls" style="margin-bottom:8px">
     <button class="cbtn" onclick="skip(-5)" style="padding:8px 10px;font-size:12px">-5s</button>
-    <button class="cbtn cue-play-btn" onclick="cueBtnPress()">CUE</button>
+    <button class="cbtn cue-play-btn" id="cueBtn">CUE</button>
     <button class="cbtn play-btn" id="playBtn" onclick="togglePlay()">&#9654;</button>
     <button class="cbtn" onclick="skip(5)" style="padding:8px 10px;font-size:12px">+5s</button>
     <button class="cbtn" onclick="transferCueToHotCue()" style="padding:8px 10px;font-size:10px;background:rgba(255,159,10,.2);color:var(--ora);border:1px solid var(--ora)">&#8594; Hot Cue</button>
@@ -1501,16 +1501,36 @@ function setCue() {
   cuePoint = audTime();
   saveCuePoint(); drawWave();
 }
-function cueBtnPress() {
+var cuePreviewing = false;
+// DJ-style CUE:
+//  • While playing → tap CUE: jump to the cue point and STOP there.
+//  • While paused  → press & hold CUE: set the cue here and PREVIEW (play);
+//                    release: jump back to the cue point and STOP.
+function cueDown() {
   if (!duration) return;
-  if (!playing) {
-    // Paused: set cue at current position
-    cuePoint = audTime();
-    saveCuePoint(); drawWave();
+  ensureCtx();
+  if (playing) {
+    if (cuePoint === null) { cuePoint = audTime(); saveCuePoint(); }
+    stopPlay();
+    playAudT = cuePoint;
+    if (audioEl) { try { audioEl.currentTime = cuePoint; } catch (e) {} }
+    drawWave();
   } else {
-    // Playing: jump to cue and keep playing (seekTo no longer stop/restarts)
-    if (cuePoint !== null) seekTo(cuePoint);
+    cuePoint = audTime();
+    saveCuePoint();
+    cuePreviewing = true;
+    startAt(cuePoint);   // preview from the cue while held
   }
+}
+function cueUp() {
+  if (!cuePreviewing) return;
+  cuePreviewing = false;
+  stopPlay();
+  if (cuePoint !== null) {
+    playAudT = cuePoint;
+    if (audioEl) { try { audioEl.currentTime = cuePoint; } catch (e) {} }
+  }
+  drawWave();
 }
 function jumpToCue() {
   if (cuePoint === null) return;
@@ -1848,6 +1868,13 @@ function initCanvas() {
   cv.addEventListener('mousedown', onMD);
   window.addEventListener('mousemove', onMM);
   window.addEventListener('mouseup', onMU);
+  var cueBtn = document.getElementById('cueBtn');
+  if (cueBtn) {
+    cueBtn.addEventListener('pointerdown', function(e){ e.preventDefault(); cueDown(); });
+    cueBtn.addEventListener('contextmenu', function(e){ e.preventDefault(); });  // no long-press menu
+    window.addEventListener('pointerup', cueUp);
+    window.addEventListener('pointercancel', cueUp);
+  }
   requestAnimationFrame(animLoop);
 }
 
@@ -4238,7 +4265,7 @@ function dmAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v32 (video waveform via live analyser + playhead fix)');
+log('Boot OK v33 (cue: tap=jump+stop while playing, hold=preview when paused)');
 </script>
 </body>
 </html>
