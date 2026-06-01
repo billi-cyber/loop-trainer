@@ -728,7 +728,7 @@ var loopIn = null, loopOut = null, loopOn = false;
 var masterTempo = false;
 var audioEl = null, audioBlobUrl = null;
 var loopCheckInterval = null;
-var videoEl = null, videoUrl = null, videoActive = false;  // mp4 video source (muted, slaved to audio)
+var videoEl = null, videoUrl = null, videoActive = false, videoMode = false;  // video file = <video> is the player
 
 // Scratch scrub state
 var scrubSrc = null, scrubGain = null, scrubLastT = -1;
@@ -861,7 +861,7 @@ function audTime() {
 }
 
 function startAt(offset) {
-  if (!audioEl || !audioBuf) return;
+  if (!audioEl || (!audioBuf && !videoMode)) return;
   ensureCtx(); killSrc();
   var off = Math.max(0, Math.min(duration, offset));
   audioEl.currentTime = off;
@@ -869,15 +869,12 @@ function startAt(offset) {
   audioEl.preservesPitch = masterTempo;
   if (audioEl.webkitPreservesPitch !== undefined) audioEl.webkitPreservesPitch = masterTempo;
   playAudT = off; playing = true;
-  // Use Web Audio for gapless looping; only start <audio> when NOT using WA loop
-  if (loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
+  // Use Web Audio for gapless looping; video files & non-loop use the element directly
+  if (!videoMode && loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
     startWALoop(off);  // this keeps <audio> paused — no double playback
   } else {
     audioEl.play().catch(function(e) { log('Play error: ' + e.message); });
     startLoopCheck();
-  }
-  if (videoActive && videoEl) {
-    try { videoEl.currentTime = off; videoEl.playbackRate = speed; videoEl.play().catch(function(){}); } catch (e) {}
   }
   updPlayBtn();
   updateMediaSession();
@@ -897,14 +894,13 @@ function killSrc() {
     playAudT = audioEl.currentTime || playAudT;
   }
   audioEl.pause();
-  if (videoActive && videoEl) { try { videoEl.pause(); } catch (e) {} }
   playing = false;
   stopLoopCheck();
 }
 
 function stopPlay() { killSrc(); updPlayBtn(); }
 function togglePlay() {
-  if (!audioBuf) { setStatus('Load a track first.', 'err'); return; }
+  if (!audioBuf && !videoMode) { setStatus('Load a track first.', 'err'); return; }
   ensureCtx();
   if (playing) stopPlay(); else startAt(playAudT);
 }
@@ -926,52 +922,80 @@ function seekTo(t) {
     playAudT = target;
   } else {
     playAudT = target;
+    if (videoMode && audioEl) { try { audioEl.currentTime = target; } catch (e) {} }  // update paused frame
   }
-  if (videoActive && videoEl) { try { videoEl.currentTime = target; } catch (e) {} }
   drawWave();
 }
 function updPlayBtn() {
   document.getElementById('playBtn').innerHTML = playing ? '&#9646;&#9646;' : '&#9654;';
 }
 
-// ── mp4 video: muted <video> slaved to the audio engine's position ──
-function setupVideo(arrayBuf) {
-  if (videoUrl) URL.revokeObjectURL(videoUrl);
-  videoUrl = URL.createObjectURL(new Blob([arrayBuf], { type: 'video/mp4' }));
-  videoEl = document.getElementById('videoEl');
-  videoEl.muted = true; videoEl.loop = false; videoEl.playsInline = true;
-  videoEl.src = videoUrl;
-  videoActive = true;
-  var card = document.getElementById('videoCard');
-  card.style.display = 'block';
-  card.classList.remove('collapsed');
-  document.getElementById('videoToggleBtn').textContent = 'Hide';
-  try { videoEl.load(); } catch (e) {}
-}
+// ── Video files (.mp4/.mov/...): the <video> element IS the player ──
+// iOS Safari can't decodeAudioData() a video container, so we don't decode a
+// buffer. The video element plays audio+video natively; transport reuses it as
+// `audioEl`, and looping uses the simple element-time reset (small gap on wrap).
 function teardownVideo() {
   videoActive = false;
-  if (videoEl) { try { videoEl.pause(); videoEl.removeAttribute('src'); videoEl.load(); } catch (e) {} }
-  if (videoUrl) { URL.revokeObjectURL(videoUrl); videoUrl = null; }
   var card = document.getElementById('videoCard');
   if (card) card.style.display = 'none';
+  if (videoEl) { try { videoEl.pause(); videoEl.removeAttribute('src'); videoEl.load(); } catch (e) {} }
+  if (videoUrl) { URL.revokeObjectURL(videoUrl); videoUrl = null; }
 }
 function toggleVideoPanel() {
   var card = document.getElementById('videoCard');
   var collapsed = card.classList.toggle('collapsed');
   document.getElementById('videoToggleBtn').textContent = collapsed ? 'Show' : 'Hide';
 }
-// Keep video roughly in sync with the audio position (handles all loop modes;
-// big jumps at loop boundaries trigger a re-seek). Called every animation frame.
-function syncVideo() {
-  if (!videoActive || !videoEl) return;
-  if (videoEl.playbackRate !== speed) { try { videoEl.playbackRate = speed; } catch (e) {} }
-  if (playing) {
-    if (videoEl.paused) { videoEl.play().catch(function () {}); }
-    var at = audTime();
-    if (Math.abs(videoEl.currentTime - at) > 0.18) { try { videoEl.currentTime = at; } catch (e) {} }
-  } else if (!videoEl.paused) {
-    videoEl.pause();
+function loadVideoFile(name, size, arrayBuf) {
+  ensureCtx();
+  stopPlay();
+  videoMode = true; videoActive = true;
+  audioBuf = null; duration = 0;
+  pkLow = null; pkMid = null; pkHigh = null; pkMin = null; pkMax = null;
+  trkName = name; trkId = trackId(name, size);
+  playAudT = 0; loopIn = null; loopOut = null; loopOn = false; editIdx = -1; cuePoint = null;
+  resetEditor(); updLoopUI(); updPlayBtn();
+  gridBPM = 0; detectedBPM = 0; gridOffset = 0; detectedOffset = 0; gridTimeSigTop = 4; gridTimeSigBot = 4;
+
+  if (audioBlobUrl) { URL.revokeObjectURL(audioBlobUrl); audioBlobUrl = null; }
+  if (videoUrl) URL.revokeObjectURL(videoUrl);
+  var mime = /\.webm$/i.test(name) ? 'video/webm' : (/\.(mov|qt)$/i.test(name) ? 'video/quicktime' : 'video/mp4');
+  videoUrl = URL.createObjectURL(new Blob([arrayBuf], { type: mime }));
+  if (audioEl && audioEl !== videoEl) { try { audioEl.pause(); audioEl.removeAttribute('src'); audioEl.load(); } catch (e) {} }
+
+  videoEl = document.getElementById('videoEl');
+  videoEl.muted = false; videoEl.loop = false; videoEl.playsInline = true;
+  videoEl.preservesPitch = masterTempo;
+  if (videoEl.webkitPreservesPitch !== undefined) videoEl.webkitPreservesPitch = masterTempo;
+  if (!videoEl._ltWired) {
+    videoEl._ltWired = true;
+    videoEl.addEventListener('ended', function () { if (!loopOn) { playing = false; playAudT = 0; stopLoopCheck(); updPlayBtn(); } });
+    videoEl.addEventListener('timeupdate', function () { checkLoop(); });
   }
+  videoEl.src = videoUrl;
+  audioEl = videoEl;   // transport (play/pause/seek/loop-check) reuses audioEl
+
+  document.getElementById('trackName').textContent = name;
+  var vc = document.getElementById('videoCard');
+  vc.style.display = 'block'; vc.classList.remove('collapsed');
+  document.getElementById('videoToggleBtn').textContent = 'Hide';
+  ['gridCard','waveCard','deckCard','savedCard','hotcueCard'].forEach(function (id) {
+    document.getElementById(id).style.display = 'block';
+  });
+  videoEl.addEventListener('loadedmetadata', function onMeta() {
+    videoEl.removeEventListener('loadedmetadata', onMeta);
+    duration = videoEl.duration || 0;
+    vStart = 0; vEnd = duration;
+    updateGridDisplay();
+    cuePoint = loadCuePoint(); updateCueDisplay(); renderHotCues(); renderLoops();
+    setTimeout(function () {
+      resizeCanvas(); drawWave();
+      document.getElementById('waveTime').textContent = '0:00 / ' + fmt(duration);
+    }, 50);
+    setStatus('Video ready - tap play!', 'ok'); setTimeout(function () { setStatus(''); }, 2000);
+    log('Loaded video: ' + name + ' (' + (duration ? duration.toFixed(1) : '?') + 's)');
+  });
+  try { videoEl.load(); } catch (e) {}
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -982,9 +1006,12 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
   if (!file) return;
   log('File: ' + file.name + ' ' + (file.size/1024/1024).toFixed(1) + 'MB');
   ensureCtx(); setStatus('Reading file...');
-  var isVid = (file.type && file.type.indexOf('video') === 0) || /\.(mp4|m4v|mov|webm|mkv)$/i.test(file.name);
+  var isVid = (file.type && file.type.indexOf('video') === 0) || /\.(mp4|m4v|mov|qt|webm|mkv)$/i.test(file.name);
   var reader = new FileReader();
-  reader.onload = function(ev) { decodeAndLoad(file.name, file.size, ev.target.result, true, isVid); };
+  reader.onload = function(ev) {
+    if (isVid) loadVideoFile(file.name, file.size, ev.target.result);
+    else decodeAndLoad(file.name, file.size, ev.target.result, true);
+  };
   reader.onerror = function() { setStatus('Could not read file.', 'err'); };
   reader.readAsArrayBuffer(file);
 });
@@ -1017,7 +1044,7 @@ function decodeAndLoad(name, size, arrayBuf, saveToLib, isVideo) {
     });
     audioEl.addEventListener('timeupdate', function() { checkLoop(); }); // backup loop check for background
 
-    if (isVideo) setupVideo(arrayBuf); else teardownVideo();
+    videoMode = false; teardownVideo();   // audio track → leave video mode
 
     document.getElementById('trackName').textContent = name;
     ['gridCard','waveCard','deckCard','savedCard','hotcueCard'].forEach(function(id) {
@@ -1330,7 +1357,7 @@ document.addEventListener('visibilitychange', function() {
       if (audioEl && playing && audioEl.paused) {
         audioEl.play().catch(function(e) { log('Resume error: ' + e.message); });
       }
-      if (playing && loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut && !waLoopActive) {
+      if (!videoMode && playing && loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut && !waLoopActive) {
         startWALoop(audTime());
       }
     }
@@ -1372,6 +1399,15 @@ function setOut() {
 }
 function toggleLoop() {
   loopOn = !loopOn;
+  if (videoMode) {
+    if (playing) {
+      startLoopCheck();
+      if (loopOn && loopIn !== null && loopOut !== null && audioEl &&
+          (audioEl.currentTime < loopIn || audioEl.currentTime >= loopOut)) audioEl.currentTime = loopIn;
+    }
+    updLoopUI();
+    return;
+  }
   if (playing && loopOn && loopIn !== null && loopOut !== null && loopIn < loopOut) {
     startWALoop(audTime());
   } else if (!loopOn && waLoopActive) {
@@ -1388,6 +1424,13 @@ function toggleLoop() {
 }
 function applyLoop() {
   if (loopIn === null || loopOut === null || loopIn >= loopOut) return;
+  if (videoMode) {
+    if (playing) {
+      startLoopCheck();
+      if (audioEl && (audioEl.currentTime < loopIn || audioEl.currentTime >= loopOut)) audioEl.currentTime = loopIn;
+    } else if (playAudT >= loopOut || playAudT < loopIn) { playAudT = loopIn; }
+    return;
+  }
   if (playing) {
     // (Re)start Web Audio loop with updated boundaries
     startWALoop(audTime());
@@ -1789,7 +1832,6 @@ function animLoop() {
     drawWave();
     document.getElementById('waveTime').textContent = fmt(t) + ' / ' + fmt(duration);
   }
-  syncVideo();
   requestAnimationFrame(animLoop);
 }
 
@@ -1858,6 +1900,11 @@ function drawWave() {
       var cy2 = waveH / 2, yT = cy2 - mx * cy2, yB = cy2 - mn * cy2;
       cx.fillRect(x, yT, 1, Math.max(1, yB - yT));
     }
+  } else if (videoMode) {
+    cx.fillStyle = 'rgba(255,255,255,0.28)';
+    cx.font = '12px -apple-system,system-ui,sans-serif'; cx.textAlign = 'center';
+    cx.fillText('Video — drag here to set loop In / Out', W / 2, waveH / 2);
+    cx.textAlign = 'left';
   }
 
   // Beat grid overlay
@@ -4141,7 +4188,7 @@ function dmAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v30 (mp4 video window + sync + drum Load>New empty grid)');
+log('Boot OK v31 (video files play via <video> element: .mov/.mp4 + element-loop)');
 </script>
 </body>
 </html>
