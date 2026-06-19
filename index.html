@@ -25,6 +25,18 @@ h1{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:var
 /* Recorder modal */
 .rec-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
 .rec-modal.show{display:flex}
+/* Main menu (landing) */
+#mainMenu{position:fixed;inset:0;background:var(--bg);z-index:850;display:none;flex-direction:column;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 20px);overflow-y:auto}
+#mainMenu.show{display:flex}
+.menu-inner{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;margin:auto}
+.menu-title{font-size:26px;font-weight:800;letter-spacing:3px;text-align:center;margin:0}
+.menu-sub{color:var(--dim);text-align:center;margin:0 0 10px;font-size:13px}
+.menu-btn{background:var(--sur);color:var(--txt);border:1px solid var(--brd);border-radius:14px;padding:18px 16px;font-size:18px;font-weight:700;cursor:pointer;touch-action:manipulation;text-align:left;display:flex;align-items:center;justify-content:space-between}
+.menu-btn:active{background:var(--sur2)}
+.menu-tag{font-size:11px;font-weight:700;color:var(--dim);background:var(--sur2);border-radius:8px;padding:3px 8px;text-transform:uppercase;letter-spacing:1px}
+.menu-btn-soon{opacity:.55}
+.loop-back-bar{display:flex;align-items:center;margin-bottom:4px}
+.loop-back-btn{background:var(--sur2);color:var(--txt);border:none;border-radius:10px;padding:8px 14px;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation}
 .rec-card{background:var(--sur);border-radius:18px;padding:24px;max-width:360px;width:100%;text-align:center}
 .rec-title{font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:4px}
 .rec-sub{font-size:11px;color:var(--dim);margin-bottom:18px}
@@ -219,11 +231,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .bb-samed-apply{background:var(--grn);color:#000}
 .bb-samed-cancel{background:var(--sur2);color:var(--txt)}
 .bb-samed-hint{font-size:10px;color:var(--dim);text-align:center;margin-top:8px;font-style:italic}
-/* Drum Machine */
-.dm-open-lbl{display:inline-block;background:var(--acc);color:#fff;padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;margin-left:6px;border:none}
-.dm-open-lbl:active{opacity:.7}
-#drumMachine{position:fixed;inset:0;background:var(--bg);z-index:901;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
-#drumMachine.show{display:flex}
+/* Beat Builder (ex Drum+) — shares the dm-* grid/cell classes below */
 #drumPlus{position:fixed;inset:0;background:var(--bg);z-index:902;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
 #drumPlus.show{display:flex}
 .dm-title{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--acc);flex:1;text-align:center;text-transform:uppercase}
@@ -279,6 +287,20 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 </style>
 </head>
 <body>
+<!-- Main menu (landing screen) -->
+<div id="mainMenu" class="show">
+  <div class="menu-inner">
+    <h1 class="menu-title">LOOP TRAINER</h1>
+    <p class="menu-sub">Drum practice tool</p>
+    <button class="menu-btn" onclick="menuLoop()">Loop Function</button>
+    <button class="menu-btn" onclick="menuRecord()">Record</button>
+    <button class="menu-btn" onclick="bbOpen()">Beat <span class="menu-tag">old</span></button>
+    <button class="menu-btn" onclick="dpOpen()">Beat Builder</button>
+    <button class="menu-btn menu-btn-soon" onclick="menuDrumPad()">Drum Pad <span class="menu-tag">soon</span></button>
+  </div>
+</div>
+<!-- Loop Function view (original main player) -->
+<div class="loop-back-bar"><button class="loop-back-btn" onclick="showMenu()">&larr; Menu</button></div>
 <h1>LOOP TRAINER</h1>
 <p class="sub">Drum practice tool</p>
 <input type="file" id="fileInput" accept="audio/*,video/*,.mp3,.m4a,.wav,.aac,.ogg,.flac,.mp4,.m4v,.mov,.webm">
@@ -413,10 +435,6 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
   <div class="lib-header">
     <span class="sec-lbl" style="margin-bottom:0">Library</span>
     <label for="fileInput" class="open-lbl">Open Audio/Video</label>
-    <button class="rec-lbl" onclick="openRecorder()">Record</button>
-    <button class="bb-open-lbl" onclick="bbOpen()">Beat</button>
-    <button class="dm-open-lbl" onclick="dmOpen()">Drum</button>
-    <button class="dm-open-lbl" onclick="dpOpen()">Drum+</button>
   </div>
   <div id="libList"><div class="lib-empty">No saved tracks</div></div>
 </div>
@@ -486,98 +504,11 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
   </div>
   <input type="file" id="bbFileInput" accept="audio/*,.mp3,.mp4,.m4a,.wav,.aiff,.aif,.flac,.aac,.ogg,.webm" style="display:none">
 </div>
-<!-- Drum Machine overlay -->
-<div id="drumMachine">
-  <div class="bb-top">
-    <button class="cbtn" onclick="dmClose()">&larr;</button>
-    <span class="dm-title">Drum Machine</span>
-    <button class="cbtn bb-play" id="dmPlayBtn" onclick="dmTogglePlay()">&#9654;</button>
-    <button class="cbtn bb-stop" onclick="dmStop()">&#9632;</button>
-  </div>
-  <div class="bb-top" style="border-bottom:none;margin-bottom:4px;gap:6px">
-    <span style="font-size:10px;color:var(--dim);font-weight:700">BPM</span>
-    <input type="number" class="bb-mini-inp" id="dmBpm" min="20" max="300" step="0.5" value="120" inputmode="decimal" onchange="dmSetBpm(this.value)">
-    <button class="bb-pill" id="dmTapBtn" onclick="dmTap()" title="Tap this button in time to set the tempo">Tap</button>
-    <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:4px">Time sig.</span>
-    <input type="number" class="bb-mini-inp" id="dmTsNum" min="1" max="64" step="1" value="4" style="width:40px" inputmode="numeric" onchange="dmSetTs()" title="Beats per bar">
-    <span style="font-weight:800">/</span>
-    <input type="number" class="bb-mini-inp" id="dmTsDen" min="1" max="64" step="1" value="4" style="width:40px" inputmode="numeric" onchange="dmSetTs()" title="Note value of the beat (any number allowed)">
-    <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:4px">Bars</span>
-    <button class="bb-pill" onclick="dmChangeBars(-1)">&minus;</button>
-    <span id="dmBarsDisp" style="font-size:13px;font-weight:700;min-width:20px;text-align:center">1</span>
-    <button class="bb-pill" onclick="dmChangeBars(1)">+</button>
-  </div>
-  <div class="bb-top" style="border-bottom:none;margin-bottom:4px;gap:6px">
-    <span style="font-size:10px;color:var(--dim);font-weight:700">Grid subdivision</span>
-    <button class="bb-pill" onclick="dmSubCoarser()" title="Coarser grid: fewer cells per beat">&times;2</button>
-    <span id="dmSubDisp" style="font-size:11px;font-weight:700;min-width:78px;text-align:center">1/16 &middot; 4/beat</span>
-    <button class="bb-pill" onclick="dmSubFiner()" title="Finer grid: more cells per beat">&divide;2</button>
-    <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:6px">Swing</span>
-    <input type="range" class="dm-range" id="dmSwing" min="50" max="75" step="1" value="50" oninput="dmSetSwing(this.value)">
-    <span id="dmSwingDisp" style="font-size:11px;font-weight:700;min-width:92px">50% &middot; Straight</span>
-  </div>
-  <div class="bb-top" style="border-bottom:none;margin-bottom:4px;gap:6px">
-    <button class="bb-pill" id="dmMetroBtn" onclick="dmToggleMetro()">Metro</button>
-    <select class="bb-mini-sel" id="dmMetroSub" onchange="dmSetMetroSub(this.value)" title="Metronome subdivision">
-      <option value="beat">Beat</option>
-      <option value="8th">8th</option>
-      <option value="16th">16th</option>
-      <option value="trip">Triplet</option>
-      <option value="shuffle">Shuffle</option>
-    </select>
-    <button class="bb-pill" id="dmLoopBtn" onclick="dmToggleLoop()" title="Loop a range of bars/beats">Loop</button>
-    <button class="bb-pill" onclick="dmSaveGroove()">Save</button>
-    <button class="bb-pill" onclick="dmLibOpen()">Load</button>
-    <button class="bb-pill" onclick="dmInstOpen()">Inst</button>
-    <button class="bb-pill" onclick="dmTestTone()" style="color:var(--grn)">Test</button>
-  </div>
-  <div class="bb-top" id="dmLoopRow" style="border-bottom:none;margin-bottom:4px;gap:5px;display:none">
-    <span style="font-size:10px;color:var(--ora);font-weight:700">Loop In</span>
-    <span style="font-size:9px;color:var(--dim)">bar</span>
-    <input type="number" class="bb-mini-inp" id="dmLoopInBar" min="1" step="1" value="1" style="width:38px" inputmode="numeric" onchange="dmLoopFromInputs()">
-    <span style="font-size:9px;color:var(--dim)">beat</span>
-    <input type="number" class="bb-mini-inp" id="dmLoopInBeat" min="1" step="1" value="1" style="width:38px" inputmode="numeric" onchange="dmLoopFromInputs()">
-    <span style="font-size:10px;color:var(--ora);font-weight:700;margin-left:6px">Out</span>
-    <span style="font-size:9px;color:var(--dim)">bar</span>
-    <input type="number" class="bb-mini-inp" id="dmLoopOutBar" min="1" step="1" value="1" style="width:38px" inputmode="numeric" onchange="dmLoopFromInputs()">
-    <span style="font-size:9px;color:var(--dim)">beat</span>
-    <input type="number" class="bb-mini-inp" id="dmLoopOutBeat" min="1" step="1" value="4" style="width:38px" inputmode="numeric" onchange="dmLoopFromInputs()">
-    <button class="bb-pill" onclick="dmLoopFull()" title="Loop the whole groove">Full</button>
-    <span style="font-size:9px;color:var(--dim);margin-left:2px">(Out beat is inclusive; drag the orange handles too)</span>
-  </div>
-  <div class="dm-grid-wrap" id="dmGridWrap">
-    <div class="dm-grid" id="dmGrid"></div>
-  </div>
-</div>
-<!-- Drum Machine: show/hide instruments -->
-<div class="bb-samed" id="dmInstModal">
-  <div class="bb-samed-card">
-    <div class="bb-samed-title">Show / Hide Instruments</div>
-    <div class="bb-samed-name">Tap a row to toggle. Hidden rows still play.</div>
-    <div id="dmInstList"></div>
-    <div class="bb-samed-row" style="margin-top:10px">
-      <button class="bb-samed-cancel" onclick="dmShowAllInst()">Show all</button>
-      <button class="bb-samed-apply" onclick="dmInstClose()">Done</button>
-    </div>
-  </div>
-</div>
-<!-- Drum Machine: saved grooves library -->
-<div class="bb-samed" id="dmLibModal">
-  <div class="bb-samed-card">
-    <div class="bb-samed-title">Saved Grooves</div>
-    <div class="bb-samed-name">Tap a groove to load it.</div>
-    <div id="dmLibList"></div>
-    <div class="bb-samed-row" style="margin-top:10px">
-      <button class="bb-samed-cancel" onclick="dmNewEmpty()" style="background:var(--ora);color:#000">New empty grid</button>
-      <button class="bb-samed-apply" onclick="dmLibClose()">Done</button>
-    </div>
-  </div>
-</div>
-<!-- Drum+ overlay (Step-1 clone of Drum Machine) -->
+<!-- Beat Builder overlay (ex Drum+) -->
 <div id="drumPlus">
   <div class="bb-top">
     <button class="cbtn" onclick="dpClose()">&larr;</button>
-    <span class="dm-title">Drum+</span>
+    <span class="dm-title">Beat Builder</span>
     <button class="cbtn bb-play" id="dpPlayBtn" onclick="dpTogglePlay()">&#9654;</button>
     <button class="cbtn bb-stop" onclick="dpStop()">&#9632;</button>
   </div>
@@ -636,7 +567,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <div class="dm-grid" id="dpGrid"></div>
   </div>
 </div>
-<!-- Drum+: show/hide instruments -->
+<!-- Beat Builder: show/hide instruments -->
 <div class="bb-samed" id="dpInstModal">
   <div class="bb-samed-card">
     <div class="bb-samed-title">Show / Hide Instruments</div>
@@ -648,7 +579,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     </div>
   </div>
 </div>
-<!-- Drum+: saved grooves library -->
+<!-- Beat Builder: saved grooves library -->
 <div class="bb-samed" id="dpLibModal">
   <div class="bb-samed-card">
     <div class="bb-samed-title">Saved Grooves</div>
@@ -2350,6 +2281,20 @@ function setStatus(msg, cls) {
   el.textContent = msg; el.className = 'status' + (cls ? ' ' + cls : '');
   el.style.display = msg ? 'block' : 'none';
 }
+// ---- Main menu navigation (Phase 1) ----
+function showMenu() {
+  document.getElementById('mainMenu').classList.add('show');
+}
+function menuLoop() {
+  document.getElementById('mainMenu').classList.remove('show');
+}
+function menuRecord() {
+  document.getElementById('mainMenu').classList.remove('show');
+  openRecorder();
+}
+function menuDrumPad() {
+  alert('Drum Pad is coming in a later update.');
+}
 function fmt(s) {
   if (s == null || isNaN(s)) return '0:00';
   var m = Math.floor(s / 60), sec = Math.floor(s % 60), ms = Math.floor((s % 1) * 10);
@@ -3660,7 +3605,7 @@ function bbAnim() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  Drum Machine (synthesized step sequencer) — Step 1
+//  Shared synth instrument list (used by Beat Builder) — Step 1
 // ══════════════════════════════════════════════════════════════════════════════
 // Instruments top→bottom in drum-notation order (cymbals → drums → kick).
 var DM_INSTRUMENTS = [
@@ -3677,683 +3622,12 @@ var DM_INSTRUMENTS = [
   { id:'snare', name:'Snare' },
   { id:'kick', name:'Kick' }
 ];
-var db = {
-  bpm: 120,
-  tsNum: 4, tsDen: 4,    // fixed 4/4 in Step 1; arbitrary meters come in Step 2
-  bars: 1,
-  cpb: 4,                // grid cells per beat (÷2 ×2 change it); 4 cells/quarter-beat = 16ths
-  swing: 50,             // 50 = straight … ~66 = triplet shuffle … 75 = hard
-  loop: { on: false, inTick: 0, outTick: 0 },  // loop a bar/beat range (ticks); outTick exclusive
-  tapTimes: [],          // tap-tempo timestamps
-  cells: {},             // instId -> { tick(string) : velocity(1 ghost|2 normal|3 accent) }
-  mutes: {},             // instId -> bool (silences playback)
-  hidden: {},            // instId -> bool (hides the row; still plays)
-  metro: { on: false, sub: 'beat' },  // metronome: sub = beat|8th|16th|trip|shuffle
-  vol: 0.9,
-  noiseBuf: null,
-  master: null,
-  playing: false,
-  timerId: 0,
-  rafId: 0,
-  events: null,          // sorted [{sec,id,vel}] for one loop iteration (swing applied)
-  evIdx: 0,              // next event index within current loop iteration
-  loopBase: 0,           // ctx time at which the current loop iteration started
-  startTime: 0,          // ctx time of the very first loop start (for visual playhead)
-  lastVisualStep: -1,
-  openHatGain: null      // for closed-hat choke of the open hat
-};
-
-// All positions are in ticks (TPQ ticks per quarter note) so hits survive grid changes.
-// Beat-relative model: one beat = the 1/tsDen note = TPQ ticks. BPM = beats/min.
-// This keeps tick math integer for ANY numerator and ANY denominator.
-function dmTicksPerBeat() { return TPQ; }
-function dmTicksPerBar() { return db.tsNum * TPQ; }
-function dmPatternTicks() { return db.bars * dmTicksPerBar(); }
-function dmStepTicks() { return Math.round(TPQ / db.cpb); }  // ticks per grid cell
-function dmTotalSteps() { return Math.round(dmPatternTicks() / dmStepTicks()); }
-function dmTickToSec(t) { return t / TPQ * 60 / db.bpm; }
-function dmStepDur() { return dmTickToSec(dmStepTicks()); }
-function dmLoopActive() { return db.loop.on && db.loop.outTick > db.loop.inTick; }
-function dmLoopDur() { return dmLoopActive() ? dmTickToSec(db.loop.outTick - db.loop.inTick) : dmTickToSec(dmPatternTicks()); }
-// bar/beat (both 1-based) <-> tick
-function dmBarBeatToTick(bar, beat) { return (bar - 1) * dmTicksPerBar() + (beat - 1) * TPQ; }
-function dmTickToBarBeat(tick) {
-  var bar = Math.floor(tick / dmTicksPerBar());
-  var beat = Math.floor((tick - bar * dmTicksPerBar()) / TPQ);
-  return { bar: bar + 1, beat: beat + 1 };
-}
-
-// Apply swing: warp a tick's position inside its eighth-note so the off-beat
-// 16th slides from 0.5 (straight) toward `ratio` (≈0.667 = triplet shuffle).
-function dmSwingSec(tick) {
-  var ratio = db.swing / 100;
-  if (ratio <= 0.5) return dmTickToSec(tick);
-  var eighth = TPQ / 2;
-  var e = Math.floor(tick / eighth);
-  var within = (tick - e * eighth) / eighth;          // 0..1 inside the eighth
-  var np = (within <= 0.5)
-    ? within * (ratio / 0.5)
-    : ratio + (within - 0.5) * ((1 - ratio) / 0.5);
-  return dmTickToSec(e * eighth + np * eighth);
-}
-function dmVelGain(v) { return v === 1 ? 0.4 : v === 3 ? 1.0 : 0.85; }  // ghost / accent / normal
-
-function dmEnsureCells() {
-  for (var i = 0; i < DM_INSTRUMENTS.length; i++) {
-    var id = DM_INSTRUMENTS[i].id;
-    if (!db.cells[id]) db.cells[id] = {};
-    if (!(id in db.mutes)) db.mutes[id] = false;
-  }
-}
-
-function dmSyncAllUI() {
-  document.getElementById('dmBpm').value = db.bpm;
-  document.getElementById('dmTsNum').value = db.tsNum;
-  document.getElementById('dmTsDen').value = db.tsDen;
-  document.getElementById('dmBarsDisp').textContent = db.bars;
-  document.getElementById('dmSwing').value = db.swing; dmSetSwing(db.swing);
-  document.getElementById('dmMetroSub').value = db.metro.sub;
-  document.getElementById('dmMetroBtn').classList.toggle('on', db.metro.on);
-  document.getElementById('dmLoopBtn').classList.toggle('on', db.loop.on);
-  document.getElementById('dmLoopRow').style.display = db.loop.on ? 'flex' : 'none';
-  dmUpdateSubDisp();
-  dmClampLoop();
-  dmSyncLoopInputs();
-  dmRender();
-}
-function dmOpen() {
-  unlockSilentMode();
-  ensureCtx();
-  dmEnsureCells();
-  document.getElementById('drumMachine').classList.add('show');
-  dmSyncAllUI();
-}
-function dmClose() {
-  dmStop();
-  document.getElementById('drumMachine').classList.remove('show');
-}
-function dmSetBpm(v) {
-  var n = parseFloat(v);
-  if (isNaN(n) || n < 20 || n > 300) return;
-  db.bpm = n;
-  if (db.playing) dmRestart();
-}
-function dmToggleMute(id) {
-  db.mutes[id] = !db.mutes[id];
-  dmRender();
-}
-function dmSetTs() {
-  var num = parseInt(document.getElementById('dmTsNum').value, 10);
-  var den = parseInt(document.getElementById('dmTsDen').value, 10);
-  if (isNaN(num) || num < 1 || num > 64) { document.getElementById('dmTsNum').value = db.tsNum; return; }
-  if (isNaN(den) || den < 1 || den > 64) { document.getElementById('dmTsDen').value = db.tsDen; return; }
-  db.tsNum = num; db.tsDen = den;
-  dmUpdateSubDisp();
-  dmClampLoop(); dmSyncLoopInputs();
-  if (db.playing) dmRestart(); else dmRender();
-}
-function dmUpdateSubDisp() {
-  document.getElementById('dmSubDisp').textContent = '1/' + (db.tsDen * db.cpb) + ' · ' + db.cpb + '/beat';
-}
-function dmSubFiner() {   // more cells per beat (finer grid)
-  if (db.cpb >= 64) return;
-  db.cpb *= 2; dmUpdateSubDisp();
-  if (db.playing) dmRestart(); else dmRender();
-}
-function dmSubCoarser() { // fewer cells per beat (off-grid hits preserved internally)
-  if (db.cpb <= 1) return;
-  db.cpb /= 2; dmUpdateSubDisp();
-  if (db.playing) dmRestart(); else dmRender();
-}
-// ── Tap tempo ──
-function dmTap() {
-  var now = (window.performance && performance.now) ? performance.now() : Date.now();
-  if (db.tapTimes.length && now - db.tapTimes[db.tapTimes.length - 1] > 2000) db.tapTimes = [];  // reset after a pause
-  db.tapTimes.push(now);
-  if (db.tapTimes.length > 6) db.tapTimes.shift();
-  if (db.tapTimes.length >= 2) {
-    var span = db.tapTimes[db.tapTimes.length - 1] - db.tapTimes[0];
-    var bpm = 60000 * (db.tapTimes.length - 1) / span;
-    bpm = Math.max(20, Math.min(300, Math.round(bpm * 10) / 10));
-    db.bpm = bpm;
-    document.getElementById('dmBpm').value = bpm;
-    if (db.playing) dmRestart();
-  }
-}
-function dmSetSwing(v) {
-  db.swing = parseInt(v, 10);
-  var lbl = db.swing === 50 ? ' · Straight' : (db.swing >= 65 && db.swing <= 67) ? ' · Triplet' : '';
-  document.getElementById('dmSwingDisp').textContent = db.swing + '%' + lbl;
-  if (db.playing) dmRebuildEvents();  // live, no restart (loop length unchanged)
-}
-function dmChangeBars(d) {
-  db.bars = Math.max(1, Math.min(16, db.bars + d));      // hits beyond pattern are preserved internally
-  document.getElementById('dmBarsDisp').textContent = db.bars;
-  dmClampLoop(); dmSyncLoopInputs();
-  if (db.playing) dmRestart(); else dmRender();
-}
-// ── Show / hide instrument rows (does not affect playback) ──
-function dmInstOpen() {
-  var h = '';
-  for (var i = 0; i < DM_INSTRUMENTS.length; i++) {
-    var inst = DM_INSTRUMENTS[i], hidden = !!db.hidden[inst.id];
-    h += '<div class="dm-inst-item' + (hidden ? ' off' : '') + '" onclick="dmToggleHidden(\'' + inst.id + '\',this)">'
-       + '<span>' + inst.name + '</span>'
-       + '<span class="dm-inst-state">' + (hidden ? 'Hidden' : 'Shown') + '</span></div>';
-  }
-  document.getElementById('dmInstList').innerHTML = h;
-  document.getElementById('dmInstModal').classList.add('show');
-}
-function dmInstClose() { document.getElementById('dmInstModal').classList.remove('show'); }
-function dmToggleHidden(id, el) {
-  db.hidden[id] = !db.hidden[id];
-  el.classList.toggle('off', db.hidden[id]);
-  el.querySelector('.dm-inst-state').textContent = db.hidden[id] ? 'Hidden' : 'Shown';
-  dmRender();
-}
-function dmShowAllInst() { db.hidden = {}; dmInstOpen(); dmRender(); }
-function dmToggleMetro() {
-  db.metro.on = !db.metro.on;
-  document.getElementById('dmMetroBtn').classList.toggle('on', db.metro.on);
-  if (db.playing) dmRebuildEvents();
-}
-function dmSetMetroSub(v) {
-  db.metro.sub = v;
-  if (db.playing) dmRebuildEvents();
-}
-// ── Loop range (whole groove, or a bar/beat range) ──
-function dmToggleLoop() {
-  db.loop.on = !db.loop.on;
-  if (db.loop.on && db.loop.outTick <= db.loop.inTick) { db.loop.inTick = 0; db.loop.outTick = dmPatternTicks(); }
-  document.getElementById('dmLoopBtn').classList.toggle('on', db.loop.on);
-  document.getElementById('dmLoopRow').style.display = db.loop.on ? 'flex' : 'none';
-  dmClampLoop(); dmSyncLoopInputs(); dmRender();
-  if (db.playing) dmRestart();
-}
-function dmClampLoop() {
-  var p = dmPatternTicks();
-  if (db.loop.outTick <= 0 || db.loop.outTick > p) db.loop.outTick = p;
-  if (db.loop.inTick < 0) db.loop.inTick = 0;
-  if (db.loop.inTick >= db.loop.outTick) db.loop.inTick = Math.max(0, db.loop.outTick - TPQ);
-}
-function dmLoopFull() {
-  db.loop.inTick = 0; db.loop.outTick = dmPatternTicks();
-  dmSyncLoopInputs(); dmRender(); if (db.playing) dmRestart();
-}
-function dmSyncLoopInputs() {
-  var i = dmTickToBarBeat(db.loop.inTick);
-  var o = dmTickToBarBeat(Math.max(db.loop.inTick, db.loop.outTick - TPQ));  // show inclusive last beat
-  document.getElementById('dmLoopInBar').value = i.bar;
-  document.getElementById('dmLoopInBeat').value = i.beat;
-  document.getElementById('dmLoopOutBar').value = o.bar;
-  document.getElementById('dmLoopOutBeat').value = o.beat;
-}
-function dmLoopFromInputs() {
-  var inBar = parseInt(document.getElementById('dmLoopInBar').value, 10);
-  var inBeat = parseInt(document.getElementById('dmLoopInBeat').value, 10);
-  var outBar = parseInt(document.getElementById('dmLoopOutBar').value, 10);
-  var outBeat = parseInt(document.getElementById('dmLoopOutBeat').value, 10);
-  if (isNaN(inBar) || isNaN(inBeat) || isNaN(outBar) || isNaN(outBeat)) return;
-  var p = dmPatternTicks();
-  var inTick = dmBarBeatToTick(inBar, inBeat);
-  var outTick = dmBarBeatToTick(outBar, outBeat) + TPQ;   // out beat inclusive
-  inTick = Math.max(0, Math.min(inTick, p - TPQ));
-  outTick = Math.max(inTick + TPQ, Math.min(outTick, p));
-  db.loop.inTick = inTick; db.loop.outTick = outTick;
-  dmSyncLoopInputs(); dmRender(); if (db.playing) dmRestart();
-}
-function dmAttachLoopDrag() {
-  if (!dmLoopActive()) return;
-  var hin = document.getElementById('dmHIn'), hout = document.getElementById('dmHOut');
-  if (hin) dmHandleDrag(hin, 'in');
-  if (hout) dmHandleDrag(hout, 'out');
-}
-function dmHandleDrag(el, which) {
-  el.addEventListener('pointerdown', function (e) {
-    e.preventDefault(); e.stopPropagation();
-    var wrap = document.getElementById('dmGridWrap'), stepTicks = dmStepTicks(), p = dmPatternTicks();
-    function move(ev) {
-      var rect = wrap.getBoundingClientRect();
-      var x = ev.clientX - rect.left + wrap.scrollLeft - 96;
-      var beatTick = Math.round((x / 26) * stepTicks / TPQ) * TPQ;   // snap to beat
-      if (which === 'in') db.loop.inTick = Math.max(0, Math.min(beatTick, db.loop.outTick - TPQ));
-      else db.loop.outTick = Math.max(db.loop.inTick + TPQ, Math.min(beatTick, p));
-      el.style.left = (96 + ((which === 'in' ? db.loop.inTick : db.loop.outTick) / stepTicks) * 26) + 'px';
-      dmSyncLoopInputs();
-    }
-    function up() {
-      document.removeEventListener('pointermove', move);
-      document.removeEventListener('pointerup', up);
-      dmRender(); if (db.playing) dmRestart();
-    }
-    document.addEventListener('pointermove', move);
-    document.addEventListener('pointerup', up);
-  });
-}
-// ── Persistence: named grooves in localStorage ──
-function dmGrooves() { try { return JSON.parse(localStorage.getItem('drumpatterns') || '{}'); } catch (e) { return {}; } }
-function dmSerialize() {
-  return { v: 1, bpm: db.bpm, tsNum: db.tsNum, tsDen: db.tsDen, bars: db.bars, cpb: db.cpb, swing: db.swing,
-    metro: { on: db.metro.on, sub: db.metro.sub },
-    loop: { on: db.loop.on, inTick: db.loop.inTick, outTick: db.loop.outTick },
-    cells: db.cells, mutes: db.mutes, hidden: db.hidden };
-}
-function dmSaveGroove() {
-  var name = prompt('Save groove as:', 'Groove ' + (dmGrooveNames().length + 1));
-  if (!name) return;
-  name = name.replace(/["'<>\\]/g, '').trim();
-  if (!name) return;
-  var all = dmGrooves(); all[name] = dmSerialize();
-  try { localStorage.setItem('drumpatterns', JSON.stringify(all)); setStatus('Saved "' + name + '"', 'ok'); setTimeout(function () { setStatus(''); }, 1200); }
-  catch (e) { alert('Save failed: ' + e.message); }
-}
-function dmGrooveNames() { var all = dmGrooves(), n = []; for (var k in all) { if (all.hasOwnProperty(k)) n.push(k); } return n; }
-function dmLibOpen() {
-  var names = dmGrooveNames();
-  var h = names.length ? '' : '<div class="dm-lib-empty">No saved grooves yet</div>';
-  for (var i = 0; i < names.length; i++) {
-    var n = names[i];
-    h += '<div class="dm-lib-item"><span onclick="dmLoadGroove(\'' + n + '\')">' + n + '</span>'
-       + '<button class="dm-lib-del" onclick="dmDeleteGroove(\'' + n + '\',event)">&times;</button></div>';
-  }
-  document.getElementById('dmLibList').innerHTML = h;
-  document.getElementById('dmLibModal').classList.add('show');
-}
-function dmLibClose() { document.getElementById('dmLibModal').classList.remove('show'); }
-function dmNewEmpty() {
-  if (!confirm('Clear all hits and start an empty grid? (Tempo, time signature and other settings are kept.)')) return;
-  dmStop();
-  db.cells = {}; dmEnsureCells();
-  dmLibClose();
-  dmRender();
-}
-function dmDeleteGroove(name, ev) {
-  if (ev) ev.stopPropagation();
-  var all = dmGrooves(); delete all[name];
-  localStorage.setItem('drumpatterns', JSON.stringify(all));
-  dmLibOpen();
-}
-function dmLoadGroove(name) {
-  var g = dmGrooves()[name];
-  if (!g) return;
-  dmStop();
-  db.bpm = g.bpm; db.tsNum = g.tsNum; db.tsDen = g.tsDen; db.bars = g.bars;
-  db.cpb = g.cpb || 4; db.swing = g.swing || 50;
-  db.metro = g.metro || { on: false, sub: 'beat' };
-  db.loop = g.loop || { on: false, inTick: 0, outTick: 0 };
-  db.cells = g.cells || {}; db.mutes = g.mutes || {}; db.hidden = g.hidden || {};
-  dmEnsureCells();
-  dmLibClose();
-  dmSyncAllUI();
-}
-
-// ── Grid rendering ──
-function dmVelClass(v) { return v === 1 ? ' on v1' : v === 3 ? ' on v3' : v > 0 ? ' on v2' : ''; }
-function dmLineClass(tickInBar) {
-  var tpb = dmTicksPerBeat();
-  if (tickInBar % tpb === 0) return ' q';                 // beat (strongest after bar)
-  if (tickInBar % (tpb / 2) === 0) return ' e';           // half-beat
-  if (tickInBar % (tpb / 4) === 0) return ' s16';         // quarter-beat
-  return '';                                              // finer → faint default
-}
-function dmRenderRuler(total, stepTicks, ticksPerBar) {
-  var tpb = dmTicksPerBeat();
-  var html = '<div class="dm-ruler"><div class="dm-ruler-label"></div><div class="dm-steps">';
-  for (var s = 0; s < total; s++) {
-    var tick = s * stepTicks, tickInBar = tick % ticksPerBar;
-    var cls = 'dm-rcell', label = '';
-    if (tickInBar === 0) { cls += ' bar'; label = '<b>' + (Math.floor(tick / ticksPerBar) + 1) + '</b>'; }
-    else { var lc = dmLineClass(tickInBar); cls += lc; if (lc === ' q') label = String(tickInBar / tpb + 1); }
-    if (dmLoopActive() && tick >= db.loop.inTick && tick < db.loop.outTick) cls += ' inloop';
-    html += '<div class="' + cls + '">' + label + '</div>';
-  }
-  return html + '</div></div>';
-}
-function dmRender() {
-  dmEnsureCells();
-  var grid = document.getElementById('dmGrid');
-  var total = dmTotalSteps();
-  var stepTicks = dmStepTicks();
-  var ticksPerBar = dmTicksPerBar();
-  var html = dmRenderRuler(total, stepTicks, ticksPerBar);
-  for (var r = 0; r < DM_INSTRUMENTS.length; r++) {
-    var inst = DM_INSTRUMENTS[r];
-    if (db.hidden[inst.id]) continue;
-    var m = db.cells[inst.id];
-    html += '<div class="dm-row">';
-    html += '<div class="dm-row-label">'
-          + '<span class="dm-row-name">' + inst.name + '</span>'
-          + '<button class="dm-mute' + (db.mutes[inst.id] ? ' on' : '') + '" onclick="dmToggleMute(\'' + inst.id + '\')">M</button>'
-          + '</div>';
-    html += '<div class="dm-steps">';
-    for (var s = 0; s < total; s++) {
-      var tick = s * stepTicks;
-      var tickInBar = tick % ticksPerBar;
-      var cls = 'dm-cell';
-      if (tickInBar === 0 && s !== 0) cls += ' bar';
-      else cls += dmLineClass(tickInBar);
-      cls += dmVelClass(m[tick] || 0);
-      if (dmLoopActive() && tick >= db.loop.inTick && tick < db.loop.outTick) cls += ' inloop';
-      html += '<div class="' + cls + '" data-inst="' + inst.id + '" data-step="' + s + '" onclick="dmCellTap(this)"></div>';
-    }
-    html += '</div></div>';
-  }
-  if (dmLoopActive()) {
-    var inX = 96 + (db.loop.inTick / stepTicks) * 26;
-    var outX = 96 + (db.loop.outTick / stepTicks) * 26;
-    html += '<div class="dm-loop-handle" id="dmHIn" style="left:' + inX + 'px"><span class="dm-loop-tag">IN</span></div>';
-    html += '<div class="dm-loop-handle" id="dmHOut" style="left:' + outX + 'px"><span class="dm-loop-tag" style="border-radius:0 0 0 4px;right:0">OUT</span></div>';
-  }
-  grid.innerHTML = html;
-  dmMarkOffGrid();
-  dmAttachLoopDrag();
-  db.lastVisualStep = -1;  // grid rebuilt → re-apply playhead highlight next frame
-}
-// Hits whose tick no longer lands on the current grid (after ×2 coarsening) are
-// kept internally; flag the nearest cell so the user knows there is a hidden hit.
-function dmMarkOffGrid() {
-  var grid = document.getElementById('dmGrid');
-  var stepTicks = dmStepTicks();
-  var ptot = dmPatternTicks();
-  for (var i = 0; i < DM_INSTRUMENTS.length; i++) {
-    var id = DM_INSTRUMENTS[i].id, m = db.cells[id];
-    for (var k in m) {
-      if (!m.hasOwnProperty(k)) continue;
-      var t = parseInt(k, 10);
-      if (t >= ptot || t % stepTicks === 0) continue;
-      var ns = Math.min(dmTotalSteps() - 1, Math.round(t / stepTicks));
-      var cell = grid.querySelector('.dm-cell[data-inst="' + id + '"][data-step="' + ns + '"]');
-      if (cell) cell.classList.add('offgrid');
-    }
-  }
-}
-function dmCellTap(el) {
-  var id = el.getAttribute('data-inst');
-  var tick = parseInt(el.getAttribute('data-step'), 10) * dmStepTicks();
-  var m = db.cells[id];
-  var cur = m[tick] || 0;
-  var next = cur === 0 ? 2 : cur === 2 ? 3 : cur === 3 ? 1 : 0;  // off → normal → accent → ghost → off
-  if (next === 0) delete m[tick]; else m[tick] = next;
-  el.classList.remove('on', 'v1', 'v2', 'v3');
-  if (next > 0) { el.classList.add('on'); el.classList.add(next === 1 ? 'v1' : next === 3 ? 'v3' : 'v2'); }
-  if (db.playing) dmRebuildEvents();  // live edit
-}
-
-// ── Synthesis ──
-function dmMaster() {
-  if (!db.master) {
-    db.master = audioCtx.createGain();
-    db.master.gain.value = db.vol;
-    db.master.connect(audioCtx.destination);
-  }
-  return db.master;
-}
-function dmNoise() {
-  if (!db.noiseBuf) {
-    var n = Math.floor(audioCtx.sampleRate * 2);
-    var b = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
-    var d = b.getChannelData(0);
-    for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-    db.noiseBuf = b;
-  }
-  return db.noiseBuf;
-}
-function dmEnv(node, when, peak, decay) {
-  node.gain.setValueAtTime(0.0001, when);
-  node.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), when + 0.002);
-  node.gain.exponentialRampToValueAtTime(0.0001, when + decay);
-}
-function dmKick(when, g) {
-  var o = audioCtx.createOscillator(); o.type = 'sine';
-  o.frequency.setValueAtTime(150, when);
-  o.frequency.exponentialRampToValueAtTime(50, when + 0.08);
-  var ga = audioCtx.createGain(); dmEnv(ga, when, g, 0.4);
-  o.connect(ga).connect(dmMaster()); o.start(when); o.stop(when + 0.45);
-}
-function dmSnare(when, g) {
-  var n = audioCtx.createBufferSource(); n.buffer = dmNoise();
-  var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1500;
-  var ng = audioCtx.createGain(); dmEnv(ng, when, g * 0.9, 0.2);
-  n.connect(hp).connect(ng).connect(dmMaster()); n.start(when); n.stop(when + 0.25);
-  var o = audioCtx.createOscillator(); o.type = 'triangle'; o.frequency.value = 180;
-  var og = audioCtx.createGain(); dmEnv(og, when, g * 0.5, 0.12);
-  o.connect(og).connect(dmMaster()); o.start(when); o.stop(when + 0.15);
-}
-function dmHat(when, g, open) {
-  var n = audioCtx.createBufferSource(); n.buffer = dmNoise(); n.playbackRate.value = 1.5;
-  var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 8000;
-  var ng = audioCtx.createGain();
-  var dec = open ? 0.32 : 0.045;
-  dmEnv(ng, when, g * 0.6, dec);
-  n.connect(hp).connect(ng).connect(dmMaster()); n.start(when); n.stop(when + dec + 0.05);
-  // Choke: any hat cuts a still-ringing open hat.
-  if (db.openHatGain) { try { db.openHatGain.gain.cancelScheduledValues(when); db.openHatGain.gain.setTargetAtTime(0.0001, when, 0.008); } catch (e) {} }
-  db.openHatGain = open ? ng : null;
-}
-function dmTom(when, g, freq) {
-  var o = audioCtx.createOscillator(); o.type = 'sine';
-  o.frequency.setValueAtTime(freq * 1.8, when);
-  o.frequency.exponentialRampToValueAtTime(freq, when + 0.1);
-  var og = audioCtx.createGain(); dmEnv(og, when, g, 0.4);
-  o.connect(og).connect(dmMaster()); o.start(when); o.stop(when + 0.45);
-}
-function dmCymbal(when, g, bright, decay) {
-  var n = audioCtx.createBufferSource(); n.buffer = dmNoise();
-  var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = bright;
-  var bp = audioCtx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = bright * 1.4; bp.Q.value = 0.7;
-  var ng = audioCtx.createGain(); dmEnv(ng, when, g * 0.45, decay);
-  n.connect(hp).connect(bp).connect(ng).connect(dmMaster()); n.start(when); n.stop(when + decay + 0.05);
-}
-function dmBell(when, g) {
-  var freqs = [820, 1200, 2400];
-  for (var i = 0; i < freqs.length; i++) {
-    var o = audioCtx.createOscillator(); o.type = 'square'; o.frequency.value = freqs[i];
-    var og = audioCtx.createGain(); dmEnv(og, when, g * (0.18 - i * 0.04), 0.5);
-    o.connect(og).connect(dmMaster()); o.start(when); o.stop(when + 0.55);
-  }
-  dmCymbal(when, g * 0.4, 5000, 0.35);
-}
-function dmTrigger(id, when, vel) {
-  var g = vel * db.vol;
-  switch (id) {
-    case 'kick': dmKick(when, g); break;
-    case 'snare': dmSnare(when, g); break;
-    case 'hatclosed': dmHat(when, g, false); break;
-    case 'hatopen': dmHat(when, g, true); break;
-    case 'tomhi': dmTom(when, g, 200); break;
-    case 'tommid': dmTom(when, g, 145); break;
-    case 'tomlo': dmTom(when, g, 100); break;
-    case 'ridebell': dmBell(when, g); break;
-    case 'rideedge': dmCymbal(when, g, 5500, 0.6); break;
-    case 'riderim': dmCymbal(when, g, 4000, 0.12); break;
-    case 'crash1': dmCymbal(when, g, 4000, 1.4); break;
-    case 'crash2': dmCymbal(when, g, 6500, 1.6); break;
-  }
-}
-
-// ── Metronome (coupled to BPM + time signature) ──
-// level 2 = accented downbeat, 1 = other beats, 0 = subdivision click.
-function dmClick(when, level) {
-  var freq = level === 2 ? 1600 : level === 1 ? 1100 : 820;
-  var peak = (level === 2 ? 0.9 : level === 1 ? 0.55 : 0.3) * db.vol;
-  var o = audioCtx.createOscillator(); o.type = level === 0 ? 'sine' : 'square';
-  o.frequency.value = freq;
-  var g = audioCtx.createGain();
-  g.gain.setValueAtTime(0.0001, when);
-  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), when + 0.001);
-  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.035);
-  o.connect(g).connect(dmMaster()); o.start(when); o.stop(when + 0.05);
-}
-function dmMetroTicks() {
-  if (!db.metro.on) return [];
-  var out = [], tpb = dmTicksPerBeat(), ticksPerBar = dmTicksPerBar(), ptot = dmPatternTicks();
-  var offs;
-  switch (db.metro.sub) {
-    case '8th':     offs = [0, tpb / 2]; break;
-    case '16th':    offs = [0, tpb / 4, tpb / 2, tpb * 3 / 4]; break;
-    case 'trip':    offs = [0, tpb / 3, tpb * 2 / 3]; break;
-    case 'shuffle': offs = [0, tpb * 2 / 3]; break;   // 1st & 3rd of an eighth-note triplet
-    default:        offs = [0]; break;                // beat
-  }
-  for (var t = 0; t < ptot; t += tpb) {
-    var beatInBar = t % ticksPerBar;
-    for (var j = 0; j < offs.length; j++) {
-      var tick = t + offs[j];
-      if (tick >= ptot) continue;
-      out.push({ tick: tick, level: j === 0 ? (beatInBar === 0 ? 2 : 1) : 0 });
-    }
-  }
-  return out;
-}
-// ── Event-based look-ahead scheduler (A-Tale-of-Two-Clocks pattern) ──
-// Events are built relative to the loop start, so off-grid (preserved) hits play,
-// swing offsets apply, and a bar/beat loop range works — independent of the grid.
-function dmBuildEvents() {
-  var ptot = dmPatternTicks();
-  var lo = dmLoopActive() ? db.loop.inTick : 0;
-  var hi = dmLoopActive() ? db.loop.outTick : ptot;
-  var loSec = dmTickToSec(lo);
-  var evs = [];
-  for (var i = 0; i < DM_INSTRUMENTS.length; i++) {
-    var id = DM_INSTRUMENTS[i].id, m = db.cells[id];
-    for (var k in m) {
-      if (!m.hasOwnProperty(k)) continue;
-      var t = parseInt(k, 10);
-      if (t < lo || t >= hi || m[k] <= 0) continue;
-      evs.push({ sec: dmSwingSec(t) - loSec, id: id, vel: m[k] });
-    }
-  }
-  var mt = dmMetroTicks();
-  for (var q = 0; q < mt.length; q++) {
-    if (mt[q].tick < lo || mt[q].tick >= hi) continue;
-    evs.push({ sec: dmTickToSec(mt[q].tick) - loSec, id: '_metro', vel: mt[q].level });
-  }
-  evs.sort(function (a, b) { return a.sec - b.sec; });
-  db.events = evs;
-}
-function dmRebuildEvents() {
-  dmBuildEvents();
-  if (!db.playing) return;
-  var loopDur = dmLoopDur();
-  var pos = audioCtx.currentTime - db.loopBase;
-  while (pos >= loopDur) { db.loopBase += loopDur; pos -= loopDur; }
-  while (pos < 0) { db.loopBase -= loopDur; pos += loopDur; }
-  var idx = 0;
-  while (idx < db.events.length && db.events[idx].sec <= pos) idx++;
-  db.evIdx = idx;
-}
-function dmScheduler() {
-  if (!db.playing || !db.events) return;
-  var horizon = audioCtx.currentTime + 0.12;
-  var loopDur = dmLoopDur();
-  if (loopDur <= 0) return;
-  var guard = 0;
-  while (guard++ < 5000) {
-    if (db.evIdx >= db.events.length) {            // wrap to next loop iteration
-      if (db.events.length === 0) {
-        while (db.loopBase + loopDur <= horizon) db.loopBase += loopDur;
-        break;
-      }
-      db.loopBase += loopDur;
-      db.evIdx = 0;
-    }
-    var ev = db.events[db.evIdx];
-    var when = db.loopBase + ev.sec;
-    if (when >= horizon) break;
-    if (when >= audioCtx.currentTime - 0.005) {
-      if (ev.id === '_metro') dmClick(when, ev.vel);
-      else if (!db.mutes[ev.id]) dmTrigger(ev.id, when, dmVelGain(ev.vel));
-    }
-    db.evIdx++;
-  }
-}
-// Force iOS to route Web Audio to the speaker: resume + play a 1-sample buffer
-// through the context within the user gesture (also re-arms the silent-mode session).
-function dmUnlockAudio() {
-  ensureCtx();
-  unlockSilentMode();
-  var p = audioCtx.resume && audioCtx.resume();
-  if (p && p.then) p.then(function () { log('dm ctx resumed -> ' + audioCtx.state); });
-  try {
-    var b = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
-    var s = audioCtx.createBufferSource();
-    s.buffer = b; s.connect(audioCtx.destination); s.start(0);
-  } catch (e) { log('dm warm err: ' + e.message); }
-}
-function dmTestTone() {
-  dmUnlockAudio();
-  var when = audioCtx.currentTime + 0.04;
-  var o = audioCtx.createOscillator(); o.type = 'square'; o.frequency.value = 440;
-  var g = audioCtx.createGain();
-  g.gain.setValueAtTime(0.0001, when);
-  g.gain.exponentialRampToValueAtTime(0.5, when + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.28);
-  o.connect(g).connect(audioCtx.destination);   // straight to output, bypassing dmMaster + scheduler
-  o.start(when); o.stop(when + 0.32);
-  log('Test tone: state=' + audioCtx.state + ' t=' + audioCtx.currentTime.toFixed(2) + ' sr=' + audioCtx.sampleRate);
-}
-function dmTogglePlay() { if (db.playing) dmStop(); else dmPlay(); }
-function dmPlay() {
-  dmUnlockAudio();
-  dmEnsureCells();
-  dmBuildEvents();
-  log('dmPlay: state=' + audioCtx.state + ' t=' + audioCtx.currentTime.toFixed(2) + ' events=' + db.events.length + ' metro=' + db.metro.on);
-  db.playing = true;
-  db.startTime = audioCtx.currentTime + 0.08;
-  db.loopBase = db.startTime;
-  db.evIdx = 0;
-  db.lastVisualStep = -1;
-  db.timerId = setInterval(dmScheduler, 25);
-  dmScheduler();
-  document.getElementById('dmPlayBtn').innerHTML = '&#10074;&#10074;';
-  dmAnim();
-}
-function dmRestart() {
-  if (!db.playing) return;
-  dmStop();
-  dmPlay();
-}
-function dmStop() {
-  db.playing = false;
-  if (db.timerId) { clearInterval(db.timerId); db.timerId = 0; }
-  if (db.rafId) { cancelAnimationFrame(db.rafId); db.rafId = 0; }
-  db.openHatGain = null;
-  var btn = document.getElementById('dmPlayBtn');
-  if (btn) btn.innerHTML = '&#9654;';
-  dmClearPlayhead();
-}
-function dmClearPlayhead() {
-  if (db.lastVisualStep < 0) return;
-  var prev = document.querySelectorAll('.dm-cell.playing');
-  for (var i = 0; i < prev.length; i++) prev[i].classList.remove('playing');
-  db.lastVisualStep = -1;
-}
-function dmAnim() {
-  if (!db.playing) return;
-  var stepTicks = dmStepTicks();
-  var elapsed = audioCtx.currentTime - db.startTime;
-  if (elapsed >= 0) {
-    var loStep = dmLoopActive() ? Math.round(db.loop.inTick / stepTicks) : 0;
-    var rangeSteps = dmLoopActive() ? Math.round((db.loop.outTick - db.loop.inTick) / stepTicks) : dmTotalSteps();
-    if (rangeSteps < 1) rangeSteps = 1;
-    var posStep = Math.floor((elapsed % dmLoopDur()) / dmStepDur());
-    var vs = loStep + (posStep % rangeSteps);
-    if (vs !== db.lastVisualStep) {
-      var prev = document.querySelectorAll('.dm-cell.playing');
-      for (var i = 0; i < prev.length; i++) prev[i].classList.remove('playing');
-      var cur = document.querySelectorAll('.dm-cell[data-step="' + vs + '"]');
-      for (var j = 0; j < cur.length; j++) cur[j].classList.add('playing');
-      db.lastVisualStep = vs;
-    }
-  }
-  db.rafId = requestAnimationFrame(dmAnim);
-}
 
 // ============================================================================
-//  Drum+  (Step-1 clone of the Drum Machine) -- synth voices only.
-//  Independent state (db2) + dp*() fns + #drumPlus overlay. Shares the
-//  DM_INSTRUMENTS synth list and the dm- CSS classes. The originals
-//  (#drumMachine / dm* / db) are intentionally left untouched.
+//  Beat Builder (ex Drum+) -- synth voices only for now.
+//  State (db2) + dp*() fns + #drumPlus overlay. Shares the DM_INSTRUMENTS
+//  synth list and the dm- CSS classes. (The old synth Drum Machine was
+//  removed in the 2026-06-19 Phase 1 update; sample recording lands in Phase 2.)
 // ============================================================================
 var db2 = {
   bpm: 120,
@@ -5039,7 +4313,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v34 (cue: tap=jump+stop while playing, hold=preview when paused)');
+log('Boot OK v35 (Phase 1: main menu, deleted synth Drum, Drum+ renamed Beat Builder)');
 </script>
 </body>
 </html>
