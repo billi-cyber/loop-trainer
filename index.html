@@ -272,6 +272,10 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .dm-inst-item.off{opacity:.45}
 .dm-inst-item .dm-inst-state{font-size:10px;color:var(--acc);font-weight:700}
 .dm-inst-item.off .dm-inst-state{color:var(--dim)}
+.dm-inst-sep{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin:12px 2px 6px}
+.dm-inst-uname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.dm-inst-actions{display:flex;gap:5px;align-items:center;flex-shrink:0}
+.dm-inst-actions .bb-pill{font-size:10px;padding:5px 8px}
 .dm-cell.inloop{background:rgba(255,159,10,.10)}
 .dm-cell.playing.inloop{background:rgba(255,255,255,.10)}
 .dm-rcell.inloop{background:rgba(255,159,10,.20)}
@@ -698,13 +702,14 @@ if ('serviceWorker' in navigator) {
 // ══════════════════════════════════════════════════════════════════════════════
 //  IndexedDB
 // ══════════════════════════════════════════════════════════════════════════════
-var DB_NAME = 'loopTrainerDB', DB_VER = 1, STORE = 'tracks';
+var DB_NAME = 'loopTrainerDB', DB_VER = 2, STORE = 'tracks', DP_SAMPLE_STORE = 'dpsamples';
 function openDB() {
   return new Promise(function(resolve, reject) {
     var req = indexedDB.open(DB_NAME, DB_VER);
     req.onupgradeneeded = function(e) {
       var db = e.target.result;
       if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(DP_SAMPLE_STORE)) db.createObjectStore(DP_SAMPLE_STORE, { keyPath: 'id' });
     };
     req.onsuccess = function(e) { resolve(e.target.result); };
     req.onerror = function(e) { reject(e.target.error); };
@@ -2315,8 +2320,10 @@ var mediaRec = null, micStream = null, recChunks = [], recMime = '';
 var sharedMicStream = null;
 var recStartMs = 0, recTimerIv = null, recRafId = null, recAborted = false;
 var recAnalyser = null, recAnalyserCtx = null;
+var dpRecPending = false;   // true when the recorder was opened to add a Beat Builder instrument
 
 function openRecorder() {
+  dpRecPending = false;   // default target is main/bb; dpRecordInstrument re-arms after this
   document.getElementById('recModal').classList.add('show');
   document.getElementById('recTimer').textContent = '0:00';
   document.getElementById('recHint').textContent = 'Tap the red button to start';
@@ -2337,6 +2344,7 @@ function closeRecorder() {
   document.getElementById('recLevelBar').style.width = '0%';
   stopMicStream();
   if (typeof bb !== 'undefined') bb.recordingRowId = 0;
+  dpRecPending = false;
   document.getElementById('recModal').classList.remove('show');
 }
 function setRecBtnState(recording) {
@@ -2430,6 +2438,7 @@ function onRecStop() {
     recChunks = [];
     stopMicStream();
     if (typeof bb !== 'undefined') bb.recordingRowId = 0;
+    dpRecPending = false;
     log('Rec aborted');
     return;
   }
@@ -2448,6 +2457,11 @@ function onRecStop() {
   var name = 'Recording_' + stamp + '.' + mimeExt(recMime);
   blob.arrayBuffer().then(function(ab) {
     document.getElementById('recModal').classList.remove('show');
+    if (dpRecPending) {
+      dpRecPending = false;
+      dpAddRecordedInstrument(name, ab);
+      return;
+    }
     if (bb.recordingRowId) {
       var rid = bb.recordingRowId; bb.recordingRowId = 0;
       setStatus('Decoding sample...');
@@ -3657,7 +3671,8 @@ var db2 = {
   startTime: 0,          // ctx time of the very first loop start (for visual playhead)
   lastVisualStep: -1,
   openHatGain: null,     // for closed-hat choke of the open hat
-  currentGroove: null    // name of the loaded/last-saved groove (default overwrite target)
+  currentGroove: null,   // name of the loaded/last-saved groove (default overwrite target)
+  userInsts: []          // recorded sample instruments: {id,name,kind:'sample',buffer,mime}
 };
 
 // All positions are in ticks (TPQ ticks per quarter note) so hits survive grid changes.
@@ -3694,10 +3709,18 @@ function dpSwingSec(tick) {
   return dpTickToSec(e * eighth + np * eighth);
 }
 function dpVelGain(v) { return v === 1 ? 0.4 : v === 3 ? 1.0 : 0.85; }  // ghost / accent / normal
+// Full instrument list = built-in synth voices + recorded sample instruments.
+function dpInsts() { return DM_INSTRUMENTS.concat(db2.userInsts); }
+function dpFindInst(id) {
+  var a = dpInsts();
+  for (var i = 0; i < a.length; i++) { if (a[i].id === id) return a[i]; }
+  return null;
+}
 
 function dpEnsureCells() {
-  for (var i = 0; i < DM_INSTRUMENTS.length; i++) {
-    var id = DM_INSTRUMENTS[i].id;
+  var INS = dpInsts();
+  for (var i = 0; i < INS.length; i++) {
+    var id = INS[i].id;
     if (!db2.cells[id]) db2.cells[id] = {};
     if (!(id in db2.mutes)) db2.mutes[id] = false;
   }
@@ -3722,6 +3745,7 @@ function dpSyncAllUI() {
 function dpOpen() {
   unlockSilentMode();
   ensureCtx();
+  dpLoadUserInsts();   // restore recorded sample instruments from IndexedDB (once)
   dpEnsureCells();
   document.getElementById('drumPlus').classList.add('show');
   dpSyncAllUI();
@@ -3790,14 +3814,27 @@ function dpChangeBars(d) {
   dpClampLoop(); dpSyncLoopInputs();
   if (db2.playing) dpRestart(); else dpRender();
 }
-// ── Show / hide instrument rows (does not affect playback) ──
+// ── Show / hide instruments + record custom sample instruments ──
 function dpInstOpen() {
-  var h = '';
+  var h = '<button class="bb-samed-apply" style="width:100%;margin-bottom:10px" onclick="dpRecordInstrument()">+ Record instrument</button>';
   for (var i = 0; i < DM_INSTRUMENTS.length; i++) {
     var inst = DM_INSTRUMENTS[i], hidden = !!db2.hidden[inst.id];
     h += '<div class="dm-inst-item' + (hidden ? ' off' : '') + '" onclick="dpToggleHidden(\'' + inst.id + '\',this)">'
        + '<span>' + inst.name + '</span>'
        + '<span class="dm-inst-state">' + (hidden ? 'Hidden' : 'Shown') + '</span></div>';
+  }
+  if (db2.userInsts.length) {
+    h += '<div class="dm-inst-sep">Recorded instruments</div>';
+    for (var j = 0; j < db2.userInsts.length; j++) {
+      var u = db2.userInsts[j], uh = !!db2.hidden[u.id];
+      h += '<div class="dm-inst-item' + (uh ? ' off' : '') + '">'
+         + '<span class="dm-inst-uname" onclick="dpToggleHiddenU(\'' + u.id + '\')">' + esc(u.name) + '</span>'
+         + '<span class="dm-inst-actions">'
+         +   '<button class="bb-pill" onclick="dpRenameInst(\'' + u.id + '\')">Rename</button>'
+         +   '<button class="bb-pill" onclick="dpToggleHiddenU(\'' + u.id + '\')">' + (uh ? 'Show' : 'Hide') + '</button>'
+         +   '<button class="dm-lib-del" onclick="dpDeleteInst(\'' + u.id + '\')">&times;</button>'
+         + '</span></div>';
+    }
   }
   document.getElementById('dpInstList').innerHTML = h;
   document.getElementById('dpInstModal').classList.add('show');
@@ -3809,7 +3846,138 @@ function dpToggleHidden(id, el) {
   el.querySelector('.dm-inst-state').textContent = db2.hidden[id] ? 'Hidden' : 'Shown';
   dpRender();
 }
+function dpToggleHiddenU(id) {   // recorded rows: re-render the list (it carries action buttons)
+  db2.hidden[id] = !db2.hidden[id];
+  dpInstOpen();
+  dpRender();
+}
 function dpShowAllInst() { db2.hidden = {}; dpInstOpen(); dpRender(); }
+// ── Record a custom sample instrument (recycles the shared mic recorder) ──
+function dpRecordInstrument() {
+  dpInstClose();                 // recorder modal sits below the inst modal; close it first
+  openRecorder();
+  dpRecPending = true;           // re-arm after openRecorder() (which resets it)
+}
+function dpNiceName() {
+  var n = db2.userInsts.length + 1;
+  return 'Rec ' + n;
+}
+function dpAddRecordedInstrument(name, ab) {
+  ensureCtx();
+  var copy = ab.slice(0);        // decodeAudioData detaches its input; keep ab for storage
+  audioCtx.decodeAudioData(copy, function (buf) {
+    var id = 'usr_' + Date.now();
+    var inst = { id: id, name: dpNiceName(), kind: 'sample', buffer: buf, mime: recMime || 'audio/webm' };
+    db2.userInsts.push(inst);
+    db2.cells[id] = {}; db2.mutes[id] = false;
+    dpInstIndexSave();
+    dpSaveSampleToDB(id, ab, inst.mime).then(function () { log('Sample stored ' + id); })
+                                       .catch(function (e) { log('Sample store err: ' + e.message); });
+    dpRender();
+    if (db2.playing) dpRebuildEvents();
+    dpInstOpen();                 // reopen the window so the new row is visible
+  }, function (e) {
+    alert('Could not decode the recording (' + (recMime || '?') + '). Try again.');
+    log('Sample decode err: ' + (e && e.message));
+  });
+}
+function dpRenameInst(id) {
+  var inst = dpFindInst(id);
+  if (!inst) return;
+  var nn = prompt('Rename instrument:', inst.name);
+  if (nn === null) return;
+  nn = nn.replace(/["'<>\\]/g, '').trim();
+  if (!nn) return;
+  inst.name = nn;
+  dpInstIndexSave();
+  dpInstOpen(); dpRender();
+}
+function dpDeleteInst(id) {
+  if (!confirm('Delete this recorded instrument and its hits?')) return;
+  for (var i = 0; i < db2.userInsts.length; i++) {
+    if (db2.userInsts[i].id === id) { db2.userInsts.splice(i, 1); break; }
+  }
+  delete db2.cells[id]; delete db2.mutes[id]; delete db2.hidden[id];
+  dpInstIndexSave();
+  dpDeleteSampleFromDB(id).then(function () {}).catch(function () {});
+  if (db2.playing) dpRebuildEvents();
+  dpInstOpen(); dpRender();
+}
+// ── Sample-instrument persistence: IndexedDB blobs + a localStorage name index ──
+function dpInstIndexSave() {
+  var idx = [];
+  for (var i = 0; i < db2.userInsts.length; i++) {
+    var u = db2.userInsts[i];
+    idx.push({ id: u.id, name: u.name, mime: u.mime || '' });
+  }
+  try { localStorage.setItem('drumplus_insts', JSON.stringify(idx)); } catch (e) {}
+}
+function dpSaveSampleToDB(key, arrayBuf, mime) {
+  return openDB().then(function (db) {
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction(DP_SAMPLE_STORE, 'readwrite');
+      tx.objectStore(DP_SAMPLE_STORE).put({ id: key, data: arrayBuf, mime: mime, savedAt: Date.now() });
+      tx.oncomplete = function () { resolve(); };
+      tx.onerror = function (e) { reject(e.target.error); };
+    });
+  });
+}
+function dpDeleteSampleFromDB(key) {
+  return openDB().then(function (db) {
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction(DP_SAMPLE_STORE, 'readwrite');
+      tx.objectStore(DP_SAMPLE_STORE).delete(key);
+      tx.oncomplete = function () { resolve(); };
+      tx.onerror = function (e) { reject(e.target.error); };
+    });
+  });
+}
+function dpLoadAllSamplesFromDB() {
+  return openDB().then(function (db) {
+    return new Promise(function (resolve, reject) {
+      var out = [];
+      var tx = db.transaction(DP_SAMPLE_STORE, 'readonly');
+      var req = tx.objectStore(DP_SAMPLE_STORE).openCursor();
+      req.onsuccess = function (e) {
+        var cur = e.target.result;
+        if (cur) { out.push(cur.value); cur.continue(); } else { resolve(out); }
+      };
+      req.onerror = function (e) { reject(e.target.error); };
+    });
+  });
+}
+var dpInstsLoaded = false;
+function dpLoadUserInsts() {
+  if (dpInstsLoaded) return;
+  dpInstsLoaded = true;
+  var idx;
+  try { idx = JSON.parse(localStorage.getItem('drumplus_insts') || '[]'); } catch (e) { idx = []; }
+  if (!idx.length) return;
+  ensureCtx();
+  dpLoadAllSamplesFromDB().then(function (rows) {
+    var map = {};
+    for (var i = 0; i < rows.length; i++) map[rows[i].id] = rows[i];
+    var remaining = 0;
+    for (var j = 0; j < idx.length; j++) {
+      var rec = map[idx[j].id];
+      if (rec && rec.data) remaining++;
+    }
+    if (!remaining) return;
+    for (var k = 0; k < idx.length; k++) {
+      (function (meta) {
+        var r = map[meta.id];
+        if (!r || !r.data) return;
+        audioCtx.decodeAudioData(r.data.slice(0), function (buf) {
+          db2.userInsts.push({ id: meta.id, name: meta.name, kind: 'sample', buffer: buf, mime: meta.mime || '' });
+          db2.cells[meta.id] = db2.cells[meta.id] || {};
+          if (!(meta.id in db2.mutes)) db2.mutes[meta.id] = false;
+          remaining--;
+          if (remaining === 0) { dpRender(); }
+        }, function (e) { remaining--; log('Sample decode err ' + meta.id); });
+      })(idx[k]);
+    }
+  }).catch(function (e) { log('Load samples err: ' + e.message); });
+}
 function dpToggleMetro() {
   db2.metro.on = !db2.metro.on;
   document.getElementById('dpMetroBtn').classList.toggle('on', db2.metro.on);
@@ -3891,10 +4059,12 @@ function dpHandleDrag(el, which) {
 // ── Persistence: named grooves in localStorage ──
 function dpGrooves() { try { return JSON.parse(localStorage.getItem('drumpluspatterns') || '{}'); } catch (e) { return {}; } }
 function dpSerialize() {
+  var ui = [];
+  for (var i = 0; i < db2.userInsts.length; i++) ui.push({ id: db2.userInsts[i].id, name: db2.userInsts[i].name });
   return { v: 1, bpm: db2.bpm, tsNum: db2.tsNum, tsDen: db2.tsDen, bars: db2.bars, cpb: db2.cpb, swing: db2.swing,
     metro: { on: db2.metro.on, sub: db2.metro.sub },
     loop: { on: db2.loop.on, inTick: db2.loop.inTick, outTick: db2.loop.outTick },
-    cells: db2.cells, mutes: db2.mutes, hidden: db2.hidden };
+    cells: db2.cells, mutes: db2.mutes, hidden: db2.hidden, userInsts: ui };
 }
 function dpStoreGroove(name) {
   var all = dpGrooves(); all[name] = dpSerialize();
@@ -4003,8 +4173,9 @@ function dpRender() {
   var stepTicks = dpStepTicks();
   var ticksPerBar = dpTicksPerBar();
   var html = dpRenderRuler(total, stepTicks, ticksPerBar);
-  for (var r = 0; r < DM_INSTRUMENTS.length; r++) {
-    var inst = DM_INSTRUMENTS[r];
+  var INS = dpInsts();
+  for (var r = 0; r < INS.length; r++) {
+    var inst = INS[r];
     if (db2.hidden[inst.id]) continue;
     var m = db2.cells[inst.id];
     html += '<div class="dm-row">';
@@ -4042,8 +4213,10 @@ function dpMarkOffGrid() {
   var grid = document.getElementById('dpGrid');
   var stepTicks = dpStepTicks();
   var ptot = dpPatternTicks();
-  for (var i = 0; i < DM_INSTRUMENTS.length; i++) {
-    var id = DM_INSTRUMENTS[i].id, m = db2.cells[id];
+  var INS = dpInsts();
+  for (var i = 0; i < INS.length; i++) {
+    var id = INS[i].id, m = db2.cells[id];
+    if (!m) continue;
     for (var k in m) {
       if (!m.hasOwnProperty(k)) continue;
       var t = parseInt(k, 10);
@@ -4156,7 +4329,16 @@ function dpTrigger(id, when, vel) {
     case 'riderim': dpCymbal(when, g, 4000, 0.12); break;
     case 'crash1': dpCymbal(when, g, 4000, 1.4); break;
     case 'crash2': dpCymbal(when, g, 6500, 1.6); break;
+    default: dpPlaySample(id, when, g); break;   // recorded sample instrument
   }
+}
+// One-shot playback of a recorded sample instrument, velocity-scaled.
+function dpPlaySample(id, when, g) {
+  var inst = dpFindInst(id);
+  if (!inst || !inst.buffer) return;
+  var src = audioCtx.createBufferSource(); src.buffer = inst.buffer;
+  var gn = audioCtx.createGain(); gn.gain.value = Math.max(0.0001, g);
+  src.connect(gn).connect(dpMaster()); src.start(when);
 }
 
 // ── Metronome (coupled to BPM + time signature) ──
@@ -4202,8 +4384,10 @@ function dpBuildEvents() {
   var hi = dpLoopActive() ? db2.loop.outTick : ptot;
   var loSec = dpTickToSec(lo);
   var evs = [];
-  for (var i = 0; i < DM_INSTRUMENTS.length; i++) {
-    var id = DM_INSTRUMENTS[i].id, m = db2.cells[id];
+  var INS = dpInsts();
+  for (var i = 0; i < INS.length; i++) {
+    var id = INS[i].id, m = db2.cells[id];
+    if (!m) continue;
     for (var k in m) {
       if (!m.hasOwnProperty(k)) continue;
       var t = parseInt(k, 10);
@@ -4349,7 +4533,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v36 (Phase 2a: open-hat length, collapse controls, overwrite grooves, scrollable lists)');
+log('Boot OK v37 (Phase 2b: record custom sample instruments in Beat Builder, persisted in IndexedDB)');
 </script>
 </body>
 </html>
