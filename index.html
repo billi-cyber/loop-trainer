@@ -576,6 +576,24 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <div class="dm-grid" id="dpGrid"></div>
   </div>
 </div>
+<!-- Beat Builder: fit imported loop to the grid -->
+<div class="bb-samed" id="dpSongModal">
+  <div class="bb-samed-card">
+    <div class="bb-samed-title">Fit Loop To Grid</div>
+    <div class="bb-samed-name">How long is the loaded loop, musically? The grid tempo is set so it locks perfectly.</div>
+    <div class="bb-top" style="border-bottom:none;justify-content:center;gap:8px">
+      <span style="font-size:11px;color:var(--dim);font-weight:700">Bars</span>
+      <input type="number" class="bb-mini-inp" id="dpSongBars" min="1" max="64" step="1" value="2" inputmode="numeric" oninput="dpSongUpdateHint()">
+      <span style="font-size:11px;color:var(--dim);font-weight:700">Beats</span>
+      <input type="number" class="bb-mini-inp" id="dpSongBeats" min="0" max="63" step="1" value="0" inputmode="numeric" oninput="dpSongUpdateHint()">
+    </div>
+    <div class="bb-samed-hint" id="dpSongHint"></div>
+    <div class="bb-samed-row" style="margin-top:10px">
+      <button class="bb-samed-cancel" onclick="dpSongCancel()">Cancel</button>
+      <button class="bb-samed-apply" onclick="dpSongConfirm()">Fit &amp; Play</button>
+    </div>
+  </div>
+</div>
 <!-- Beat Builder: show/hide instruments -->
 <div class="bb-samed" id="dpInstModal">
   <div class="bb-samed-card">
@@ -3731,7 +3749,7 @@ function dpEnsureCells() {
 }
 
 function dpSyncAllUI() {
-  document.getElementById('dpBpm').value = db2.bpm;
+  document.getElementById('dpBpm').value = Math.round(db2.bpm * 10) / 10;  // tidy display; db2.bpm stays exact for song lock
   document.getElementById('dpTsNum').value = db2.tsNum;
   document.getElementById('dpTsDen').value = db2.tsDen;
   document.getElementById('dpBarsDisp').textContent = db2.bars;
@@ -4003,15 +4021,56 @@ function dpToggleSong() {
     alert('First load a track and set a loop (In / Out) in the Loop Function.');
     return;
   }
-  db2.songOn = true;
-  document.getElementById('dpSongBtn').classList.add('on');
-  // Adopt the loop's detected tempo so the grid lines up with the song.
-  if (gridBPM >= 20 && gridBPM <= 300) {
-    db2.bpm = Math.round(gridBPM * 10) / 10;
-    document.getElementById('dpBpm').value = db2.bpm;
-  }
-  if (db2.playing) dpRestart();   // restart so song + beat start together at the new tempo
+  dpSongModalOpen();   // ask for the loop's musical length, then fit grid to it
 }
+// "Fit loop to grid": user states the loop length in bars+beats; we derive the
+// exact tempo (totalBeats*60/durationSec) and set grid BPM + bars + loop range to
+// match, so the audio loop and the grid loop have identical periods = no drift.
+function dpSongModalOpen() {
+  var dur = loopOut - loopIn;
+  var ref = (gridBPM >= 20 && gridBPM <= 300) ? gridBPM : db2.bpm;
+  var guessBeats = Math.max(1, Math.round(dur * ref / 60));
+  var bars = Math.max(1, Math.round(guessBeats / db2.tsNum));
+  var beats = guessBeats - bars * db2.tsNum;
+  if (beats < 0) beats = 0;
+  document.getElementById('dpSongBars').value = bars;
+  document.getElementById('dpSongBeats').value = beats;
+  dpSongUpdateHint();
+  document.getElementById('dpSongModal').classList.add('show');
+}
+function dpSongReadBeats() {
+  var bars = parseInt(document.getElementById('dpSongBars').value, 10) || 0;
+  var beats = parseInt(document.getElementById('dpSongBeats').value, 10) || 0;
+  return bars * db2.tsNum + beats;
+}
+function dpSongUpdateHint() {
+  var dur = loopOut - loopIn;
+  var totalBeats = dpSongReadBeats();
+  var el = document.getElementById('dpSongHint');
+  if (totalBeats <= 0 || dur <= 0) { el.textContent = 'Enter the loop length.'; return; }
+  var bpm = totalBeats * 60 / dur;
+  el.textContent = totalBeats + ' beats over ' + dur.toFixed(2) + 's = ' + bpm.toFixed(1) + ' BPM'
+                 + (bpm < 20 || bpm > 300 ? '  (out of range!)' : '');
+}
+function dpSongConfirm() {
+  var dur = loopOut - loopIn;
+  var totalBeats = dpSongReadBeats();
+  if (totalBeats <= 0 || dur <= 0) { alert('Enter a valid loop length (bars/beats).'); return; }
+  var bpm = totalBeats * 60 / dur;
+  if (bpm < 20 || bpm > 300) {
+    alert('That length gives ' + bpm.toFixed(1) + ' BPM, outside 20-300. Try a different bar/beat count.');
+    return;
+  }
+  db2.bpm = bpm;                                   // exact (unrounded) -> grid period == audio loop length
+  document.getElementById('dpBpm').value = bpm.toFixed(1);
+  db2.bars = Math.ceil(totalBeats / db2.tsNum);
+  db2.loop = { on: true, inTick: 0, outTick: totalBeats * TPQ };
+  db2.songOn = true;
+  document.getElementById('dpSongModal').classList.remove('show');
+  document.getElementById('dpSongBtn').classList.add('on');
+  if (db2.playing) dpRestart(); else dpSyncAllUI();
+}
+function dpSongCancel() { document.getElementById('dpSongModal').classList.remove('show'); }
 function dpStartSong(at) {
   dpStopSong();
   if (!db2.songOn || !audioBuf || loopIn === null || loopOut === null || loopIn >= loopOut) return;
@@ -4578,7 +4637,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v38 (Phase 2c-1: play loaded Loop Function track underneath Beat Builder, tempo-matched)');
+log('Boot OK v39 (Phase 2c-1: Fit Loop To Grid - derive tempo from bars/beats so the song locks to the beat)');
 </script>
 </body>
 </html>
