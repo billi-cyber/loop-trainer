@@ -219,6 +219,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .bb-samed{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1050;display:none;align-items:center;justify-content:center;padding:14px}
 .bb-samed.show{display:flex}
 .bb-samed-card{background:var(--sur);border-radius:16px;padding:16px;max-width:460px;width:100%}
+#dpLibList,#dpInstList,#dmLibList{max-height:58vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .bb-samed-title{font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--grn);margin-bottom:4px;text-align:center}
 .bb-samed-name{font-size:11px;color:var(--dim);text-align:center;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #bbSECanvas{display:block;width:100%;height:140px;background:var(--sur2);border-radius:8px;touch-action:none}
@@ -234,6 +235,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 /* Beat Builder (ex Drum+) — shares the dm-* grid/cell classes below */
 #drumPlus{position:fixed;inset:0;background:var(--bg);z-index:902;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
 #drumPlus.show{display:flex}
+#drumPlus.ctrl-collapsed .dp-ctrls{display:none}
 .dm-title{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--acc);flex:1;text-align:center;text-transform:uppercase}
 .dm-grid-wrap{flex:1;overflow:auto;position:relative;background:var(--sur);border-radius:10px;-webkit-overflow-scrolling:touch}
 .dm-grid{display:flex;flex-direction:column;min-width:max-content;position:relative}
@@ -508,11 +510,12 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 <div id="drumPlus">
   <div class="bb-top">
     <button class="cbtn" onclick="dpClose()">&larr;</button>
-    <span class="dm-title">Beat Builder</span>
+    <span class="dm-title" id="dpTitle">Beat Builder</span>
     <button class="cbtn bb-play" id="dpPlayBtn" onclick="dpTogglePlay()">&#9654;</button>
     <button class="cbtn bb-stop" onclick="dpStop()">&#9632;</button>
+    <button class="cbtn" id="dpCtrlToggle" onclick="dpToggleControls()" title="Show/hide controls for a bigger grid">&#9650;</button>
   </div>
-  <div class="bb-top" style="border-bottom:none;margin-bottom:4px;gap:6px">
+  <div class="bb-top dp-ctrls" style="border-bottom:none;margin-bottom:4px;gap:6px">
     <span style="font-size:10px;color:var(--dim);font-weight:700">BPM</span>
     <input type="number" class="bb-mini-inp" id="dpBpm" min="20" max="300" step="0.5" value="120" inputmode="decimal" onchange="dpSetBpm(this.value)">
     <button class="bb-pill" id="dpTapBtn" onclick="dpTap()" title="Tap this button in time to set the tempo">Tap</button>
@@ -525,7 +528,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <span id="dpBarsDisp" style="font-size:13px;font-weight:700;min-width:20px;text-align:center">1</span>
     <button class="bb-pill" onclick="dpChangeBars(1)">+</button>
   </div>
-  <div class="bb-top" style="border-bottom:none;margin-bottom:4px;gap:6px">
+  <div class="bb-top dp-ctrls" style="border-bottom:none;margin-bottom:4px;gap:6px">
     <span style="font-size:10px;color:var(--dim);font-weight:700">Grid subdivision</span>
     <button class="bb-pill" onclick="dpSubCoarser()" title="Coarser grid: fewer cells per beat">&times;2</button>
     <span id="dpSubDisp" style="font-size:11px;font-weight:700;min-width:78px;text-align:center">1/16 &middot; 4/beat</span>
@@ -534,7 +537,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <input type="range" class="dm-range" id="dpSwing" min="50" max="75" step="1" value="50" oninput="dpSetSwing(this.value)">
     <span id="dpSwingDisp" style="font-size:11px;font-weight:700;min-width:92px">50% &middot; Straight</span>
   </div>
-  <div class="bb-top" style="border-bottom:none;margin-bottom:4px;gap:6px">
+  <div class="bb-top dp-ctrls" style="border-bottom:none;margin-bottom:4px;gap:6px">
     <button class="bb-pill" id="dpMetroBtn" onclick="dpToggleMetro()">Metro</button>
     <select class="bb-mini-sel" id="dpMetroSub" onchange="dpSetMetroSub(this.value)" title="Metronome subdivision">
       <option value="beat">Beat</option>
@@ -544,7 +547,8 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <option value="shuffle">Shuffle</option>
     </select>
     <button class="bb-pill" id="dpLoopBtn" onclick="dpToggleLoop()" title="Loop a range of bars/beats">Loop</button>
-    <button class="bb-pill" onclick="dpSaveGroove()">Save</button>
+    <button class="bb-pill" id="dpSaveBtn" onclick="dpSaveGroove()">Save</button>
+    <button class="bb-pill" onclick="dpSaveGrooveAs()">Save As</button>
     <button class="bb-pill" onclick="dpLibOpen()">Load</button>
     <button class="bb-pill" onclick="dpInstOpen()">Inst</button>
     <button class="bb-pill" onclick="dpTestTone()" style="color:var(--grn)">Test</button>
@@ -3652,7 +3656,8 @@ var db2 = {
   loopBase: 0,           // ctx time at which the current loop iteration started
   startTime: 0,          // ctx time of the very first loop start (for visual playhead)
   lastVisualStep: -1,
-  openHatGain: null      // for closed-hat choke of the open hat
+  openHatGain: null,     // for closed-hat choke of the open hat
+  currentGroove: null    // name of the loaded/last-saved groove (default overwrite target)
 };
 
 // All positions are in ticks (TPQ ticks per quarter note) so hits survive grid changes.
@@ -3709,6 +3714,7 @@ function dpSyncAllUI() {
   document.getElementById('dpLoopBtn').classList.toggle('on', db2.loop.on);
   document.getElementById('dpLoopRow').style.display = db2.loop.on ? 'flex' : 'none';
   dpUpdateSubDisp();
+  dpUpdateTitle();
   dpClampLoop();
   dpSyncLoopInputs();
   dpRender();
@@ -3890,14 +3896,40 @@ function dpSerialize() {
     loop: { on: db2.loop.on, inTick: db2.loop.inTick, outTick: db2.loop.outTick },
     cells: db2.cells, mutes: db2.mutes, hidden: db2.hidden };
 }
+function dpStoreGroove(name) {
+  var all = dpGrooves(); all[name] = dpSerialize();
+  try { localStorage.setItem('drumpluspatterns', JSON.stringify(all)); return true; }
+  catch (e) { alert('Save failed: ' + e.message); return false; }
+}
+function dpFlashSave(msg) {
+  var b = document.getElementById('dpSaveBtn');
+  if (!b) return;
+  var prev = b.textContent; b.textContent = msg;
+  setTimeout(function () { b.textContent = prev; }, 1100);
+}
+// Default Save overwrites the loaded groove; "Save As" always makes a new one.
 function dpSaveGroove() {
-  var name = prompt('Save groove as:', 'Groove ' + (dpGrooveNames().length + 1));
+  if (db2.currentGroove && dpGrooves().hasOwnProperty(db2.currentGroove)) {
+    if (dpStoreGroove(db2.currentGroove)) dpFlashSave('Updated');
+    return;
+  }
+  dpSaveGrooveAs();
+}
+function dpSaveGrooveAs() {
+  var name = prompt('Save groove as:', db2.currentGroove || ('Groove ' + (dpGrooveNames().length + 1)));
   if (!name) return;
   name = name.replace(/["'<>\\]/g, '').trim();
   if (!name) return;
-  var all = dpGrooves(); all[name] = dpSerialize();
-  try { localStorage.setItem('drumpluspatterns', JSON.stringify(all)); setStatus('Saved "' + name + '"', 'ok'); setTimeout(function () { setStatus(''); }, 1200); }
-  catch (e) { alert('Save failed: ' + e.message); }
+  if (dpStoreGroove(name)) { db2.currentGroove = name; dpUpdateTitle(); dpFlashSave('Saved'); }
+}
+function dpUpdateTitle() {
+  var t = document.getElementById('dpTitle');
+  if (t) t.textContent = db2.currentGroove ? ('Beat Builder · ' + db2.currentGroove) : 'Beat Builder';
+}
+function dpToggleControls() {
+  var o = document.getElementById('drumPlus');
+  var collapsed = o.classList.toggle('ctrl-collapsed');
+  document.getElementById('dpCtrlToggle').innerHTML = collapsed ? '&#9660;' : '&#9650;';
 }
 function dpGrooveNames() { var all = dpGrooves(), n = []; for (var k in all) { if (all.hasOwnProperty(k)) n.push(k); } return n; }
 function dpLibOpen() {
@@ -3916,6 +3948,7 @@ function dpNewEmpty() {
   if (!confirm('Clear all hits and start an empty grid? (Tempo, time signature and other settings are kept.)')) return;
   dpStop();
   db2.cells = {}; dpEnsureCells();
+  db2.currentGroove = null; dpUpdateTitle();
   dpLibClose();
   dpRender();
 }
@@ -3923,6 +3956,7 @@ function dpDeleteGroove(name, ev) {
   if (ev) ev.stopPropagation();
   var all = dpGrooves(); delete all[name];
   localStorage.setItem('drumpluspatterns', JSON.stringify(all));
+  if (db2.currentGroove === name) { db2.currentGroove = null; dpUpdateTitle(); }
   dpLibOpen();
 }
 function dpLoadGroove(name) {
@@ -3935,6 +3969,7 @@ function dpLoadGroove(name) {
   db2.loop = g.loop || { on: false, inTick: 0, outTick: 0 };
   db2.cells = g.cells || {}; db2.mutes = g.mutes || {}; db2.hidden = g.hidden || {};
   dpEnsureCells();
+  db2.currentGroove = name; dpUpdateTitle();
   dpLibClose();
   dpSyncAllUI();
 }
@@ -4075,7 +4110,8 @@ function dpHat(when, g, open) {
   var n = audioCtx.createBufferSource(); n.buffer = dpNoise(); n.playbackRate.value = 1.5;
   var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 8000;
   var ng = audioCtx.createGain();
-  var dec = open ? 0.32 : 0.045;
+  // Open hat rings up to a quarter note (capped), then is choked early by the next hat (open or closed).
+  var dec = open ? Math.min(15 * db2.tsDen / db2.bpm, 1.8) : 0.045;
   dpEnv(ng, when, g * 0.6, dec);
   n.connect(hp).connect(ng).connect(dpMaster()); n.start(when); n.stop(when + dec + 0.05);
   // Choke: any hat cuts a still-ringing open hat.
@@ -4313,7 +4349,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v35 (Phase 1: main menu, deleted synth Drum, Drum+ renamed Beat Builder)');
+log('Boot OK v36 (Phase 2a: open-hat length, collapse controls, overwrite grooves, scrollable lists)');
 </script>
 </body>
 </html>
