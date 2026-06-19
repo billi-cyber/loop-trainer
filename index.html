@@ -551,6 +551,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <option value="shuffle">Shuffle</option>
     </select>
     <button class="bb-pill" id="dpLoopBtn" onclick="dpToggleLoop()" title="Loop a range of bars/beats">Loop</button>
+    <button class="bb-pill" id="dpSongBtn" onclick="dpToggleSong()" title="Play the loaded Loop Function track underneath, in tempo">Song</button>
     <button class="bb-pill" id="dpSaveBtn" onclick="dpSaveGroove()">Save</button>
     <button class="bb-pill" onclick="dpSaveGrooveAs()">Save As</button>
     <button class="bb-pill" onclick="dpLibOpen()">Load</button>
@@ -3672,7 +3673,10 @@ var db2 = {
   lastVisualStep: -1,
   openHatGain: null,     // for closed-hat choke of the open hat
   currentGroove: null,   // name of the loaded/last-saved groove (default overwrite target)
-  userInsts: []          // recorded sample instruments: {id,name,kind:'sample',buffer,mime}
+  userInsts: [],         // recorded sample instruments: {id,name,kind:'sample',buffer,mime}
+  songOn: false,         // play the loaded Loop Function track underneath the beat
+  songSrc: null,         // AudioBufferSourceNode for the underlay loop
+  songGain: null
 };
 
 // All positions are in ticks (TPQ ticks per quarter note) so hits survive grid changes.
@@ -3735,6 +3739,7 @@ function dpSyncAllUI() {
   document.getElementById('dpMetroSub').value = db2.metro.sub;
   document.getElementById('dpMetroBtn').classList.toggle('on', db2.metro.on);
   document.getElementById('dpLoopBtn').classList.toggle('on', db2.loop.on);
+  document.getElementById('dpSongBtn').classList.toggle('on', db2.songOn);
   document.getElementById('dpLoopRow').style.display = db2.loop.on ? 'flex' : 'none';
   dpUpdateSubDisp();
   dpUpdateTitle();
@@ -3986,6 +3991,44 @@ function dpToggleMetro() {
 function dpSetMetroSub(v) {
   db2.metro.sub = v;
   if (db2.playing) dpRebuildEvents();
+}
+// ── Song underlay: play the loaded Loop Function track beneath the beat ──
+function dpToggleSong() {
+  if (db2.songOn) {
+    db2.songOn = false; dpStopSong();
+    document.getElementById('dpSongBtn').classList.remove('on');
+    return;
+  }
+  if (!audioBuf || loopIn === null || loopOut === null || loopIn >= loopOut) {
+    alert('First load a track and set a loop (In / Out) in the Loop Function.');
+    return;
+  }
+  db2.songOn = true;
+  document.getElementById('dpSongBtn').classList.add('on');
+  // Adopt the loop's detected tempo so the grid lines up with the song.
+  if (gridBPM >= 20 && gridBPM <= 300) {
+    db2.bpm = Math.round(gridBPM * 10) / 10;
+    document.getElementById('dpBpm').value = db2.bpm;
+  }
+  if (db2.playing) dpRestart();   // restart so song + beat start together at the new tempo
+}
+function dpStartSong(at) {
+  dpStopSong();
+  if (!db2.songOn || !audioBuf || loopIn === null || loopOut === null || loopIn >= loopOut) return;
+  var s = audioCtx.createBufferSource();
+  s.buffer = audioBuf;
+  s.loop = true; s.loopStart = loopIn; s.loopEnd = loopOut;
+  var g = audioCtx.createGain(); g.gain.value = 0.9;
+  s.connect(g).connect(audioCtx.destination);   // own path, independent of the synth master
+  try { s.start(at, loopIn); } catch (e) { log('Song start err: ' + e.message); }
+  db2.songSrc = s; db2.songGain = g;
+}
+function dpStopSong() {
+  if (db2.songSrc) {
+    try { db2.songSrc.stop(); } catch (e) {}
+    try { db2.songSrc.disconnect(); } catch (e) {}
+    db2.songSrc = null;
+  }
 }
 // ── Loop range (whole groove, or a bar/beat range) ──
 function dpToggleLoop() {
@@ -4477,6 +4520,7 @@ function dpPlay() {
   db2.lastVisualStep = -1;
   db2.timerId = setInterval(dpScheduler, 25);
   dpScheduler();
+  dpStartSong(db2.startTime);   // start the loaded loop underneath, in sync, if enabled
   document.getElementById('dpPlayBtn').innerHTML = '&#10074;&#10074;';
   dpAnim();
 }
@@ -4489,6 +4533,7 @@ function dpStop() {
   db2.playing = false;
   if (db2.timerId) { clearInterval(db2.timerId); db2.timerId = 0; }
   if (db2.rafId) { cancelAnimationFrame(db2.rafId); db2.rafId = 0; }
+  dpStopSong();
   db2.openHatGain = null;
   var btn = document.getElementById('dpPlayBtn');
   if (btn) btn.innerHTML = '&#9654;';
@@ -4533,7 +4578,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v37 (Phase 2b: record custom sample instruments in Beat Builder, persisted in IndexedDB)');
+log('Boot OK v38 (Phase 2c-1: play loaded Loop Function track underneath Beat Builder, tempo-matched)');
 </script>
 </body>
 </html>
