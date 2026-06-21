@@ -1453,6 +1453,18 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
+// Beat Builder background audio: play the pre-rendered groove WAV while hidden,
+// resume the live scheduler on return. Independent of the main player handler
+// above (which only acts when the main transport is playing).
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    var bbShown = document.getElementById('drumPlus').classList.contains('show');
+    if (db2.playing && bbShown && !dpBgActive) dpEnterBackground();
+  } else {
+    if (dpBgActive) dpExitBackground();
+  }
+});
+
 // Audio route change (Bluetooth connect/disconnect, headphones plug/unplug)
 // iOS occasionally silences Web Audio when the output device swaps; re-unlocking
 // the silent session and resuming the context forces re-routing.
@@ -4515,6 +4527,7 @@ function dpRebuildEvents() {
   var idx = 0;
   while (idx < db2.events.length && db2.events[idx].sec <= pos) idx++;
   db2.evIdx = idx;
+  dpScheduleBgRender();   // groove changed → refresh the background WAV (debounced)
 }
 function dpScheduler() {
   if (!db2.playing || !db2.events) return;
@@ -4566,6 +4579,125 @@ function dpTestTone() {
   o.start(when); o.stop(when + 0.32);
   log('Test tone: state=' + audioCtx.state + ' t=' + audioCtx.currentTime.toFixed(2) + ' sr=' + audioCtx.sampleRate);
 }
+// ── Background audio ───────────────────────────────────────────────────────
+// iOS suspends the AudioContext when backgrounded, so a live synth scheduler
+// goes silent. Fix: pre-render the looping groove (synth voices + samples +
+// song underlay) to a WAV while in the foreground, and on backgrounding play
+// that WAV through an <audio> element (which iOS keeps alive). On return, the
+// live scheduler resumes. The WAV must exist BEFORE we hide (offline rendering
+// won't complete once backgrounded), so we render on Play and after edits.
+var dpBgUrl = null;          // blob URL of the rendered groove WAV
+var dpBgDur = 0;             // one loop-iteration length (s) — for position mapping
+var dpBgActive = false;      // bg WAV currently playing (app hidden)
+var dpBgDirty = false;       // groove changed since last render
+var dpBgRendering = false;
+var dpBgRenderTimer = 0;
+var dpBgAudioEl = null;
+function dpBgAudio() {
+  if (!dpBgAudioEl) {
+    dpBgAudioEl = document.createElement('audio');
+    dpBgAudioEl.loop = true; dpBgAudioEl.playsInline = true;
+    dpBgAudioEl.setAttribute('playsinline', ''); dpBgAudioEl.setAttribute('webkit-playsinline', '');
+  }
+  return dpBgAudioEl;
+}
+function dpAudioBufToWavUrl(buf) {
+  var nCh = buf.numberOfChannels, sr = buf.sampleRate, n = buf.length;
+  var dataSize = n * nCh * 4;
+  var ab = new ArrayBuffer(44 + dataSize), dv = new DataView(ab);
+  function ws(o, s) { for (var i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); }
+  ws(0,'RIFF'); dv.setUint32(4, 36 + dataSize, true); ws(8,'WAVE');
+  ws(12,'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 3, true);   // 3 = IEEE float
+  dv.setUint16(22, nCh, true); dv.setUint32(24, sr, true);
+  dv.setUint32(28, sr * nCh * 4, true); dv.setUint16(32, nCh * 4, true); dv.setUint16(34, 32, true);
+  ws(36,'data'); dv.setUint32(40, dataSize, true);
+  var pcm = new Float32Array(ab, 44);
+  if (nCh === 1) { pcm.set(buf.getChannelData(0)); }
+  else {
+    var chs = []; for (var c = 0; c < nCh; c++) chs.push(buf.getChannelData(c));
+    for (var i = 0; i < n; i++) for (var c = 0; c < nCh; c++) pcm[i * nCh + c] = chs[c][i];
+  }
+  return URL.createObjectURL(new Blob([ab], { type: 'audio/wav' }));
+}
+function dpScheduleBgRender() {
+  if (!db2.playing) return;
+  dpBgDirty = true;
+  if (dpBgRenderTimer) clearTimeout(dpBgRenderTimer);
+  dpBgRenderTimer = setTimeout(function () { dpBgRenderTimer = 0; dpRenderBgGroove(); }, 600);
+}
+function dpRenderBgGroove() {
+  try {
+    if (!db2.playing) return;
+    if (dpBgRendering) { dpBgDirty = true; return; }
+    var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!OAC) return;
+    var loopDur = dpLoopDur();
+    if (loopDur <= 0) return;
+    dpBuildEvents();
+    var evs = db2.events || [];
+    var sr = audioCtx.sampleRate;
+    var targetSec = 150;
+    var reps = Math.max(1, Math.ceil(targetSec / loopDur));
+    var maxReps = Math.max(1, Math.floor((60 * 1024 * 1024 / 4) / (loopDur * sr)));  // ~60MB float cap
+    if (reps > maxReps) reps = maxReps;
+    var totalSec = reps * loopDur;
+    var lenSamp = Math.ceil(totalSec * sr);
+    var offline = new OAC(1, lenSamp, sr);
+
+    var liveCtx = audioCtx, liveMaster = db2.master, liveNoise = db2.noiseBuf;
+    audioCtx = offline; db2.master = null; db2.noiseBuf = null;   // dp* voice fns render into offline
+    try {
+      for (var r = 0; r < reps; r++) {
+        var base = r * loopDur;
+        for (var i = 0; i < evs.length; i++) {
+          var ev = evs[i], when = base + ev.sec;
+          if (ev.id === '_metro') dpClick(when, ev.vel);
+          else if (!db2.mutes[ev.id]) dpTrigger(ev.id, when, dpVelGain(ev.vel));
+        }
+      }
+      if (db2.songOn && audioBuf && loopIn !== null && loopOut !== null && loopIn < loopOut) {
+        var ss = offline.createBufferSource(); ss.buffer = audioBuf;
+        ss.loop = true; ss.loopStart = loopIn; ss.loopEnd = loopOut;
+        var sg = offline.createGain(); sg.gain.value = 0.9;
+        ss.connect(sg).connect(offline.destination);
+        ss.start(0, loopIn);
+      }
+    } finally {
+      audioCtx = liveCtx; db2.master = liveMaster; db2.noiseBuf = liveNoise;  // restore live (scheduling was synchronous)
+    }
+    dpBgRendering = true; dpBgDirty = false;
+    offline.startRendering().then(function (rbuf) {
+      dpBgRendering = false;
+      var url = dpAudioBufToWavUrl(rbuf);
+      if (dpBgUrl) { try { URL.revokeObjectURL(dpBgUrl); } catch (e) {} }
+      dpBgUrl = url; dpBgDur = loopDur;
+      log('BG groove rendered: ' + reps + ' x ' + loopDur.toFixed(2) + 's');
+      if (dpBgDirty) dpRenderBgGroove();
+    }).catch(function (e) { dpBgRendering = false; log('BG render err: ' + e.message); });
+  } catch (e) { dpBgRendering = false; log('BG render ex: ' + e.message); }
+}
+function dpEnterBackground() {
+  if (!dpBgUrl) { log('BG: no WAV ready — beat will pause'); return; }
+  var loopDur = dpLoopDur(), pos = 0;
+  if (loopDur > 0) { pos = (audioCtx.currentTime - db2.loopBase) % loopDur; if (pos < 0) pos += loopDur; }
+  if (db2.timerId) { clearInterval(db2.timerId); db2.timerId = 0; }
+  if (db2.rafId) { cancelAnimationFrame(db2.rafId); db2.rafId = 0; }
+  dpStopSong();   // the song is baked into the WAV; stop the live source
+  var a = dpBgAudio();
+  a.src = dpBgUrl; a.loop = true;
+  try { a.currentTime = pos; } catch (e) {}
+  a.play().then(function () { log('BG: groove WAV @ ' + pos.toFixed(2)); })
+          .catch(function (e) { log('BG play err: ' + e.message); });
+  dpBgActive = true;
+}
+function dpExitBackground() {
+  var a = dpBgAudio();
+  try { a.pause(); a.removeAttribute('src'); a.load(); } catch (e) {}
+  dpBgActive = false;
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  unlockSilentMode();
+  if (db2.playing) dpRestart();   // re-sync beat (+ song) cleanly from a loop boundary
+}
 function dpTogglePlay() { if (db2.playing) dpStop(); else dpPlay(); }
 function dpPlay() {
   dpUnlockAudio();
@@ -4582,6 +4714,7 @@ function dpPlay() {
   dpStartSong(db2.startTime);   // start the loaded loop underneath, in sync, if enabled
   document.getElementById('dpPlayBtn').innerHTML = '&#10074;&#10074;';
   dpAnim();
+  dpScheduleBgRender();   // prepare a WAV so the beat keeps playing if backgrounded
 }
 function dpRestart() {
   if (!db2.playing) return;
@@ -4593,6 +4726,8 @@ function dpStop() {
   if (db2.timerId) { clearInterval(db2.timerId); db2.timerId = 0; }
   if (db2.rafId) { cancelAnimationFrame(db2.rafId); db2.rafId = 0; }
   dpStopSong();
+  if (dpBgRenderTimer) { clearTimeout(dpBgRenderTimer); dpBgRenderTimer = 0; }
+  if (dpBgUrl) { try { URL.revokeObjectURL(dpBgUrl); } catch (e) {} dpBgUrl = null; }
   db2.openHatGain = null;
   var btn = document.getElementById('dpPlayBtn');
   if (btn) btn.innerHTML = '&#9654;';
@@ -4637,7 +4772,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v39 (Phase 2c-1: Fit Loop To Grid - derive tempo from bars/beats so the song locks to the beat)');
+log('Boot OK v40 (Phase 2c-2: background audio - beat keeps playing when screen off / app switched)');
 </script>
 </body>
 </html>
