@@ -4601,6 +4601,30 @@ function dpBgAudio() {
   }
   return dpBgAudioEl;
 }
+var dpSilentUrl = null;
+function dpMakeSilentUrl() {
+  if (dpSilentUrl) return dpSilentUrl;
+  var sr = 44100, len = Math.floor(sr * 0.5);   // 0.5 s of silence, looped
+  var ab = new ArrayBuffer(44 + len * 2), dv = new DataView(ab);
+  function ws(o, s) { for (var i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); }
+  ws(0,'RIFF'); dv.setUint32(4, 36 + len * 2, true); ws(8,'WAVE');
+  ws(12,'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true);
+  dv.setUint16(22, 1, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true);
+  dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  ws(36,'data'); dv.setUint32(40, len * 2, true);   // sample bytes already zero = silence
+  dpSilentUrl = URL.createObjectURL(new Blob([ab], { type: 'audio/wav' }));
+  return dpSilentUrl;
+}
+// MUST be called inside the Play gesture: starts the bg element on silence so
+// iOS grants it playback permission; later we just swap its src (allowed).
+function dpPrimeBgAudio() {
+  var a = dpBgAudio();
+  if (dpBgActive) return;          // already playing the groove WAV (foregrounded mid-bg)
+  a.loop = true; a.volume = 1;
+  a.src = dpMakeSilentUrl();
+  var p = a.play();
+  if (p && p.then) p.then(function () { a._primed = true; }).catch(function (e) { log('BG prime err: ' + e.message); });
+}
 function dpAudioBufToWavUrl(buf) {
   var nCh = buf.numberOfChannels, sr = buf.sampleRate, n = buf.length;
   var dataSize = n * nCh * 4;
@@ -4636,7 +4660,7 @@ function dpRenderBgGroove() {
     dpBuildEvents();
     var evs = db2.events || [];
     var sr = audioCtx.sampleRate;
-    var targetSec = 150;
+    var targetSec = 90;   // shorter = faster render; bg WAV loops, so it just seams every ~90s
     var reps = Math.max(1, Math.ceil(targetSec / loopDur));
     var maxReps = Math.max(1, Math.floor((60 * 1024 * 1024 / 4) / (loopDur * sr)));  // ~60MB float cap
     if (reps > maxReps) reps = maxReps;
@@ -4683,24 +4707,25 @@ function dpEnterBackground() {
   if (db2.timerId) { clearInterval(db2.timerId); db2.timerId = 0; }
   if (db2.rafId) { cancelAnimationFrame(db2.rafId); db2.rafId = 0; }
   dpStopSong();   // the song is baked into the WAV; stop the live source
-  var a = dpBgAudio();
-  a.src = dpBgUrl; a.loop = true;
-  try { a.currentTime = pos; } catch (e) {}
-  a.play().then(function () { log('BG: groove WAV @ ' + pos.toFixed(2)); })
-          .catch(function (e) { log('BG play err: ' + e.message); });
   dpBgActive = true;
+  var a = dpBgAudio();             // already authorized (playing silence since Play)
+  a.loop = true; a.volume = 1;
+  a.src = dpBgUrl;
+  try { a.currentTime = pos; } catch (e) {}
+  var p = a.play();
+  if (p && p.then) p.then(function () { try { a.currentTime = pos; } catch (e) {} log('BG: groove WAV @ ' + pos.toFixed(2)); })
+                    .catch(function (e) { log('BG play err: ' + e.message); });
 }
 function dpExitBackground() {
-  var a = dpBgAudio();
-  try { a.pause(); a.removeAttribute('src'); a.load(); } catch (e) {}
   dpBgActive = false;
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   unlockSilentMode();
-  if (db2.playing) dpRestart();   // re-sync beat (+ song) cleanly from a loop boundary
+  if (db2.playing) dpRestart();   // dpStop pauses the bg element; dpPlay re-primes silence + resumes scheduler
 }
 function dpTogglePlay() { if (db2.playing) dpStop(); else dpPlay(); }
 function dpPlay() {
   dpUnlockAudio();
+  dpPrimeBgAudio();   // (in the Play gesture) authorize the bg <audio> element on silence
   dpEnsureCells();
   dpBuildEvents();
   log('dpPlay: state=' + audioCtx.state + ' t=' + audioCtx.currentTime.toFixed(2) + ' events=' + db2.events.length + ' metro=' + db2.metro.on);
@@ -4727,7 +4752,7 @@ function dpStop() {
   if (db2.rafId) { cancelAnimationFrame(db2.rafId); db2.rafId = 0; }
   dpStopSong();
   if (dpBgRenderTimer) { clearTimeout(dpBgRenderTimer); dpBgRenderTimer = 0; }
-  if (dpBgUrl) { try { URL.revokeObjectURL(dpBgUrl); } catch (e) {} dpBgUrl = null; }
+  if (dpBgAudioEl && !dpBgActive) { try { dpBgAudioEl.pause(); } catch (e) {} }
   db2.openHatGain = null;
   var btn = document.getElementById('dpPlayBtn');
   if (btn) btn.innerHTML = '&#9654;';
@@ -4772,7 +4797,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v40 (Phase 2c-2: background audio - beat keeps playing when screen off / app switched)');
+log('Boot OK v41 (Phase 2c-2 fix: pre-authorize bg <audio> on Play so iOS allows background playback)');
 </script>
 </body>
 </html>
