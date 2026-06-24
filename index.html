@@ -164,9 +164,10 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .hc-btn:active{opacity:.6}
 .hc-go{color:var(--acc)}.hc-cue{color:var(--ora)}.hc-del{color:var(--red)}
 /* Log */
-.log-toggle{display:block;width:100%;background:none;border:1px solid var(--brd);color:var(--dim);border-radius:13px;padding:12px;font-size:12px;cursor:pointer;margin-top:20px;text-align:center}
+/* Debug log: fixed to the bottom of every view (above overlays + modals) */
+.log-toggle{position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);z-index:1200;background:var(--sur2);border:1px solid var(--brd);color:var(--dim);border-radius:10px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;opacity:.85;text-align:center}
 .log-toggle:active{opacity:.6}
-#logPanel{display:none;margin-top:6px;background:var(--sur);border-radius:12px;padding:12px;max-height:300px;overflow-y:auto}
+#logPanel{display:none;position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 44px);z-index:1199;background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:12px;max-height:45vh;overflow-y:auto}
 #logPanel.show{display:block}
 #logContent{font-family:monospace;font-size:10px;color:var(--dim);white-space:pre-wrap;word-break:break-all}
 .log-copy{background:var(--sur2);color:var(--dim);border:none;border-radius:8px;padding:8px 14px;font-size:11px;cursor:pointer;margin-top:8px}
@@ -675,7 +676,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     </div>
   </div>
 </div>
-<button class="log-toggle" onclick="toggleLogPanel()">Show Debug Log</button>
+<button class="log-toggle" id="logToggleBtn" onclick="toggleLogPanel()">Log</button>
 <div id="logPanel">
   <div id="logContent"></div>
   <button class="log-copy" onclick="copyLog()">Copy Log to Clipboard</button>
@@ -691,7 +692,10 @@ function log(msg) {
   var el = document.getElementById('logContent');
   if (el) el.textContent = logLines.join('\n');
 }
-function toggleLogPanel() { document.getElementById('logPanel').classList.toggle('show'); }
+function toggleLogPanel() {
+  var shown = document.getElementById('logPanel').classList.toggle('show');
+  var b = document.getElementById('logToggleBtn'); if (b) b.textContent = shown ? 'Hide' : 'Log';
+}
 function copyLog() {
   var text = logLines.join('\n');
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -4397,12 +4401,23 @@ function dpHat(when, g, open) {
   var n = audioCtx.createBufferSource(); n.buffer = dpNoise(); n.playbackRate.value = 1.5;
   var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 8000;
   var ng = audioCtx.createGain();
-  // Open hat rings up to a quarter note (capped), then is choked early by the next hat (open or closed).
-  var dec = open ? Math.min(15 * db2.tsDen / db2.bpm, 1.8) : 0.045;
-  dpEnv(ng, when, g * 0.6, dec);
-  n.connect(hp).connect(ng).connect(dpMaster()); n.start(when); n.stop(when + dec + 0.05);
-  // Choke: any hat cuts a still-ringing open hat.
-  if (db2.openHatGain) { try { db2.openHatGain.gain.cancelScheduledValues(when); db2.openHatGain.gain.setTargetAtTime(0.0001, when, 0.008); } catch (e) {} }
+  var peak = Math.max(0.0001, g * 0.6);
+  if (open) {
+    // Open hat: stays audible across up to a quarter note (clamped), so it reads as
+    // an open hat; a following hat (open OR closed) chokes it early — see below.
+    var dec = Math.min(Math.max(15 * db2.tsDen / db2.bpm, 0.2), 0.9);   // one quarter note, clamped
+    ng.gain.setValueAtTime(0.0001, when);
+    ng.gain.exponentialRampToValueAtTime(peak, when + 0.003);           // attack
+    ng.gain.exponentialRampToValueAtTime(peak * 0.4, when + 0.05);      // initial transient
+    ng.gain.exponentialRampToValueAtTime(peak * 0.18, when + dec * 0.7);// sustained body (stays audible)
+    ng.gain.exponentialRampToValueAtTime(0.0001, when + dec);           // release by the quarter-note cap
+    n.connect(hp).connect(ng).connect(dpMaster()); n.start(when); n.stop(when + dec + 0.05);
+  } else {
+    dpEnv(ng, when, peak, 0.045);
+    n.connect(hp).connect(ng).connect(dpMaster()); n.start(when); n.stop(when + 0.12);
+  }
+  // Choke a still-ringing open hat right when THIS hat starts (tight fade = ends at the next hat).
+  if (db2.openHatGain) { try { db2.openHatGain.gain.cancelScheduledValues(when); db2.openHatGain.gain.setTargetAtTime(0.0001, when, 0.004); } catch (e) {} }
   db2.openHatGain = open ? ng : null;
 }
 function dpTom(when, g, freq) {
@@ -4797,7 +4812,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v41 (Phase 2c-2 fix: pre-authorize bg <audio> on Play so iOS allows background playback)');
+log('Boot OK v42 (Debug log fixed to bottom of every view; open hi-hat envelope + choke timing reworked)');
 </script>
 </body>
 </html>
