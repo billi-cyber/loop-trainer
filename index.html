@@ -557,6 +557,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="bb-pill" onclick="dpSaveGrooveAs()">Save As</button>
     <button class="bb-pill" onclick="dpLibOpen()">Load</button>
     <button class="bb-pill" onclick="dpInstOpen()">Inst</button>
+    <button class="bb-pill" onclick="dpCopyBarsOpen()">Copy Bars</button>
     <button class="bb-pill" onclick="dpTestTone()" style="color:var(--grn)">Test</button>
   </div>
   <div class="bb-top" id="dpLoopRow" style="border-bottom:none;margin-bottom:4px;gap:5px;display:none">
@@ -589,6 +590,9 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <input type="number" class="bb-mini-inp" id="dpSongBeats" min="0" max="63" step="1" value="0" inputmode="numeric" oninput="dpSongUpdateHint()">
     </div>
     <div class="bb-samed-hint" id="dpSongHint"></div>
+    <label style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:10px;font-size:12px;color:var(--txt);font-weight:600">
+      <input type="checkbox" id="dpSongMT" style="width:18px;height:18px"> Keep pitch when tempo changes (Master Tempo)
+    </label>
     <div class="bb-samed-row" style="margin-top:10px">
       <button class="bb-samed-cancel" onclick="dpSongCancel()">Cancel</button>
       <button class="bb-samed-apply" onclick="dpSongConfirm()">Fit &amp; Play</button>
@@ -607,6 +611,25 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     </div>
   </div>
 </div>
+<!-- Beat Builder: copy/paste bars -->
+<div class="bb-samed" id="dpCopyBarsModal">
+  <div class="bb-samed-card">
+    <div class="bb-samed-title">Copy Bars</div>
+    <div class="bb-samed-name">Copy a bar (or a run of bars) onto another bar. The destination is overwritten.</div>
+    <div class="bb-top" style="border-bottom:none;justify-content:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--dim);font-weight:700">From bar</span>
+      <input type="number" class="bb-mini-inp" id="dpCopyFrom" min="1" step="1" value="1" inputmode="numeric">
+      <span style="font-size:11px;color:var(--dim);font-weight:700">To bar</span>
+      <input type="number" class="bb-mini-inp" id="dpCopyTo" min="1" step="1" value="2" inputmode="numeric">
+      <span style="font-size:11px;color:var(--dim);font-weight:700">How many</span>
+      <input type="number" class="bb-mini-inp" id="dpCopyCount" min="1" step="1" value="1" inputmode="numeric">
+    </div>
+    <div class="bb-samed-row" style="margin-top:10px">
+      <button class="bb-samed-cancel" onclick="dpCopyBarsCancel()">Cancel</button>
+      <button class="bb-samed-apply" onclick="dpCopyBarsConfirm()">Copy</button>
+    </div>
+  </div>
+</div>
 <!-- Beat Builder: saved grooves library -->
 <div class="bb-samed" id="dpLibModal">
   <div class="bb-samed-card">
@@ -617,8 +640,13 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <button class="bb-samed-cancel" onclick="dpNewEmpty()" style="background:var(--ora);color:#000">New empty grid</button>
       <button class="bb-samed-apply" onclick="dpLibClose()">Done</button>
     </div>
+    <div class="bb-samed-row" style="margin-top:6px">
+      <button class="bb-samed-cancel" onclick="dpExportGrooves()">Export to file</button>
+      <button class="bb-samed-cancel" onclick="document.getElementById('dpImportInput').click()">Import from file</button>
+    </div>
   </div>
 </div>
+<input type="file" id="dpImportInput" accept="application/json,.json" style="display:none" onchange="dpImportGroovesFile(this)">
 <!-- Sample trim editor -->
 <div class="bb-samed" id="bbSEModal">
   <div class="bb-samed-card">
@@ -3709,8 +3737,10 @@ var db2 = {
   currentGroove: null,   // name of the loaded/last-saved groove (default overwrite target)
   userInsts: [],         // recorded sample instruments: {id,name,kind:'sample',buffer,mime}
   songOn: false,         // play the loaded Loop Function track underneath the beat
-  songSrc: null,         // AudioBufferSourceNode for the underlay loop
-  songGain: null
+  songSrc: null,         // AudioBufferSourceNode for the underlay loop (Master Tempo OFF)
+  songGain: null,
+  songBaseBpm: 0,        // tempo the loop was fitted at; playbackRate = bpm / songBaseBpm
+  songMT: false          // Master Tempo: keep pitch when the tempo changes (uses <audio>)
 };
 
 // All positions are in ticks (TPQ ticks per quarter note) so hits survive grid changes.
@@ -4051,6 +4081,7 @@ function dpSongModalOpen() {
   if (beats < 0) beats = 0;
   document.getElementById('dpSongBars').value = bars;
   document.getElementById('dpSongBeats').value = beats;
+  document.getElementById('dpSongMT').checked = db2.songMT;
   dpSongUpdateHint();
   document.getElementById('dpSongModal').classList.add('show');
 }
@@ -4078,6 +4109,8 @@ function dpSongConfirm() {
     return;
   }
   db2.bpm = bpm;                                   // exact (unrounded) -> grid period == audio loop length
+  db2.songBaseBpm = bpm;                           // remember the fit tempo for later speed changes
+  db2.songMT = document.getElementById('dpSongMT').checked;
   document.getElementById('dpBpm').value = bpm.toFixed(1);
   db2.bars = Math.ceil(totalBeats / db2.tsNum);
   db2.loop = { on: true, inTick: 0, outTick: totalBeats * TPQ };
@@ -4087,23 +4120,84 @@ function dpSongConfirm() {
   if (db2.playing) dpRestart(); else dpSyncAllUI();
 }
 function dpSongCancel() { document.getElementById('dpSongModal').classList.remove('show'); }
+function dpSongRatio() {
+  var r = (db2.songBaseBpm > 0) ? db2.bpm / db2.songBaseBpm : 1;
+  return Math.max(0.25, Math.min(4, r));
+}
+// Master-Tempo <audio> element + a cached gapless WAV of the loop region.
+var dpSongAudioEl = null, dpSongWavUrl = null, dpSongWavKey = '';
+function dpSongAudio() {
+  if (!dpSongAudioEl) {
+    dpSongAudioEl = document.createElement('audio');
+    dpSongAudioEl.playsInline = true;
+    dpSongAudioEl.setAttribute('playsinline', ''); dpSongAudioEl.setAttribute('webkit-playsinline', '');
+  }
+  return dpSongAudioEl;
+}
+function dpBuildLoopWavUrl() {
+  if (!audioBuf || loopIn === null || loopOut === null || loopIn >= loopOut) return null;
+  var key = loopIn.toFixed(4) + '_' + loopOut.toFixed(4) + '_' + (trkName || '');
+  if (dpSongWavUrl && dpSongWavKey === key) return dpSongWavUrl;
+  var sr = audioBuf.sampleRate;
+  var s0 = Math.floor(loopIn * sr), s1 = Math.ceil(loopOut * sr);
+  var segSamp = s1 - s0, nCh = audioBuf.numberOfChannels;
+  var segDur = segSamp / sr;
+  var reps = Math.max(2, Math.min(Math.floor(60 / segDur), Math.floor((48 * 1024 * 1024 / 4) / (segSamp * nCh))));
+  var chs = []; for (var c = 0; c < nCh; c++) chs.push(audioBuf.getChannelData(c).subarray(s0, s1));
+  var oneSeg = new Float32Array(segSamp * nCh);
+  for (var i = 0; i < segSamp; i++) for (var c = 0; c < nCh; c++) oneSeg[i * nCh + c] = chs[c][i];
+  var totalSamp = segSamp * reps, dataSize = totalSamp * nCh * 4;
+  var ab = new ArrayBuffer(44 + dataSize), dv = new DataView(ab);
+  function ws(o, s) { for (var i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); }
+  ws(0,'RIFF'); dv.setUint32(4, 36 + dataSize, true); ws(8,'WAVE');
+  ws(12,'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 3, true);
+  dv.setUint16(22, nCh, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * nCh * 4, true);
+  dv.setUint16(32, nCh * 4, true); dv.setUint16(34, 32, true); ws(36,'data'); dv.setUint32(40, dataSize, true);
+  var pcm = new Float32Array(ab, 44);
+  for (var r = 0; r < reps; r++) pcm.set(oneSeg, r * segSamp * nCh);
+  if (dpSongWavUrl) { try { URL.revokeObjectURL(dpSongWavUrl); } catch (e) {} }
+  dpSongWavUrl = URL.createObjectURL(new Blob([ab], { type: 'audio/wav' }));
+  dpSongWavKey = key;
+  return dpSongWavUrl;
+}
 function dpStartSong(at) {
   dpStopSong();
   if (!db2.songOn || !audioBuf || loopIn === null || loopOut === null || loopIn >= loopOut) return;
-  var s = audioCtx.createBufferSource();
-  s.buffer = audioBuf;
-  s.loop = true; s.loopStart = loopIn; s.loopEnd = loopOut;
-  var g = audioCtx.createGain(); g.gain.value = 0.9;
-  s.connect(g).connect(audioCtx.destination);   // own path, independent of the synth master
-  try { s.start(at, loopIn); } catch (e) { log('Song start err: ' + e.message); }
-  db2.songSrc = s; db2.songGain = g;
+  var ratio = dpSongRatio();
+  if (db2.songMT) {
+    // Master Tempo: <audio> with preservesPitch — pitch kept when tempo changes,
+    // and it keeps playing on its own when backgrounded.
+    var url = dpBuildLoopWavUrl();
+    if (!url) return;
+    var a = dpSongAudio();
+    a.loop = true; a.volume = 0.9; a.src = url;
+    if ('preservesPitch' in a) a.preservesPitch = true;
+    if ('webkitPreservesPitch' in a) a.webkitPreservesPitch = true;
+    a.playbackRate = ratio;
+    try { a.currentTime = 0; } catch (e) {}
+    var p = a.play(); if (p && p.then) p.catch(function (e) { log('Song MT play err: ' + e.message); });
+  } else {
+    // Default: sample-accurate Web Audio loop (playbackRate shifts pitch with tempo).
+    var s = audioCtx.createBufferSource();
+    s.buffer = audioBuf;
+    s.loop = true; s.loopStart = loopIn; s.loopEnd = loopOut;
+    s.playbackRate.value = ratio;
+    var g = audioCtx.createGain(); g.gain.value = 0.9;
+    s.connect(g).connect(audioCtx.destination);
+    try { s.start(at, loopIn); } catch (e) { log('Song start err: ' + e.message); }
+    db2.songSrc = s; db2.songGain = g;
+  }
 }
-function dpStopSong() {
+function dpStopSongBuffer() {
   if (db2.songSrc) {
     try { db2.songSrc.stop(); } catch (e) {}
     try { db2.songSrc.disconnect(); } catch (e) {}
     db2.songSrc = null;
   }
+}
+function dpStopSong() {
+  dpStopSongBuffer();
+  if (dpSongAudioEl) { try { dpSongAudioEl.pause(); } catch (e) {} }
 }
 // ── Loop range (whole groove, or a bar/beat range) ──
 function dpToggleLoop() {
@@ -4232,6 +4326,92 @@ function dpLibOpen() {
   document.getElementById('dpLibModal').classList.add('show');
 }
 function dpLibClose() { document.getElementById('dpLibModal').classList.remove('show'); }
+// ── Copy / paste bars ──
+function dpCopyBarsOpen() {
+  document.getElementById('dpCopyFrom').value = 1;
+  document.getElementById('dpCopyTo').value = Math.min(16, db2.bars + 1);
+  document.getElementById('dpCopyCount').value = 1;
+  document.getElementById('dpCopyBarsModal').classList.add('show');
+}
+function dpCopyBarsCancel() { document.getElementById('dpCopyBarsModal').classList.remove('show'); }
+function dpCopyBarsConfirm() {
+  var from = parseInt(document.getElementById('dpCopyFrom').value, 10) || 0;
+  var to = parseInt(document.getElementById('dpCopyTo').value, 10) || 0;
+  var count = parseInt(document.getElementById('dpCopyCount').value, 10) || 0;
+  if (from < 1 || to < 1 || count < 1) { alert('Enter valid bar numbers.'); return; }
+  if (from === to) { alert('Source and destination bar are the same.'); return; }
+  dpCopyBars(from, to, count);
+  document.getElementById('dpCopyBarsModal').classList.remove('show');
+  if (db2.playing) dpRebuildEvents();
+  dpRender();
+}
+// Copy `count` bars starting at fromBar onto the bars starting at toBar (destination overwritten).
+function dpCopyBars(fromBar, toBar, count) {
+  var tpbar = dpTicksPerBar();
+  var srcStart = (fromBar - 1) * tpbar, dstStart = (toBar - 1) * tpbar, span = count * tpbar;
+  var shift = dstStart - srcStart;
+  var neededBars = toBar + count - 1;
+  if (neededBars > db2.bars) { db2.bars = Math.min(16, neededBars); document.getElementById('dpBarsDisp').textContent = db2.bars; }
+  var limit = db2.bars * tpbar;
+  var INS = dpInsts();
+  for (var i = 0; i < INS.length; i++) {
+    var id = INS[i].id, m = db2.cells[id]; if (!m) continue;
+    var copies = [], k, t;
+    for (k in m) { if (!m.hasOwnProperty(k)) continue; t = parseInt(k, 10); if (t >= srcStart && t < srcStart + span) copies.push([t, m[k]]); }
+    var del = [];
+    for (k in m) { if (!m.hasOwnProperty(k)) continue; t = parseInt(k, 10); if (t >= dstStart && t < dstStart + span) del.push(t); }
+    for (var d = 0; d < del.length; d++) delete m[del[d]];
+    for (var c = 0; c < copies.length; c++) { var nt = copies[c][0] + shift; if (nt >= 0 && nt < limit) m[nt] = copies[c][1]; }
+  }
+}
+// ── Export / import grooves to a file (backup, sharing) ──
+function dpStamp() { var d = new Date(), p = function (n) { return n < 10 ? '0' + n : '' + n; }; return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + '_' + p(d.getHours()) + '-' + p(d.getMinutes()); }
+function dpDownloadBlob(blob, filename) {
+  try {
+    if (navigator.canShare && window.File) {
+      var f = new File([blob], filename, { type: 'application/json' });
+      if (navigator.canShare({ files: [f] })) { navigator.share({ files: [f], title: filename }).catch(function () {}); return; }
+    }
+  } catch (e) {}
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 2000);
+}
+function dpExportGrooves() {
+  var grooves = dpGrooves();
+  var idx; try { idx = JSON.parse(localStorage.getItem('drumplus_insts') || '[]'); } catch (e) { idx = []; }
+  var payload = { app: 'loop-trainer', kind: 'beatbuilder-grooves', v: 1, exportedAt: new Date().toISOString(), grooves: grooves, insts: idx };
+  dpDownloadBlob(new Blob([JSON.stringify(payload)], { type: 'application/json' }), 'beatbuilder-grooves-' + dpStamp() + '.json');
+  log('Exported grooves');
+}
+function dpBase64ToArrayBuf(b64) { var bin = atob(b64), len = bin.length, bytes = new Uint8Array(len); for (var i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i); return bytes.buffer; }
+function dpImportGroovesFile(input) {
+  var file = input.files && input.files[0]; if (!file) return;
+  var fr = new FileReader();
+  fr.onload = function () {
+    input.value = '';
+    var data; try { data = JSON.parse(fr.result); } catch (e) { alert('Could not read file (not valid JSON).'); return; }
+    if (!data || !data.grooves) { alert('This does not look like a Beat Builder backup.'); return; }
+    var cur = dpGrooves();
+    for (var k in data.grooves) { if (data.grooves.hasOwnProperty(k)) cur[k] = data.grooves[k]; }
+    try { localStorage.setItem('drumpluspatterns', JSON.stringify(cur)); } catch (e) { alert('Import failed (storage full?).'); return; }
+    var samples = data.samples || [];   // present only in full backups
+    var chain = Promise.resolve();
+    samples.forEach(function (s) { chain = chain.then(function () { try { return dpSaveSampleToDB(s.id, dpBase64ToArrayBuf(s.data), s.mime || ''); } catch (e) { return null; } }); });
+    chain.then(function () {
+      var ix; try { ix = JSON.parse(localStorage.getItem('drumplus_insts') || '[]'); } catch (e) { ix = []; }
+      var have = {}; for (var i = 0; i < ix.length; i++) have[ix[i].id] = true;
+      var imp = data.insts || [];
+      for (var j = 0; j < imp.length; j++) { if (!have[imp[j].id]) { ix.push(imp[j]); have[imp[j].id] = true; } }
+      try { localStorage.setItem('drumplus_insts', JSON.stringify(ix)); } catch (e) {}
+      dpInstsLoaded = false; db2.userInsts = []; dpLoadUserInsts();
+      alert('Import complete.');
+      dpLibOpen();
+    }).catch(function (e) { alert('Import partially failed: ' + e.message); });
+  };
+  fr.readAsText(file);
+}
 function dpNewEmpty() {
   if (!confirm('Clear all hits and start an empty grid? (Tempo, time signature and other settings are kept.)')) return;
   dpStop();
@@ -4694,9 +4874,13 @@ function dpRenderBgGroove() {
           else if (!db2.mutes[ev.id]) dpTrigger(ev.id, when, dpVelGain(ev.vel));
         }
       }
-      if (db2.songOn && audioBuf && loopIn !== null && loopOut !== null && loopIn < loopOut) {
+      // Bake the song into the bg WAV only for the default (Web Audio) path; with
+      // Master Tempo ON the song plays through its own <audio>, which keeps going
+      // in the background by itself, so baking it would double it.
+      if (db2.songOn && !db2.songMT && audioBuf && loopIn !== null && loopOut !== null && loopIn < loopOut) {
         var ss = offline.createBufferSource(); ss.buffer = audioBuf;
         ss.loop = true; ss.loopStart = loopIn; ss.loopEnd = loopOut;
+        ss.playbackRate.value = dpSongRatio();
         var sg = offline.createGain(); sg.gain.value = 0.9;
         ss.connect(sg).connect(offline.destination);
         ss.start(0, loopIn);
@@ -4721,7 +4905,7 @@ function dpEnterBackground() {
   if (loopDur > 0) { pos = (audioCtx.currentTime - db2.loopBase) % loopDur; if (pos < 0) pos += loopDur; }
   if (db2.timerId) { clearInterval(db2.timerId); db2.timerId = 0; }
   if (db2.rafId) { cancelAnimationFrame(db2.rafId); db2.rafId = 0; }
-  dpStopSong();   // the song is baked into the WAV; stop the live source
+  dpStopSongBuffer();   // default song is baked into the WAV; the Master-Tempo <audio> keeps playing on its own
   dpBgActive = true;
   var a = dpBgAudio();             // already authorized (playing silence since Play)
   a.loop = true; a.volume = 1;
@@ -4812,7 +4996,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v42 (Debug log fixed to bottom of every view; open hi-hat envelope + choke timing reworked)');
+log('Boot OK v44 (Phase 2d: copy/paste bars; export/import grooves to a file)');
 </script>
 </body>
 </html>
