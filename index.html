@@ -126,6 +126,8 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 /* Grid / BPM */
 .grid-info{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .grid-bpm{font-size:22px;font-weight:700;color:var(--yel);font-variant-numeric:tabular-nums}
+.grid-bpm-wrap{display:flex;flex-direction:column;justify-content:center;line-height:1.05}
+.grid-bpm-dev{font-size:11px;font-weight:600;color:var(--dim);font-variant-numeric:tabular-nums}
 .grid-ts{font-size:16px;font-weight:600;color:var(--dim);margin-left:2px}
 .grid-edit-btn{margin-left:auto;font-size:12px;padding:8px 14px;background:var(--yel);color:#000;border-radius:10px;font-weight:700}
 .grid-edit-btn.active{background:var(--grn)}
@@ -298,6 +300,10 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .video-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 #videoEl{width:100%;max-height:42vh;border-radius:8px;background:#000;display:block}
 #videoCard.collapsed #videoEl{display:none}
+/* Phase 3.1: mp4 treated as audio-only — keep <video> rendered (1px) so iOS keeps the audio session, but hide it visually */
+#videoCard.audio-only{position:fixed;left:0;top:0;width:1px;height:1px;min-height:0;padding:0;margin:0;border:0;overflow:hidden;opacity:.01;pointer-events:none;background:transparent}
+#videoCard.audio-only .video-head{display:none}
+#videoCard.audio-only #videoEl{width:1px;height:1px;max-height:none;border-radius:0}
 </style>
 </head>
 <body>
@@ -331,7 +337,10 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 <div class="card" id="gridCard" style="display:none">
   <div class="track-name-top" id="trackName">No track loaded</div>
   <div class="grid-info">
-    <span class="grid-bpm" id="gridBpmDisp">-- BPM</span>
+    <div class="grid-bpm-wrap">
+      <span class="grid-bpm" id="gridBpmDisp">-- BPM</span>
+      <span class="grid-bpm-dev" id="gridBpmDev"></span>
+    </div>
     <span class="grid-ts" id="gridTsDisp">4/4</span>
     <button class="cbtn grid-edit-btn" id="gridEditBtn" onclick="toggleGridEdit()">Edit Grid</button>
   </div>
@@ -1019,7 +1028,7 @@ function updPlayBtn() {
 function teardownVideo() {
   videoActive = false;
   var card = document.getElementById('videoCard');
-  if (card) card.style.display = 'none';
+  if (card) { card.style.display = 'none'; card.classList.remove('audio-only'); card.classList.remove('collapsed'); }
   if (videoEl) { try { videoEl.pause(); videoEl.removeAttribute('src'); videoEl.load(); } catch (e) {} }
   if (videoUrl) { URL.revokeObjectURL(videoUrl); videoUrl = null; }
 }
@@ -1094,7 +1103,7 @@ function loadVideoFile(name, size, arrayBuf) {
   document.getElementById('trackName').textContent = name;
   var vc = document.getElementById('videoCard');
   vc.style.display = 'block'; vc.classList.remove('collapsed');
-  document.getElementById('videoToggleBtn').textContent = 'Hide';
+  vc.classList.add('audio-only');   // Phase 3.1: present mp4 as an audio-only track (video hidden, element kept rendered for iOS)
   ['gridCard','waveCard','deckCard','savedCard','hotcueCard'].forEach(function (id) {
     document.getElementById(id).style.display = 'block';
   });
@@ -1272,6 +1281,7 @@ function setSpeed(s) {
   var d = s.toFixed(2).replace(/0$/,''); if (d.indexOf('.')<0) d += '.0';
   document.getElementById('speedNum').textContent = d;
   document.getElementById('speedSlider').value = s;
+  updateBpmDisplay();   // Phase 3.2: keep the effective-BPM readout in sync with playback speed
   document.querySelectorAll('.pbtn').forEach(function(b){
     b.classList.toggle('on', Math.abs(parseFloat(b.textContent)-s)<0.001);
   });
@@ -1842,9 +1852,27 @@ function buildTsSelect() {
   }
 }
 
+// Phase 3.2: show the EFFECTIVE BPM (scaled by playback speed) with a % deviation sub-line.
+function updateBpmDisplay() {
+  var sp = speed || 1;
+  var bpmDisp = document.getElementById('gridBpmDisp');
+  var devDisp = document.getElementById('gridBpmDev');
+  if (!bpmDisp) return;
+  var eff = gridBPM > 0 ? gridBPM * sp : 0;
+  bpmDisp.textContent = eff > 0 ? eff.toFixed(1) + ' BPM' : '-- BPM';
+  if (devDisp) {
+    if (gridBPM > 0 && Math.abs(sp - 1) > 0.001) {
+      var pct = (sp - 1) * 100;
+      var sign = pct > 0 ? '+' : '';
+      devDisp.textContent = sign + pct.toFixed(0) + '%  (orig ' + gridBPM.toFixed(1) + ')';
+    } else {
+      devDisp.textContent = '';
+    }
+  }
+}
+
 function updateGridDisplay() {
-  var disp = gridBPM > 0 ? gridBPM.toFixed(1) + ' BPM' : '-- BPM';
-  document.getElementById('gridBpmDisp').textContent = disp;
+  updateBpmDisplay();
   document.getElementById('gridTsDisp').textContent = gridTimeSigTop + '/' + gridTimeSigBot;
   document.getElementById('gridBpmInp').value = gridBPM > 0 ? gridBPM.toFixed(1) : '';
   buildTsSelect();
@@ -5109,7 +5137,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v46 (no text-selection/callout on UI; tap a number field selects it; Undo/Redo in Beat Builder)');
+log('Boot OK v47 (Phase 3: mp4 loads audio-only [video hidden]; BPM shows effective tempo + % when speed changed)');
 </script>
 </body>
 </html>
