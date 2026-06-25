@@ -263,6 +263,12 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .dm-ruler{display:flex;height:20px;position:sticky;top:0;z-index:3;background:var(--sur2);border-bottom:1px solid var(--brd)}
 .dm-ruler-label{position:sticky;left:0;z-index:2;width:96px;flex-shrink:0;background:var(--sur2);border-right:1px solid var(--brd)}
 .dm-rcell{width:26px;flex-shrink:0;font-size:9px;color:var(--dim);display:flex;align-items:center;padding-left:2px;font-variant-numeric:tabular-nums;overflow:hidden}
+.dp-sel-row{height:20px}
+.dp-sel-row .dm-row-label{background:var(--sur2)}
+.dp-sel-row .dm-row-name{font-size:10px;color:var(--acc)}
+.dp-sel-cell{width:26px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.05);cursor:pointer;touch-action:manipulation;background:var(--sur2)}
+.dp-sel-cell.sel{background:rgba(10,132,255,.35)}
+.dp-sel-cell.selstart{box-shadow:inset 2px 0 0 var(--acc)}
 .dm-rcell.bar{border-left:2px solid var(--txt)}
 .dm-rcell.bar b{font-size:10px;color:var(--ora)}
 .dm-rcell.q{border-left:1px solid var(--dim);color:var(--txt)}
@@ -557,7 +563,8 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="bb-pill" onclick="dpSaveGrooveAs()">Save As</button>
     <button class="bb-pill" onclick="dpLibOpen()">Load</button>
     <button class="bb-pill" onclick="dpInstOpen()">Inst</button>
-    <button class="bb-pill" onclick="dpCopyBarsOpen()">Copy Bars</button>
+    <button class="bb-pill" onclick="dpSelCopy()">Copy</button>
+    <button class="bb-pill" onclick="dpSelPaste()">Paste</button>
     <button class="bb-pill" onclick="dpTestTone()" style="color:var(--grn)">Test</button>
   </div>
   <div class="bb-top" id="dpLoopRow" style="border-bottom:none;margin-bottom:4px;gap:5px;display:none">
@@ -608,25 +615,6 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <div class="bb-samed-row" style="margin-top:10px">
       <button class="bb-samed-cancel" onclick="dpShowAllInst()">Show all</button>
       <button class="bb-samed-apply" onclick="dpInstClose()">Done</button>
-    </div>
-  </div>
-</div>
-<!-- Beat Builder: copy/paste bars -->
-<div class="bb-samed" id="dpCopyBarsModal">
-  <div class="bb-samed-card">
-    <div class="bb-samed-title">Copy Bars</div>
-    <div class="bb-samed-name">Copy a bar (or a run of bars) onto another bar. The destination is overwritten.</div>
-    <div class="bb-top" style="border-bottom:none;justify-content:center;gap:8px;flex-wrap:wrap">
-      <span style="font-size:11px;color:var(--dim);font-weight:700">From bar</span>
-      <input type="number" class="bb-mini-inp" id="dpCopyFrom" min="1" step="1" value="1" inputmode="numeric">
-      <span style="font-size:11px;color:var(--dim);font-weight:700">To bar</span>
-      <input type="number" class="bb-mini-inp" id="dpCopyTo" min="1" step="1" value="2" inputmode="numeric">
-      <span style="font-size:11px;color:var(--dim);font-weight:700">How many</span>
-      <input type="number" class="bb-mini-inp" id="dpCopyCount" min="1" step="1" value="1" inputmode="numeric">
-    </div>
-    <div class="bb-samed-row" style="margin-top:10px">
-      <button class="bb-samed-cancel" onclick="dpCopyBarsCancel()">Cancel</button>
-      <button class="bb-samed-apply" onclick="dpCopyBarsConfirm()">Copy</button>
     </div>
   </div>
 </div>
@@ -3740,7 +3728,9 @@ var db2 = {
   songSrc: null,         // AudioBufferSourceNode for the underlay loop (Master Tempo OFF)
   songGain: null,
   songBaseBpm: 0,        // tempo the loop was fitted at; playbackRate = bpm / songBaseBpm
-  songMT: false          // Master Tempo: keep pitch when the tempo changes (uses <audio>)
+  songMT: false,         // Master Tempo: keep pitch when the tempo changes (uses <audio>)
+  selStart: 0, selEnd: 0, selState: '',   // Select-lane region (in grid steps); selStart = paste anchor
+  barClip: null          // copied region: { span(ticks), data:[{id,off,vel}] }
 };
 
 // All positions are in ticks (TPQ ticks per quarter note) so hits survive grid changes.
@@ -3816,6 +3806,7 @@ function dpOpen() {
   ensureCtx();
   dpLoadUserInsts();   // restore recorded sample instruments from IndexedDB (once)
   dpEnsureCells();
+  dpAttachGridPress();   // enable long-press-to-delete on grid cells (once)
   document.getElementById('drumPlus').classList.add('show');
   dpSyncAllUI();
 }
@@ -4175,7 +4166,9 @@ function dpStartSong(at) {
     if ('webkitPreservesPitch' in a) a.webkitPreservesPitch = true;
     a.playbackRate = ratio;
     try { a.currentTime = 0; } catch (e) {}
-    var p = a.play(); if (p && p.then) p.catch(function (e) { log('Song MT play err: ' + e.message); });
+    var p = a.play();
+    if (p && p.then) p.then(function () { dpScheduleSongAlign(); }).catch(function (e) { log('Song MT play err: ' + e.message); });
+    else dpScheduleSongAlign();
   } else {
     // Default: sample-accurate Web Audio loop (playbackRate shifts pitch with tempo).
     var s = audioCtx.createBufferSource();
@@ -4187,6 +4180,23 @@ function dpStartSong(at) {
     try { s.start(at, loopIn); } catch (e) { log('Song start err: ' + e.message); }
     db2.songSrc = s; db2.songGain = g;
   }
+}
+// Master-Tempo <audio> can't be started sample-accurately; after it begins,
+// seek it to the beat's current phase so they line up (a couple of nudges).
+function dpScheduleSongAlign() { setTimeout(dpAlignSong, 250); setTimeout(dpAlignSong, 700); }
+function dpAlignSong() {
+  if (!db2.playing || !db2.songOn || !db2.songMT || !dpSongAudioEl || dpBgActive) return;
+  if (loopIn === null || loopOut === null) return;
+  var loopDur = dpLoopDur(); if (loopDur <= 0) return;
+  var L = loopOut - loopIn; if (L <= 0) return;
+  var pos = (audioCtx.currentTime - db2.loopBase) % loopDur; if (pos < 0) pos += loopDur;
+  var target = pos * dpSongRatio();          // phase within one WAV segment (seconds)
+  var a = dpSongAudioEl;
+  var cur = a.currentTime % L;
+  var diff = target - cur;
+  while (diff > L / 2) diff -= L;
+  while (diff < -L / 2) diff += L;
+  if (Math.abs(diff) > 0.02) { try { a.currentTime = a.currentTime + diff; } catch (e) {} }
 }
 function dpStopSongBuffer() {
   if (db2.songSrc) {
@@ -4326,43 +4336,63 @@ function dpLibOpen() {
   document.getElementById('dpLibModal').classList.add('show');
 }
 function dpLibClose() { document.getElementById('dpLibModal').classList.remove('show'); }
-// ── Copy / paste bars ──
-function dpCopyBarsOpen() {
-  document.getElementById('dpCopyFrom').value = 1;
-  document.getElementById('dpCopyTo').value = Math.min(16, db2.bars + 1);
-  document.getElementById('dpCopyCount').value = 1;
-  document.getElementById('dpCopyBarsModal').classList.add('show');
+// ── Select lane + copy / paste (region across all instruments) ──
+function dpSelTap(el) {
+  var step = parseInt(el.getAttribute('data-step'), 10);
+  if (db2.selState !== 'started') {            // begin a new selection / set the paste anchor
+    db2.selStart = step; db2.selEnd = step + 1; db2.selState = 'started';
+  } else {                                      // second tap closes the range
+    if (step >= db2.selStart) { db2.selEnd = step + 1; }
+    else { db2.selEnd = db2.selStart + 1; db2.selStart = step; }
+    db2.selState = 'done';
+  }
+  dpUpdateSelUI();
 }
-function dpCopyBarsCancel() { document.getElementById('dpCopyBarsModal').classList.remove('show'); }
-function dpCopyBarsConfirm() {
-  var from = parseInt(document.getElementById('dpCopyFrom').value, 10) || 0;
-  var to = parseInt(document.getElementById('dpCopyTo').value, 10) || 0;
-  var count = parseInt(document.getElementById('dpCopyCount').value, 10) || 0;
-  if (from < 1 || to < 1 || count < 1) { alert('Enter valid bar numbers.'); return; }
-  if (from === to) { alert('Source and destination bar are the same.'); return; }
-  dpCopyBars(from, to, count);
-  document.getElementById('dpCopyBarsModal').classList.remove('show');
-  if (db2.playing) dpRebuildEvents();
-  dpRender();
+function dpUpdateSelUI() {
+  var steps = document.getElementById('dpSelSteps'); if (!steps) return;
+  var kids = steps.children;
+  for (var i = 0; i < kids.length; i++) {
+    var inSel = (db2.selEnd > db2.selStart && i >= db2.selStart && i < db2.selEnd);
+    var c = 'dp-sel-cell'; if (inSel) c += ' sel'; if (i === db2.selStart && db2.selEnd > db2.selStart) c += ' selstart';
+    kids[i].className = c;
+  }
 }
-// Copy `count` bars starting at fromBar onto the bars starting at toBar (destination overwritten).
-function dpCopyBars(fromBar, toBar, count) {
-  var tpbar = dpTicksPerBar();
-  var srcStart = (fromBar - 1) * tpbar, dstStart = (toBar - 1) * tpbar, span = count * tpbar;
-  var shift = dstStart - srcStart;
-  var neededBars = toBar + count - 1;
-  if (neededBars > db2.bars) { db2.bars = Math.min(16, neededBars); document.getElementById('dpBarsDisp').textContent = db2.bars; }
-  var limit = db2.bars * tpbar;
+function dpSelCopy() {
+  if (db2.selEnd <= db2.selStart) { alert('In the Select lane (top), tap a start cell then an end cell to choose a region.'); return; }
+  var st = dpStepTicks();
+  var startTick = db2.selStart * st, endTick = db2.selEnd * st;
+  var clip = { span: endTick - startTick, data: [] };
   var INS = dpInsts();
   for (var i = 0; i < INS.length; i++) {
     var id = INS[i].id, m = db2.cells[id]; if (!m) continue;
-    var copies = [], k, t;
-    for (k in m) { if (!m.hasOwnProperty(k)) continue; t = parseInt(k, 10); if (t >= srcStart && t < srcStart + span) copies.push([t, m[k]]); }
-    var del = [];
-    for (k in m) { if (!m.hasOwnProperty(k)) continue; t = parseInt(k, 10); if (t >= dstStart && t < dstStart + span) del.push(t); }
-    for (var d = 0; d < del.length; d++) delete m[del[d]];
-    for (var c = 0; c < copies.length; c++) { var nt = copies[c][0] + shift; if (nt >= 0 && nt < limit) m[nt] = copies[c][1]; }
+    for (var k in m) { if (!m.hasOwnProperty(k)) continue; var t = parseInt(k, 10); if (t >= startTick && t < endTick) clip.data.push({ id: id, off: t - startTick, vel: m[k] }); }
   }
+  db2.barClip = clip;
+  dpFlashSave('Copied');   // reuse the Save-button flash for quick feedback
+  log('Copied region: ' + clip.data.length + ' hits over ' + clip.span + ' ticks');
+}
+function dpSelPaste() {
+  if (!db2.barClip) { alert('Copy a region first (Select a range, then Copy).'); return; }
+  var st = dpStepTicks();
+  var dst = db2.selStart * st;                  // paste anchor = selection start (tap one cell to move it)
+  var span = db2.barClip.span, tpbar = dpTicksPerBar();
+  var needBars = Math.ceil((dst + span) / tpbar);
+  if (needBars > db2.bars) { db2.bars = Math.min(16, needBars); document.getElementById('dpBarsDisp').textContent = db2.bars; }
+  var limit = db2.bars * tpbar;
+  var INS = dpInsts();
+  for (var i = 0; i < INS.length; i++) {        // clear the destination span across all rows
+    var id = INS[i].id, m = db2.cells[id]; if (!m) continue;
+    var del = [];
+    for (var k in m) { if (!m.hasOwnProperty(k)) continue; var t = parseInt(k, 10); if (t >= dst && t < dst + span) del.push(t); }
+    for (var d = 0; d < del.length; d++) delete m[del[d]];
+  }
+  for (var c = 0; c < db2.barClip.data.length; c++) {
+    var it = db2.barClip.data[c], nt = dst + it.off;
+    if (nt >= 0 && nt < limit) { if (!db2.cells[it.id]) db2.cells[it.id] = {}; db2.cells[it.id][nt] = it.vel; }
+  }
+  if (db2.playing) dpRebuildEvents();
+  dpRender();
+  dpFlashSave('Pasted');
 }
 // ── Export / import grooves to a file (backup, sharing) ──
 function dpStamp() { var d = new Date(), p = function (n) { return n < 10 ? '0' + n : '' + n; }; return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + '_' + p(d.getHours()) + '-' + p(d.getMinutes()); }
@@ -4471,6 +4501,15 @@ function dpRender() {
   var stepTicks = dpStepTicks();
   var ticksPerBar = dpTicksPerBar();
   var html = dpRenderRuler(total, stepTicks, ticksPerBar);
+  // Select lane (copy/paste): tap to set start, tap again to set end; selStart = paste anchor.
+  html += '<div class="dm-row dp-sel-row"><div class="dm-row-label"><span class="dm-row-name">Select</span></div><div class="dm-steps" id="dpSelSteps">';
+  for (var sc = 0; sc < total; sc++) {
+    var scl = 'dp-sel-cell';
+    if (db2.selEnd > db2.selStart && sc >= db2.selStart && sc < db2.selEnd) scl += ' sel';
+    if (sc === db2.selStart && db2.selEnd > db2.selStart) scl += ' selstart';
+    html += '<div class="' + scl + '" data-step="' + sc + '" onclick="dpSelTap(this)"></div>';
+  }
+  html += '</div></div>';
   var INS = dpInsts();
   for (var r = 0; r < INS.length; r++) {
     var inst = INS[r];
@@ -4526,6 +4565,7 @@ function dpMarkOffGrid() {
   }
 }
 function dpCellTap(el) {
+  if (dpPressLong) { dpPressLong = false; return; }   // a long-press just deleted this cell; ignore the click
   var id = el.getAttribute('data-inst');
   var tick = parseInt(el.getAttribute('data-step'), 10) * dpStepTicks();
   var m = db2.cells[id];
@@ -4535,6 +4575,34 @@ function dpCellTap(el) {
   el.classList.remove('on', 'v1', 'v2', 'v3');
   if (next > 0) { el.classList.add('on'); el.classList.add(next === 1 ? 'v1' : next === 3 ? 'v3' : 'v2'); }
   if (db2.playing) dpRebuildEvents();  // live edit
+}
+// Long-press a grid cell to delete its hit (delegated once on the persistent #dpGrid).
+var dpPressTimer = 0, dpPressLong = false;
+function dpAttachGridPress() {
+  var grid = document.getElementById('dpGrid');
+  if (!grid || grid._pressAttached) return;
+  grid._pressAttached = true;
+  function cancel() { if (dpPressTimer) { clearTimeout(dpPressTimer); dpPressTimer = 0; } }
+  grid.addEventListener('pointerdown', function (e) {
+    var cell = e.target;
+    if (!cell || !cell.classList || !cell.classList.contains('dm-cell')) return;
+    dpPressLong = false;
+    cancel();
+    dpPressTimer = setTimeout(function () { dpPressTimer = 0; dpPressLong = true; dpDeleteCell(cell); }, 450);
+  });
+  grid.addEventListener('pointerup', cancel);
+  grid.addEventListener('pointermove', cancel);   // moving (scroll) cancels the long-press
+  grid.addEventListener('pointercancel', cancel);
+}
+function dpDeleteCell(cell) {
+  var id = cell.getAttribute('data-inst');
+  var tick = parseInt(cell.getAttribute('data-step'), 10) * dpStepTicks();
+  var m = db2.cells[id];
+  if (m && m[tick]) {
+    delete m[tick];
+    cell.classList.remove('on', 'v1', 'v2', 'v3');
+    if (db2.playing) dpRebuildEvents();
+  }
 }
 
 // ── Synthesis ──
@@ -4996,7 +5064,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v44 (Phase 2d: copy/paste bars; export/import grooves to a file)');
+log('Boot OK v45 (Master Tempo sync nudge; Select-lane copy/paste; long-press a cell to delete)');
 </script>
 </body>
 </html>
