@@ -240,6 +240,23 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 #drumPlus{position:fixed;inset:0;background:var(--bg);z-index:902;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
 #drumPlus.show{display:flex}
 #drumPlus.ctrl-collapsed .dp-ctrls{display:none}
+/* Phase 4: Drum Pad (4x4) */
+#drumPad{position:fixed;inset:0;background:var(--bg);z-index:902;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
+#drumPad.show{display:flex}
+.pad-grid{flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:8px;margin:6px 0;min-height:0}
+.pad-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--sur);border:1px solid var(--brd);border-radius:14px;color:var(--txt);font-size:12px;font-weight:700;text-align:center;cursor:pointer;touch-action:none;padding:4px;overflow:hidden;transition:background .12s,border-color .12s,transform .04s}
+.pad-cell:active{transform:scale(.96)}
+.pad-cell.lit{background:var(--acc);border-color:var(--acc);color:#fff;transition:none}
+.pad-cell .pad-num{font-size:9px;color:var(--dim);font-weight:700;margin-bottom:3px}
+.pad-cell.lit .pad-num{color:rgba(255,255,255,.7)}
+.pad-cell .pad-lbl{line-height:1.1}
+.pad-loopbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 56px 0 2px;border-top:1px solid var(--brd)}
+.pad-loopbtn{background:var(--sur2);color:var(--txt);border:1px solid var(--brd);border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation;min-width:110px;text-align:center}
+.pad-loopbtn.rec{background:var(--red);border-color:var(--red);color:#fff}
+.pad-loopbtn.playing{background:var(--grn);border-color:var(--grn);color:#04210f}
+.pad-q{font-size:11px;color:var(--dim);font-weight:700;display:flex;align-items:center;gap:5px}
+.pad-loopstat{font-size:11px;color:var(--dim);font-weight:700;font-variant-numeric:tabular-nums}
+#padMetroBtn.pad-metro-on{background:var(--grn);color:#04210f}
 .dm-title{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--acc);flex:1;text-align:center;text-transform:uppercase}
 .dm-grid-wrap{flex:1;overflow:auto;position:relative;background:var(--sur);border-radius:10px;-webkit-overflow-scrolling:touch}
 .dm-grid{display:flex;flex-direction:column;min-width:max-content;position:relative}
@@ -316,7 +333,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="menu-btn" onclick="menuRecord()">Record</button>
     <button class="menu-btn" onclick="bbOpen()">Beat <span class="menu-tag">old</span></button>
     <button class="menu-btn" onclick="dpOpen()">Beat Builder</button>
-    <button class="menu-btn menu-btn-soon" onclick="menuDrumPad()">Drum Pad <span class="menu-tag">soon</span></button>
+    <button class="menu-btn" onclick="padOpen()">Drum Pad</button>
   </div>
 </div>
 <!-- Loop Function view (original main player) -->
@@ -702,6 +719,29 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <button class="bb-samed-prev" onclick="bbSpeedPreview()">&#9654; Preview</button>
       <button class="bb-samed-apply" onclick="bbSpeedClose()">Done</button>
     </div>
+  </div>
+</div>
+<!-- Drum Pad (Phase 4): 4x4 synth-voice pads + metronome + live looping -->
+<div id="drumPad">
+  <div class="bb-top">
+    <button class="cbtn" onclick="padClose()">&larr;</button>
+    <span class="dm-title">Drum Pad</span>
+    <button class="cbtn" id="padMetroBtn" onclick="padToggleMetro()" title="Metronome on/off">&#9685; Metro</button>
+  </div>
+  <div class="bb-top" style="border-bottom:none;margin-bottom:4px;gap:6px">
+    <span style="font-size:10px;color:var(--dim);font-weight:700">BPM</span>
+    <button class="bb-pill" onclick="padNudgeBpm(-1)">&minus;</button>
+    <input type="number" class="bb-mini-inp" id="padBpm" min="20" max="300" step="1" value="120" inputmode="numeric" onchange="padSetBpm(this.value)">
+    <button class="bb-pill" onclick="padNudgeBpm(1)">+</button>
+    <button class="bb-pill" id="padTapBtn" onclick="padTapTempo()" title="Tap this button in time to set the tempo">Tap</button>
+    <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:6px">Beats/bar</span>
+    <input type="number" class="bb-mini-inp" id="padTsNum" min="1" max="16" step="1" value="4" style="width:40px" inputmode="numeric" onchange="padSetTs(this.value)" title="Beats per bar (metronome accent + loop quantize)">
+  </div>
+  <div class="pad-grid" id="padGrid"></div>
+  <div class="pad-loopbar">
+    <button class="pad-loopbtn" id="padLoopBtn" onclick="padToggleLoop()" title="Tap to record a live performance, tap again to loop it">&#9679; Loop</button>
+    <label class="pad-q"><input type="checkbox" id="padQuant" onchange="padSetQuant(this.checked)"> Quantize to bar</label>
+    <span class="pad-loopstat" id="padLoopStat"></span>
   </div>
 </div>
 <button class="log-toggle" id="logToggleBtn" onclick="toggleLogPanel()">Log</button>
@@ -2390,9 +2430,7 @@ function menuRecord() {
   document.getElementById('mainMenu').classList.remove('show');
   openRecorder();
 }
-function menuDrumPad() {
-  alert('Drum Pad is coming in a later update.');
-}
+function menuDrumPad() { padOpen(); }   // kept for any old references; Drum Pad menu button calls padOpen() directly
 function fmt(s) {
   if (s == null || isNaN(s)) return '0:00';
   var m = Math.floor(s / 60), sec = Math.floor(s % 60), ms = Math.floor((s % 1) * 10);
@@ -4915,6 +4953,222 @@ function dpTestTone() {
   o.start(when); o.stop(when + 0.32);
   log('Test tone: state=' + audioCtx.state + ' t=' + audioCtx.currentTime.toFixed(2) + ' sr=' + audioCtx.sampleRate);
 }
+
+// ============================================================================
+//  DRUM PAD (Phase 4) — 4x4 pads, metronome, live looping.
+//  Self-contained (`pad` state, pad*() fns, #drumPad overlay). Reuses the synth
+//  voices (dpTrigger), the metronome click (dpClick), the shared master gain
+//  (dpMaster) and the iOS audio-unlock (dpUnlockAudio). NOTE: the element id
+//  `padLoopBtn` is exposed as a global by the browser, so the toggle function is
+//  named padToggleLoop (not padLoopBtn) to avoid shadowing it.
+// ============================================================================
+var pad = {
+  bpm: 120, tsNum: 4,
+  map: null, built: false,
+  metroOn: false, metroTimer: 0, metroNext: 0, metroBeat: 0,
+  loopState: 'idle',                 // idle | recording | playing
+  loopTimer: 0,
+  recEvents: [], recStartCtx: 0,     // [{t: secFromStart, idx}]
+  loopLen: 0, loopBaseCtx: 0, loopEvIdx: 0,
+  quantize: false,
+  tapTimes: []
+};
+
+// 12 synth voices in a drummer-friendly 4x4 (cymbals/ride top, toms/snare/kick
+// lower); the bottom row is filled with recorded sample instruments when present,
+// otherwise with extra copies of common voices so every pad plays something.
+function padDefaultMap() {
+  var base = ['crash1','crash2','ridebell','rideedge',
+              'riderim','hatopen','hatclosed','tomhi',
+              'tommid','tomlo','snare','kick'];
+  var extras = [];
+  for (var i = 0; i < db2.userInsts.length && extras.length < 4; i++) extras.push(db2.userInsts[i].id);
+  var fill = ['kick','snare','hatclosed','hatopen'], fi = 0;
+  while (extras.length < 4) { extras.push(fill[fi % fill.length]); fi++; }
+  return base.concat(extras);
+}
+
+function padEnsureAudio() {
+  ensureCtx();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function padOpen() {
+  dpUnlockAudio();          // menu tap is a user gesture — unlock iOS audio here
+  dpLoadUserInsts();        // pull in recorded sample instruments for the bottom row
+  pad.map = padDefaultMap();
+  padBuildGrid();
+  document.getElementById('drumPad').classList.add('show');
+  document.getElementById('padBpm').value = pad.bpm;
+  document.getElementById('padTsNum').value = pad.tsNum;
+  padUpdateLoopUI();
+  padUpdateMetroUI();
+}
+function padClose() {
+  padStopAll();
+  document.getElementById('drumPad').classList.remove('show');   // reveals the menu underneath
+}
+function padStopAll() {
+  pad.metroOn = false;
+  if (pad.metroTimer) { clearInterval(pad.metroTimer); pad.metroTimer = 0; }
+  if (pad.loopTimer) { clearInterval(pad.loopTimer); pad.loopTimer = 0; }
+  pad.loopState = 'idle'; pad.recEvents = [];
+  padUpdateLoopUI(); padUpdateMetroUI();
+}
+
+function padBuildGrid() {
+  var grid = document.getElementById('padGrid');
+  grid.innerHTML = '';
+  for (var i = 0; i < 16; i++) {
+    var inst = dpFindInst(pad.map[i]);
+    var cell = document.createElement('div');
+    cell.className = 'pad-cell';
+    cell.setAttribute('data-idx', i);
+    cell.innerHTML = '<span class="pad-num">' + (i + 1) + '</span>' +
+                     '<span class="pad-lbl">' + esc(inst ? inst.name : '--') + '</span>';
+    grid.appendChild(cell);
+  }
+  if (!pad.built) {
+    // pointerdown = lowest latency; one delegated listener for all pads.
+    grid.addEventListener('pointerdown', function (e) {
+      var c = e.target && e.target.closest ? e.target.closest('.pad-cell') : null;
+      if (!c) return;
+      e.preventDefault();
+      padTap(parseInt(c.getAttribute('data-idx'), 10));
+    });
+    pad.built = true;
+  }
+}
+
+function padTap(idx) {
+  padEnsureAudio();
+  var when = audioCtx.currentTime + 0.005;
+  padHit(idx, when, 2);
+  if (pad.loopState === 'recording') pad.recEvents.push({ t: when - pad.recStartCtx, idx: idx });
+}
+// Play pad `idx` at ctx time `when` and flash it. vel: 1 ghost / 2 normal / 3 accent.
+function padHit(idx, when, vel) {
+  var id = pad.map[idx];
+  if (!id) return;
+  dpTrigger(id, when, dpVelGain(vel || 2));
+  var delay = Math.max(0, (when - audioCtx.currentTime) * 1000);
+  if (delay < 16) padFlash(idx);
+  else setTimeout(function () { padFlash(idx); }, delay);
+}
+function padFlash(idx) {
+  var c = document.getElementById('padGrid').children[idx];
+  if (!c) return;
+  c.classList.add('lit');
+  setTimeout(function () { c.classList.remove('lit'); }, 100);
+}
+
+// ── BPM / time-signature controls ──
+function padSetBpm(v) {
+  var n = parseFloat(v);
+  if (isNaN(n) || n < 20 || n > 300) { document.getElementById('padBpm').value = pad.bpm; return; }
+  pad.bpm = Math.round(n); document.getElementById('padBpm').value = pad.bpm;
+}
+function padNudgeBpm(d) {
+  pad.bpm += d; if (pad.bpm < 20) pad.bpm = 20; if (pad.bpm > 300) pad.bpm = 300;
+  document.getElementById('padBpm').value = pad.bpm;
+}
+function padSetTs(v) {
+  var n = parseInt(v, 10);
+  if (isNaN(n) || n < 1 || n > 16) { document.getElementById('padTsNum').value = pad.tsNum; return; }
+  pad.tsNum = n;
+}
+function padSetQuant(c) { pad.quantize = !!c; }
+function padTapTempo() {
+  padEnsureAudio();
+  var now = audioCtx.currentTime;
+  if (pad.tapTimes.length && now - pad.tapTimes[pad.tapTimes.length - 1] > 2) pad.tapTimes = [];  // stale -> restart
+  pad.tapTimes.push(now);
+  if (pad.tapTimes.length > 6) pad.tapTimes.shift();
+  if (pad.tapTimes.length >= 2) {
+    var span = pad.tapTimes[pad.tapTimes.length - 1] - pad.tapTimes[0];
+    var bpm = (pad.tapTimes.length - 1) / span * 60;
+    if (bpm >= 20 && bpm <= 300) { pad.bpm = Math.round(bpm); document.getElementById('padBpm').value = pad.bpm; }
+  }
+}
+
+// ── Metronome (look-ahead scheduler, accents beat 1 of the bar) ──
+function padToggleMetro() {
+  padEnsureAudio();
+  pad.metroOn = !pad.metroOn;
+  if (pad.metroOn) {
+    pad.metroBeat = 0; pad.metroNext = audioCtx.currentTime + 0.1;
+    if (!pad.metroTimer) pad.metroTimer = setInterval(padMetroTick, 25);
+  } else if (pad.metroTimer) { clearInterval(pad.metroTimer); pad.metroTimer = 0; }
+  padUpdateMetroUI();
+}
+function padMetroTick() {
+  if (!pad.metroOn || !audioCtx) return;
+  var ahead = 0.12;
+  while (pad.metroNext < audioCtx.currentTime + ahead) {
+    dpClick(pad.metroNext, (pad.metroBeat % pad.tsNum === 0) ? 2 : 1);
+    pad.metroBeat++; pad.metroNext += 60 / pad.bpm;
+  }
+}
+function padUpdateMetroUI() {
+  var b = document.getElementById('padMetroBtn');
+  if (b) b.classList.toggle('pad-metro-on', pad.metroOn);
+}
+
+// ── Live looping: tap IN (record) -> tap OUT (loop) -> tap (clear). ──
+function padToggleLoop() {
+  padEnsureAudio();
+  if (pad.loopState === 'idle') {
+    pad.recEvents = []; pad.recStartCtx = audioCtx.currentTime;
+    pad.loopState = 'recording';
+  } else if (pad.loopState === 'recording') {
+    var len = audioCtx.currentTime - pad.recStartCtx;
+    if (pad.quantize && pad.tsNum > 0) {
+      var barDur = (60 / pad.bpm) * pad.tsNum;
+      len = Math.max(1, Math.round(len / barDur)) * barDur;
+    }
+    if (len < 0.25 || pad.recEvents.length === 0) {   // nothing useful captured
+      pad.loopState = 'idle'; pad.recEvents = []; padUpdateLoopUI(); return;
+    }
+    pad.loopLen = len;
+    pad.loopBaseCtx = pad.recStartCtx;
+    while (pad.loopBaseCtx + pad.loopLen <= audioCtx.currentTime) pad.loopBaseCtx += pad.loopLen;
+    var rel = audioCtx.currentTime - pad.loopBaseCtx;
+    pad.loopEvIdx = 0;
+    while (pad.loopEvIdx < pad.recEvents.length && pad.recEvents[pad.loopEvIdx].t < rel) pad.loopEvIdx++;
+    pad.loopState = 'playing';
+    if (!pad.loopTimer) pad.loopTimer = setInterval(padLoopTick, 25);
+  } else {   // playing -> clear
+    pad.loopState = 'idle';
+    if (pad.loopTimer) { clearInterval(pad.loopTimer); pad.loopTimer = 0; }
+    pad.recEvents = [];
+  }
+  padUpdateLoopUI();
+}
+function padLoopTick() {
+  if (pad.loopState !== 'playing' || !audioCtx || pad.recEvents.length === 0) return;
+  var horizon = audioCtx.currentTime + 0.12, guard = 0;
+  while (guard++ < 500) {
+    if (pad.loopEvIdx >= pad.recEvents.length) {
+      if (pad.loopBaseCtx + pad.loopLen <= horizon) { pad.loopBaseCtx += pad.loopLen; pad.loopEvIdx = 0; }
+      else break;
+    }
+    var ev = pad.recEvents[pad.loopEvIdx];
+    var when = pad.loopBaseCtx + ev.t;
+    if (when <= horizon) {
+      if (when >= audioCtx.currentTime - 0.02) padHit(ev.idx, when, 2);
+      pad.loopEvIdx++;
+    } else break;
+  }
+}
+function padUpdateLoopUI() {
+  var b = document.getElementById('padLoopBtn'), s = document.getElementById('padLoopStat');
+  if (!b) return;
+  b.classList.remove('rec'); b.classList.remove('playing');
+  if (pad.loopState === 'recording') { b.classList.add('rec'); b.innerHTML = '&#9632; Set loop'; if (s) s.textContent = 'recording...'; }
+  else if (pad.loopState === 'playing') { b.classList.add('playing'); b.innerHTML = '&times; Clear'; if (s) s.textContent = 'loop ' + pad.loopLen.toFixed(1) + 's'; }
+  else { b.innerHTML = '&#9679; Loop'; if (s) s.textContent = ''; }
+}
+
 // ── Background audio ───────────────────────────────────────────────────────
 // iOS suspends the AudioContext when backgrounded, so a live synth scheduler
 // goes silent. Fix: pre-render the looping groove (synth voices + samples +
@@ -5137,7 +5391,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v47 (Phase 3: mp4 loads audio-only [video hidden]; BPM shows effective tempo + % when speed changed)');
+log('Boot OK v48 (Phase 4: Drum Pad - 4x4 synth pads, metronome, live looping)');
 </script>
 </body>
 </html>
