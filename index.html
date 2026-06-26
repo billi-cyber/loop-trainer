@@ -257,6 +257,13 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .pad-q{font-size:11px;color:var(--dim);font-weight:700;display:flex;align-items:center;gap:5px}
 .pad-loopstat{font-size:11px;color:var(--dim);font-weight:700;font-variant-numeric:tabular-nums}
 #padMetroBtn.pad-metro-on{background:var(--grn);color:#04210f}
+/* Phase 5: Melody Transcriber panel (Loop Function) */
+.mt-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px}
+.mt-title{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc)}
+.mt-key{font-size:16px;font-weight:800;color:var(--yel);font-variant-numeric:tabular-nums;text-align:right}
+.mt-strip{width:100%;height:64px;display:block;background:#141416;border-radius:8px}
+.mt-foot{font-size:10px;color:var(--dim);margin-top:6px;text-align:center}
+#mtBtn.active{background:var(--acc);color:#fff}
 .dm-title{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--acc);flex:1;text-align:center;text-transform:uppercase}
 .dm-grid-wrap{flex:1;overflow:auto;position:relative;background:var(--sur);border-radius:10px;-webkit-overflow-scrolling:touch}
 .dm-grid{display:flex;flex-direction:column;min-width:max-content;position:relative}
@@ -360,6 +367,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     </div>
     <span class="grid-ts" id="gridTsDisp">4/4</span>
     <button class="cbtn grid-edit-btn" id="gridEditBtn" onclick="toggleGridEdit()">Edit Grid</button>
+    <button class="cbtn grid-edit-btn" id="mtBtn" onclick="mtToggle()" title="Detect key/scale and rhythmic onsets for the current loop">Melody</button>
   </div>
   <div class="grid-panel" id="gridPanel">
     <div class="grid-row">
@@ -394,6 +402,15 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     </div>
     <div class="grid-hint">Top half: drag to shift grid &middot; Bottom half: drag to scroll track</div>
   </div>
+</div>
+<!-- Melody Transcriber panel (Phase 5) — sits above the waveform; shown on Activate -->
+<div class="card" id="mtPanel" style="display:none;padding:12px">
+  <div class="mt-head">
+    <span class="mt-title">Melody Transcriber</span>
+    <span class="mt-key" id="mtKey">--</span>
+  </div>
+  <canvas id="mtStrip" class="mt-strip"></canvas>
+  <div class="mt-foot" id="mtFoot">--</div>
 </div>
 <!-- Waveform -->
 <div class="wave-card" id="waveCard" style="display:none">
@@ -1117,7 +1134,7 @@ function loadVideoFile(name, size, arrayBuf) {
   pkLow = null; pkMid = null; pkHigh = null; pkMin = null; pkMax = null;
   trkName = name; trkId = trackId(name, size);
   playAudT = 0; loopIn = null; loopOut = null; loopOn = false; editIdx = -1; cuePoint = null;
-  resetEditor(); updLoopUI(); updPlayBtn();
+  resetEditor(); updLoopUI(); updPlayBtn(); mtReset();
   gridBPM = 0; detectedBPM = 0; gridOffset = 0; detectedOffset = 0; gridTimeSigTop = 4; gridTimeSigBot = 4;
 
   if (audioBlobUrl) { URL.revokeObjectURL(audioBlobUrl); audioBlobUrl = null; }
@@ -1196,7 +1213,7 @@ function decodeAndLoad(name, size, arrayBuf, saveToLib, isVideo) {
     loopIn = null; loopOut = null; loopOn = false; editIdx = -1;
     cuePoint = null;
     pkLow = null; pkMid = null; pkHigh = null; pkMin = null; pkMax = null;
-    resetEditor(); updLoopUI(); updPlayBtn();
+    resetEditor(); updLoopUI(); updPlayBtn(); mtReset();
 
     // Create <audio> element for playback (enables background audio + master tempo)
     if (audioBlobUrl) URL.revokeObjectURL(audioBlobUrl);
@@ -2209,6 +2226,18 @@ function drawWave() {
   // Loop markers
   if (loopIn !== null) drawMarker(t2x(loopIn), '#30d158', waveH);
   if (loopOut !== null) drawMarker(t2x(loopOut), '#ff453a', waveH);
+
+  // Melody Transcriber onset markers (Phase 5)
+  if (mt && mt.active && mt.snap && mt.snap.length) {
+    for (var mi = 0; mi < mt.snap.length; mi++) {
+      var mtx = t2x(mt.snap[mi]);
+      if (mtx < -4 || mtx > W + 4) continue;
+      cx.strokeStyle = 'rgba(10,132,255,0.45)'; cx.lineWidth = 1;
+      cx.beginPath(); cx.moveTo(mtx, 0); cx.lineTo(mtx, waveH); cx.stroke();
+      cx.fillStyle = '#0a84ff';
+      cx.beginPath(); cx.arc(mtx, 9, 3, 0, 2 * Math.PI); cx.fill();
+    }
+  }
 
   // Playhead
   var ph = t2x(audTime());
@@ -5169,6 +5198,257 @@ function padUpdateLoopUI() {
   else { b.innerHTML = '&#9679; Loop'; if (s) s.textContent = ''; }
 }
 
+// ============================================================================
+//  MELODY TRANSCRIBER (Phase 5) — Loop Function add-on.
+//  v1 SCOPE (decision D3): detect KEY/SCALE + rhythmic note ONSETS only. No
+//  exact per-note pitches. Offline, ES5, no deps: a small radix-2 FFT computes
+//  a chromagram (folded to 12 pitch classes) -> Krumhansl-Schmuckler key, plus a
+//  spectral-flux onset envelope -> peak-pick -> snap to the existing beat grid.
+//  Reuses the Loop Function's gridBPM/gridOffset/gridTimeSigTop (no new grid).
+// ============================================================================
+var mt = {
+  active: false,
+  onsets: [],          // raw [{t,s}]
+  snap: [],            // grid-snapped onset times (absolute seconds)
+  key: '', keyConf: 0,
+  chroma: null,
+  region: null,        // { t0, t1 } analyzed window
+  _win: null, _pcMap: null, _pcMapSr: 0, _stripDpr: 1
+};
+var MT_KS_MAJ = [6.35,2.23,3.48,2.33,4.38,4.09,2.52,5.19,2.39,3.66,2.29,2.88];
+var MT_KS_MIN = [6.33,2.68,3.52,5.38,2.60,3.53,2.54,4.75,3.98,2.69,3.34,3.17];
+var MT_NOTES  = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+// In-place iterative radix-2 FFT (length must be a power of 2).
+function mtFFT(re, im) {
+  var n = re.length, i, j, k;
+  for (i = 1, j = 0; i < n; i++) {
+    var bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { var tr = re[i]; re[i] = re[j]; re[j] = tr; var ti = im[i]; im[i] = im[j]; im[j] = ti; }
+  }
+  for (var len = 2; len <= n; len <<= 1) {
+    var ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang), h = len >> 1;
+    for (i = 0; i < n; i += len) {
+      var cwr = 1, cwi = 0;
+      for (k = 0; k < h; k++) {
+        var ar = re[i + k], ai = im[i + k];
+        var br = re[i + k + h] * cwr - im[i + k + h] * cwi;
+        var bi = re[i + k + h] * cwi + im[i + k + h] * cwr;
+        re[i + k] = ar + br; im[i + k] = ai + bi;
+        re[i + k + h] = ar - br; im[i + k + h] = ai - bi;
+        var ncwr = cwr * wr - cwi * wi; cwi = cwr * wi + cwi * wr; cwr = ncwr;
+      }
+    }
+  }
+}
+function mtHann(N) {
+  var w = new Float64Array(N);
+  for (var i = 0; i < N; i++) w[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (N - 1));
+  return w;
+}
+function mtCorr(a, b) {
+  var n = a.length, ma = 0, mb = 0, i;
+  for (i = 0; i < n; i++) { ma += a[i]; mb += b[i]; }
+  ma /= n; mb /= n;
+  var num = 0, da = 0, db = 0;
+  for (i = 0; i < n; i++) { var xa = a[i] - ma, xb = b[i] - mb; num += xa * xb; da += xa * xa; db += xb * xb; }
+  if (da <= 0 || db <= 0) return 0;
+  return num / Math.sqrt(da * db);
+}
+// Correlate the chroma against all 24 K-S profiles; return the best key.
+function mtKey(chroma) {
+  var best = -2, bestTonic = 0, bestMode = 'major', rot = new Float64Array(12), t, i;
+  for (t = 0; t < 12; t++) {
+    for (i = 0; i < 12; i++) rot[i] = MT_KS_MAJ[((i - t) % 12 + 12) % 12];
+    var cM = mtCorr(chroma, rot);
+    if (cM > best) { best = cM; bestTonic = t; bestMode = 'major'; }
+    for (i = 0; i < 12; i++) rot[i] = MT_KS_MIN[((i - t) % 12 + 12) % 12];
+    var cm = mtCorr(chroma, rot);
+    if (cm > best) { best = cm; bestTonic = t; bestMode = 'minor'; }
+  }
+  return { name: MT_NOTES[bestTonic] + ' ' + bestMode, conf: best };
+}
+// Peak-pick a spectral-flux envelope -> onset times.
+function mtPickPeaks(flux, times) {
+  var n = flux.length, out = [], i, d;
+  if (n < 3) return out;
+  var mean = 0, mx = 0;
+  for (i = 0; i < n; i++) { mean += flux[i]; if (flux[i] > mx) mx = flux[i]; }
+  mean /= n;
+  if (mx <= 0) return out;
+  var thresh = Math.max(mean * 1.6, mx * 0.12), minGap = 0.07, lastT = -1, W = 3;
+  for (i = 1; i < n - 1; i++) {
+    if (flux[i] < thresh) continue;
+    var isMax = true;
+    for (d = -W; d <= W; d++) { var jj = i + d; if (jj < 0 || jj >= n) continue; if (flux[jj] > flux[i]) { isMax = false; break; } }
+    if (!isMax) continue;
+    if (lastT >= 0 && times[i] - lastT < minGap) {
+      if (out.length && flux[i] > out[out.length - 1].s) { out[out.length - 1] = { t: times[i], s: flux[i] }; lastT = times[i]; }
+      continue;
+    }
+    out.push({ t: times[i], s: flux[i] }); lastT = times[i];
+  }
+  return out;
+}
+// Snap onset times to the nearest 16th-note cell of the Loop Function grid; dedupe.
+function mtSnap(onsets) {
+  var res = [], cell = (gridBPM > 0) ? (60 / gridBPM) / 4 : 0, seen = {}, i;
+  for (i = 0; i < onsets.length; i++) {
+    var t = onsets[i].t;
+    if (cell > 0) {
+      var st = gridOffset + Math.round((t - gridOffset) / cell) * cell;
+      var key = Math.round(st / cell);
+      if (seen[key]) continue;
+      seen[key] = 1; res.push(st);
+    } else res.push(t);
+  }
+  res.sort(function (a, b) { return a - b; });
+  return res;
+}
+// Heavy analysis: STFT over the loop region -> chroma (key) + flux (onsets).
+function mtAnalyze() {
+  if (!audioBuf) return false;
+  var sr = audioBuf.sampleRate;
+  var t0, t1;
+  if (loopIn !== null && loopOut !== null && loopOut > loopIn) { t0 = loopIn; t1 = loopOut; }
+  else { t0 = 0; t1 = Math.min(duration, 40); }
+  var s0 = Math.max(0, Math.floor(t0 * sr)), s1 = Math.min(audioBuf.length, Math.floor(t1 * sr));
+  if (s1 - s0 < 2048) return false;
+  var data = audioBuf.getChannelData(0);
+  var ch1 = audioBuf.numberOfChannels > 1 ? audioBuf.getChannelData(1) : null;
+  var N = 2048, hop = 1024, half = N >> 1;
+  var win = mt._win || (mt._win = mtHann(N));
+  var re = new Float64Array(N), im = new Float64Array(N);
+  var prevMag = new Float64Array(half), mag = new Float64Array(half);
+  var chroma = new Float64Array(12);
+  // bin -> pitch class lookup (cached per sample rate)
+  if (!mt._pcMap || mt._pcMapSr !== sr) {
+    mt._pcMap = new Int16Array(half); mt._pcMapSr = sr;
+    for (var b = 0; b < half; b++) {
+      var f = b * sr / N;
+      if (f < 55 || f > 2000) { mt._pcMap[b] = -1; continue; }
+      var midi = Math.round(69 + 12 * Math.log(f / 440) / Math.LN2);
+      mt._pcMap[b] = ((midi % 12) + 12) % 12;
+    }
+  }
+  var pcMap = mt._pcMap;
+  var fluxHiBin = Math.min(half, Math.floor(5000 * N / sr));
+  var flux = [], times = [], first = true, pos, i2, k2;
+  for (pos = s0; pos + N <= s1; pos += hop) {
+    for (i2 = 0; i2 < N; i2++) {
+      var v = ch1 ? (data[pos + i2] + ch1[pos + i2]) * 0.5 : data[pos + i2];
+      re[i2] = v * win[i2]; im[i2] = 0;
+    }
+    mtFFT(re, im);
+    var fl = 0;
+    for (k2 = 0; k2 < half; k2++) {
+      var m = Math.sqrt(re[k2] * re[k2] + im[k2] * im[k2]);
+      mag[k2] = m;
+      if (k2 < fluxHiBin) { var dd = m - prevMag[k2]; if (dd > 0) fl += dd; }
+      var pc = pcMap[k2]; if (pc >= 0) chroma[pc] += m;
+    }
+    if (!first) { flux.push(fl); times.push(t0 + (pos - s0 + half) / sr); }
+    var tmp = prevMag; prevMag = mag; mag = tmp;
+    first = false;
+  }
+  mt.onsets = mtPickPeaks(flux, times);
+  mt.snap = mtSnap(mt.onsets);
+  var kc = mtKey(chroma);
+  mt.key = kc.name; mt.keyConf = kc.conf; mt.chroma = chroma;
+  mt.region = { t0: t0, t1: t1 };
+  return true;
+}
+
+function mtReset() {
+  mt.active = false; mt.onsets = []; mt.snap = []; mt.key = ''; mt.keyConf = 0; mt.region = null;
+  var p = document.getElementById('mtPanel'); if (p) p.style.display = 'none';
+  var b = document.getElementById('mtBtn'); if (b) b.classList.remove('active');
+}
+function mtToggle() {
+  if (!audioBuf) {
+    setStatus('Load an audio track first (video has no analyzable buffer).', 'err');
+    setTimeout(function () { setStatus(''); }, 2500);
+    return;
+  }
+  mt.active = !mt.active;
+  var btn = document.getElementById('mtBtn'), panel = document.getElementById('mtPanel');
+  if (mt.active) {
+    btn.classList.add('active');
+    panel.style.display = 'block';
+    setStatus('Analyzing melody...');
+    setTimeout(function () {           // let the status paint before the synchronous FFT work
+      var ok = false;
+      try { ok = mtAnalyze(); } catch (e) { log('Melody analyze err: ' + e.message); }
+      setStatus('');
+      mtRenderPanel();
+      drawWave();
+      if (ok) log('Melody: key=' + mt.key + ' (' + mt.keyConf.toFixed(2) + '), ' + mt.snap.length + ' onsets');
+    }, 30);
+  } else {
+    btn.classList.remove('active');
+    panel.style.display = 'none';
+    drawWave();
+  }
+}
+function mtRenderPanel() {
+  document.getElementById('mtKey').textContent = mt.key ? ('Key: ' + mt.key) : '--';
+  var foot = document.getElementById('mtFoot');
+  if (mt.snap && mt.snap.length) {
+    foot.textContent = mt.snap.length + ' onsets  |  key corr ' + (mt.keyConf > 0 ? mt.keyConf.toFixed(2) : '--') + '  |  rhythm only (no pitches in v1)';
+  } else {
+    foot.textContent = 'No clear onsets detected in this region.';
+  }
+  mtResizeStrip();
+  mtDrawStrip();
+}
+function mtResizeStrip() {
+  var c = document.getElementById('mtStrip');
+  if (!c) return;
+  var rect = c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  c.width = Math.max(1, Math.round(rect.width * dpr));
+  c.height = Math.max(1, Math.round(rect.height * dpr));
+  mt._stripDpr = dpr;
+}
+// Rhythm strip: the loop region as a bar/beat/16th grid with a dot per onset.
+function mtDrawStrip() {
+  var c = document.getElementById('mtStrip');
+  if (!c) return;
+  var g = c.getContext('2d'), W = c.width, H = c.height;
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = '#141416'; g.fillRect(0, 0, W, H);
+  if (!mt.active || !mt.region) return;
+  var t0 = mt.region.t0, t1 = mt.region.t1, span = t1 - t0;
+  if (span <= 0) return;
+  var dpr = mt._stripDpr || 1, b, s;
+  if (gridBPM > 0) {
+    var beatDur = 60 / gridBPM, bpb = gridTimeSigTop;
+    var bStart = Math.floor((t0 - gridOffset) / beatDur) - 1, bEnd = Math.ceil((t1 - gridOffset) / beatDur) + 1;
+    for (b = bStart; b <= bEnd; b++) {
+      var bt = gridOffset + b * beatDur;
+      if (bt < t0 || bt > t1) continue;
+      var bib = ((b % bpb) + bpb) % bpb, x = (bt - t0) / span * W;
+      g.strokeStyle = bib === 0 ? 'rgba(255,214,10,0.5)' : 'rgba(255,214,10,0.15)';
+      g.lineWidth = (bib === 0 ? 2 : 1) * dpr;
+      g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke();
+      g.strokeStyle = 'rgba(255,255,255,0.06)'; g.lineWidth = 1 * dpr;
+      for (s = 1; s < 4; s++) {
+        var xs = (bt + s * beatDur / 4 - t0) / span * W;
+        if (xs > 0 && xs < W) { g.beginPath(); g.moveTo(xs, H * 0.2); g.lineTo(xs, H * 0.8); g.stroke(); }
+      }
+    }
+  }
+  for (var i = 0; i < mt.snap.length; i++) {
+    var ox = (mt.snap[i] - t0) / span * W;
+    if (ox < 0 || ox > W) continue;
+    g.strokeStyle = 'rgba(10,132,255,0.5)'; g.lineWidth = 1 * dpr;
+    g.beginPath(); g.moveTo(ox, 0); g.lineTo(ox, H); g.stroke();
+    g.fillStyle = '#0a84ff';
+    g.beginPath(); g.arc(ox, H / 2, 4 * dpr, 0, 2 * Math.PI); g.fill();
+  }
+}
+
 // ── Background audio ───────────────────────────────────────────────────────
 // iOS suspends the AudioContext when backgrounded, so a live synth scheduler
 // goes silent. Fix: pre-render the looping groove (synth voices + samples +
@@ -5391,7 +5671,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v48 (Phase 4: Drum Pad - 4x4 synth pads, metronome, live looping)');
+log('Boot OK v49 (Phase 5: Melody Transcriber - key/scale + rhythmic onsets in Loop Function)');
 </script>
 </body>
 </html>
