@@ -175,13 +175,8 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 #logContent{font-family:monospace;font-size:10px;color:var(--dim);white-space:pre-wrap;word-break:break-all}
 .log-copy{background:var(--sur2);color:var(--dim);border:none;border-radius:8px;padding:8px 14px;font-size:11px;cursor:pointer;margin-top:8px}
 /* Beat Builder */
-.bb-open-lbl{display:inline-block;background:var(--ora);color:#000;padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;margin-left:6px;border:none}
-.bb-open-lbl:active{opacity:.7}
-#beatBuilder{position:fixed;inset:0;background:var(--bg);z-index:900;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
-#beatBuilder.show{display:flex}
 .bb-top{display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding-bottom:6px;border-bottom:1px solid var(--brd);margin-bottom:6px}
 .bb-top .cbtn{padding:7px 9px;font-size:12px;border-radius:8px}
-.bb-title{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--ora);flex:1;text-align:center;text-transform:uppercase}
 .bb-mini-inp{background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:7px;padding:6px 4px;font-size:12px;width:48px;text-align:center;font-variant-numeric:tabular-nums;-webkit-appearance:none;-moz-appearance:textfield}
 .bb-mini-sel{background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:7px;padding:6px 6px;font-size:12px;-webkit-appearance:none;appearance:none}
 .bb-pill{background:var(--sur2);color:var(--dim);border:1px solid var(--brd);border-radius:7px;padding:6px 9px;font-size:11px;font-weight:700;cursor:pointer;touch-action:manipulation}
@@ -189,36 +184,6 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .bb-pill.on{background:var(--ora);color:#000;border-color:var(--ora)}
 .bb-play{background:var(--grn)!important;color:#000!important;font-weight:800}
 .bb-stop{background:var(--red)!important;color:#fff!important;font-weight:800}
-.bb-scroll{flex:1;overflow:auto;position:relative;background:var(--sur);border-radius:10px;-webkit-overflow-scrolling:touch}
-.bb-inner{position:relative}
-.bb-timeline{position:sticky;top:0;height:22px;background:var(--sur2);z-index:3;border-bottom:1px solid var(--brd);display:flex}
-.bb-timeline-head{position:sticky;left:0;width:140px;background:var(--sur2);z-index:4;border-right:1px solid var(--brd);flex-shrink:0;font-size:10px;color:var(--dim);display:flex;align-items:center;padding:0 6px;text-transform:uppercase;letter-spacing:1px}
-.bb-timeline canvas{display:block;height:22px;flex-shrink:0}
-.bb-row{display:flex;border-bottom:1px solid var(--brd);height:62px;position:relative}
-.bb-row-head{position:sticky;left:0;width:140px;background:var(--sur);z-index:2;padding:3px 5px;display:flex;flex-direction:column;gap:3px;border-right:1px solid var(--brd);flex-shrink:0;justify-content:space-between}
-.bb-row-name{background:var(--sur2);border:none;color:var(--txt);border-radius:5px;padding:3px 5px;font-size:11px;font-weight:600;width:100%;-webkit-appearance:none}
-.bb-row-name:focus{outline:1px solid var(--ora)}
-.bb-row-btns{display:flex;gap:2px}
-.bb-row-btns button{background:var(--sur2);border:none;color:var(--txt);border-radius:4px;padding:3px 4px;font-size:10px;cursor:pointer;flex:1;touch-action:manipulation;font-weight:600}
-.bb-row-btns button:active{opacity:.6}
-.bb-row-btns .bbr-rec{color:var(--red)}
-.bb-row-btns .bbr-load{color:var(--acc)}
-.bb-row-btns .bbr-mute.on{background:var(--red);color:#fff}
-.bb-row-vol{width:100%;margin:0;height:10px}
-.bb-row-vol::-webkit-slider-thumb{width:14px;height:14px}
-.bb-row-info{font-size:9px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bb-row-canvas{display:block;height:62px;flex-shrink:0;background:var(--sur);cursor:crosshair;touch-action:none}
-.bb-playhead{position:absolute;top:22px;bottom:0;width:2px;background:var(--grn);pointer-events:none;z-index:5;display:none;box-shadow:0 0 6px var(--grn)}
-.bb-marquee{position:absolute;border:1.5px dashed var(--acc);background:rgba(10,132,255,.18);pointer-events:none;z-index:6;display:none}
-.bb-pill#bbSelBtn.on{background:var(--acc);color:#fff;border-color:var(--acc)}
-.bb-add-row{background:var(--sur2);color:var(--dim);border:1px dashed var(--brd);border-radius:8px;padding:8px;width:100%;margin:6px 0 0;font-size:11px;font-weight:600;cursor:pointer}
-.bb-add-row:active{opacity:.6}
-.bb-ctx{position:fixed;background:var(--sur2);border:1px solid var(--brd);border-radius:10px;padding:5px;z-index:1100;display:none;box-shadow:0 6px 24px rgba(0,0,0,.6)}
-.bb-ctx.show{display:block}
-.bb-ctx button{display:block;width:100%;background:none;border:none;color:var(--txt);padding:9px 14px;font-size:12px;text-align:left;cursor:pointer;border-radius:6px;font-weight:600}
-.bb-ctx button:active{background:var(--sur)}
-.bb-ctx .bb-ctx-del{color:var(--red)}
-.bb-row-btns .bbr-edit{color:var(--grn)}
 /* Sample trim modal */
 .bb-samed{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1050;display:none;align-items:center;justify-content:center;padding:14px}
 .bb-samed.show{display:flex}
@@ -226,13 +191,9 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 #dpLibList,#dpInstList,#dmLibList{max-height:58vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .bb-samed-title{font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--grn);margin-bottom:4px;text-align:center}
 .bb-samed-name{font-size:11px;color:var(--dim);text-align:center;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#bbSECanvas{display:block;width:100%;height:140px;background:var(--sur2);border-radius:8px;touch-action:none}
-.bb-samed-times{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;margin:8px 2px}
-.bb-samed-times b{color:var(--txt);font-weight:600}
 .bb-samed-row{display:flex;gap:6px;margin-top:10px}
 .bb-samed-row button{flex:1;border:none;border-radius:10px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
 .bb-samed-row button:active{opacity:.7}
-.bb-samed-prev{background:var(--ora);color:#000}
 .bb-samed-apply{background:var(--grn);color:#000}
 .bb-samed-cancel{background:var(--sur2);color:var(--txt)}
 .bb-samed-hint{font-size:10px;color:var(--dim);text-align:center;margin-top:8px;font-style:italic}
@@ -241,6 +202,10 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 #drumPlus.show{display:flex}
 #drumPlus.ctrl-collapsed .dp-ctrls{display:none}
 /* Phase 4: Drum Pad (4x4) */
+#dpNotes{position:fixed;inset:0;background:var(--bg);z-index:903;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
+#dpNotes.show{display:flex}
+.dp-notes-wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;background:#fff;border-radius:10px;padding:6px}
+#dpNotesCv{display:block}
 #drumPad{position:fixed;inset:0;background:var(--bg);z-index:902;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
 #drumPad.show{display:flex}
 .pad-grid{flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:8px;margin:6px 0;min-height:0}
@@ -275,9 +240,14 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .dm-mute{background:var(--sur2);border:none;color:var(--dim);border-radius:4px;padding:3px 5px;font-size:9px;font-weight:700;cursor:pointer;touch-action:manipulation}
 .dm-mute.on{background:var(--red);color:#fff}
 .dm-steps{display:flex;flex:1}
-.dm-cell{width:26px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.04);position:relative;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center}
+.dm-cell{width:var(--dpcw,26px);flex-shrink:0;border-right:1px solid rgba(255,255,255,.04);position:relative;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center}
 .dm-cell.s16{border-left:1px solid rgba(255,255,255,.08)}
 .dm-cell.e{border-left:1px solid rgba(255,255,255,.20)}
+/* triplet columns of a mixed grid — violet, so straight vs triplet stays readable */
+.dm-cell.t3{border-left:1px solid rgba(191,90,242,.55);background:rgba(191,90,242,.045)}
+.dm-cell.t6{border-left:1px solid rgba(191,90,242,.22);background:rgba(191,90,242,.03)}
+.dm-rcell.t3{border-left:1px solid rgba(191,90,242,.55)}
+.dm-rcell.t6{border-left:1px solid rgba(191,90,242,.22)}
 .dm-cell.q{border-left:1px solid var(--dim)}
 .dm-cell.bar{border-left:2px solid var(--txt)}
 .dm-cell.on::after{content:"";width:15px;height:15px;border-radius:50%;background:var(--acc);box-shadow:0 0 5px var(--acc)}
@@ -289,11 +259,11 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .dm-range{flex:0 0 auto;width:84px;margin:0;height:12px}
 .dm-ruler{display:flex;height:20px;position:sticky;top:0;z-index:3;background:var(--sur2);border-bottom:1px solid var(--brd)}
 .dm-ruler-label{position:sticky;left:0;z-index:2;width:96px;flex-shrink:0;background:var(--sur2);border-right:1px solid var(--brd)}
-.dm-rcell{width:26px;flex-shrink:0;font-size:9px;color:var(--dim);display:flex;align-items:center;padding-left:2px;font-variant-numeric:tabular-nums;overflow:hidden}
+.dm-rcell{width:var(--dpcw,26px);flex-shrink:0;font-size:9px;color:var(--dim);display:flex;align-items:center;padding-left:2px;font-variant-numeric:tabular-nums;overflow:hidden}
 .dp-sel-row{height:20px}
 .dp-sel-row .dm-row-label{background:var(--sur2)}
 .dp-sel-row .dm-row-name{font-size:10px;color:var(--acc)}
-.dp-sel-cell{width:26px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.05);cursor:pointer;touch-action:manipulation;background:var(--sur2)}
+.dp-sel-cell{width:var(--dpcw,26px);flex-shrink:0;border-right:1px solid rgba(255,255,255,.05);cursor:pointer;touch-action:manipulation;background:var(--sur2)}
 .dp-sel-cell.sel{background:rgba(10,132,255,.35)}
 .dp-sel-cell.selstart{box-shadow:inset 2px 0 0 var(--acc)}
 .dm-rcell.bar{border-left:2px solid var(--txt)}
@@ -338,7 +308,6 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <p class="menu-sub">Drum practice tool</p>
     <button class="menu-btn" onclick="menuLoop()">Loop Function</button>
     <button class="menu-btn" onclick="menuRecord()">Record</button>
-    <button class="menu-btn" onclick="bbOpen()">Beat <span class="menu-tag">old</span></button>
     <button class="menu-btn" onclick="dpOpen()">Beat Builder</button>
     <button class="menu-btn" onclick="padOpen()">Drum Pad</button>
   </div>
@@ -511,56 +480,6 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     </div>
   </div>
 </div>
-<!-- Beat Builder overlay -->
-<div id="beatBuilder">
-  <div class="bb-top">
-    <button class="cbtn" onclick="bbClose()">&larr;</button>
-    <span class="bb-title">Beat Builder</span>
-    <button class="cbtn bb-play" id="bbPlayBtn" onclick="bbTogglePlay()">&#9654;</button>
-    <button class="cbtn bb-stop" onclick="bbStop()">&#9632;</button>
-  </div>
-  <div class="bb-top" style="border-bottom:none;margin-bottom:4px">
-    <span style="font-size:10px;color:var(--dim);font-weight:700">BPM</span>
-    <input type="number" class="bb-mini-inp" id="bbBpm" min="20" max="300" step="0.5" value="120" inputmode="decimal" onchange="bbSetBpm(this.value)">
-    <span style="font-size:10px;color:var(--dim);font-weight:700">TS</span>
-    <select class="bb-mini-sel" id="bbTs" onchange="bbSetTs(this.value)">
-      <option value="4/4">4/4</option><option value="3/4">3/4</option><option value="2/4">2/4</option>
-      <option value="6/8">6/8</option><option value="5/4">5/4</option><option value="7/8">7/8</option>
-    </select>
-    <span style="font-size:10px;color:var(--dim);font-weight:700">Bars</span>
-    <button class="bb-pill" onclick="bbChangeBars(-1)">&minus;</button>
-    <span id="bbBarsDisp" style="font-size:13px;font-weight:700;min-width:22px;text-align:center">2</span>
-    <button class="bb-pill" onclick="bbChangeBars(1)">+</button>
-    <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:4px">Snap</span>
-    <select class="bb-mini-sel" id="bbSnap" onchange="bbSetSnap(this.value)">
-      <option value="4">1/4</option><option value="8">1/8</option>
-      <option value="16" selected>1/16</option><option value="32">1/32</option>
-      <option value="8t">1/8T</option><option value="16t">1/16T</option>
-    </select>
-    <button class="bb-pill" id="bbLoopBtn" onclick="bbToggleLoop()">Loop</button>
-    <button class="bb-pill" onclick="bbZoom(1.25)">Z+</button>
-    <button class="bb-pill" onclick="bbZoom(0.8)">Z&minus;</button>
-    <button class="bb-pill" id="bbSelBtn" onclick="bbToggleSelMode()">Sel</button>
-    <button class="bb-pill" onclick="bbCopy()">Copy</button>
-    <button class="bb-pill" onclick="bbPasteArm()">Paste</button>
-    <button class="bb-pill" onclick="bbDeleteSel()" style="color:var(--red)">Del</button>
-    <button class="bb-pill" onclick="bbUndo()">Undo</button>
-    <button class="bb-pill" onclick="bbRedo()">Redo</button>
-  </div>
-  <div class="bb-scroll" id="bbScroll">
-    <div class="bb-inner" id="bbInner">
-      <div class="bb-timeline">
-        <div class="bb-timeline-head">Timeline</div>
-        <canvas id="bbTimelineCanvas"></canvas>
-      </div>
-      <div id="bbRows"></div>
-      <button class="bb-add-row" onclick="bbAddRows(8)">+ Add 8 more rows</button>
-      <div class="bb-playhead" id="bbPlayhead"></div>
-      <div class="bb-marquee" id="bbMarquee"></div>
-    </div>
-  </div>
-  <input type="file" id="bbFileInput" accept="audio/*,.mp3,.mp4,.m4a,.wav,.aiff,.aif,.flac,.aac,.ogg,.webm" style="display:none">
-</div>
 <!-- Beat Builder overlay (ex Drum+) -->
 <div id="drumPlus">
   <div class="bb-top">
@@ -579,17 +498,22 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:4px">Time sig.</span>
     <input type="number" class="bb-mini-inp" id="dpTsNum" min="1" max="64" step="1" value="4" style="width:40px" inputmode="numeric" onchange="dpSetTs()" title="Beats per bar">
     <span style="font-weight:800">/</span>
-    <input type="number" class="bb-mini-inp" id="dpTsDen" min="1" max="64" step="1" value="4" style="width:40px" inputmode="numeric" onchange="dpSetTs()" title="Note value of the beat (any number allowed)">
+    <input type="number" class="bb-mini-inp" id="dpTsDen" min="1" max="64" step="1" value="4" style="width:40px" inputmode="numeric" onchange="dpSetTs()" title="Notated note value (4 = quarters, 8 = eighths ...)">
+    <button class="bb-pill" id="dpFeelBtn" onclick="dpCycleFeel()" title="How the bar is felt: Compound makes 6/8 two dotted-quarter beats of three eighths (BPM counts those beats)">Feel: Auto</button>
+    <span id="dpMeterDisp" style="font-size:10px;color:var(--dim);font-weight:700">4 beats/bar of 1/4 &middot; Simple</span>
     <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:4px">Bars</span>
     <button class="bb-pill" onclick="dpChangeBars(-1)">&minus;</button>
     <span id="dpBarsDisp" style="font-size:13px;font-weight:700;min-width:20px;text-align:center">1</span>
     <button class="bb-pill" onclick="dpChangeBars(1)">+</button>
   </div>
   <div class="bb-top dp-ctrls" style="border-bottom:none;margin-bottom:4px;gap:6px">
-    <span style="font-size:10px;color:var(--dim);font-weight:700">Grid subdivision</span>
-    <button class="bb-pill" onclick="dpSubCoarser()" title="Coarser grid: fewer cells per beat">&times;2</button>
-    <span id="dpSubDisp" style="font-size:11px;font-weight:700;min-width:78px;text-align:center">1/16 &middot; 4/beat</span>
-    <button class="bb-pill" onclick="dpSubFiner()" title="Finer grid: more cells per beat">&divide;2</button>
+    <span style="font-size:10px;color:var(--dim);font-weight:700">Grid</span>
+    <button class="bb-pill" onclick="dpSubCoarser()" title="Coarser grid: fewer cells per beat">&minus;</button>
+    <span id="dpSubDisp" style="font-size:11px;font-weight:700;min-width:96px;text-align:center">1/16 &middot; 4/beat</span>
+    <button class="bb-pill" onclick="dpSubFiner()" title="Finer grid: more cells per beat">+</button>
+    <button class="bb-pill" onclick="dpSubPreset('straight')" title="Straight subdivisions (16ths)">Straight</button>
+    <button class="bb-pill" onclick="dpSubPreset('trip')" title="Triplet subdivisions (3 or 6 per beat)">Triplet</button>
+    <button class="bb-pill" onclick="dpSubPreset('both')" title="One grid holding both: 12 cells/beat = 16ths every 3rd cell, 8th-triplets every 4th (violet)">Both</button>
     <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:6px">Swing</span>
     <input type="range" class="dm-range" id="dpSwing" min="50" max="75" step="1" value="50" oninput="dpSetSwing(this.value)">
     <span id="dpSwingDisp" style="font-size:11px;font-weight:700;min-width:92px">50% &middot; Straight</span>
@@ -603,7 +527,10 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <option value="trip">Triplet</option>
       <option value="shuffle">Shuffle</option>
     </select>
-    <button class="bb-pill" id="dpLoopBtn" onclick="dpToggleLoop()" title="Loop a range of bars/beats">Loop</button>
+    <input type="range" class="dm-range" id="dpMetroVol" min="0" max="2" step="0.05" value="1" oninput="dpSetMetroVol(this.value)" title="Metronome volume (own bus — never ducked by the groove)" style="width:66px">
+    <span id="dpMetroVolDisp" style="font-size:10px;color:var(--dim);font-weight:700;min-width:34px">100%</span>
+    <button class="bb-pill" id="dpLoopBtn" onclick="dpToggleLoop()" title="Loop a range — down to a single grid cell">Loop</button>
+    <button class="bb-pill" onclick="dpNotesOpen()" title="Show this groove as drum notation">Notes</button>
     <button class="bb-pill" id="dpSongBtn" onclick="dpToggleSong()" title="Play the loaded Loop Function track underneath, in tempo">Song</button>
     <button class="bb-pill" id="dpSaveBtn" onclick="dpSaveGroove()">Save</button>
     <button class="bb-pill" onclick="dpSaveGrooveAs()">Save As</button>
@@ -616,16 +543,22 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
   <div class="bb-top" id="dpLoopRow" style="border-bottom:none;margin-bottom:4px;gap:5px;display:none">
     <span style="font-size:10px;color:var(--ora);font-weight:700">Loop In</span>
     <span style="font-size:9px;color:var(--dim)">bar</span>
-    <input type="number" class="bb-mini-inp" id="dpLoopInBar" min="1" step="1" value="1" style="width:38px" inputmode="numeric" onchange="dpLoopFromInputs()">
+    <input type="number" class="bb-mini-inp" id="dpLoopInBar" min="1" step="1" value="1" style="width:34px" inputmode="numeric" onchange="dpLoopFromInputs()">
     <span style="font-size:9px;color:var(--dim)">beat</span>
-    <input type="number" class="bb-mini-inp" id="dpLoopInBeat" min="1" step="1" value="1" style="width:38px" inputmode="numeric" onchange="dpLoopFromInputs()">
+    <input type="number" class="bb-mini-inp" id="dpLoopInBeat" min="1" step="1" value="1" style="width:34px" inputmode="numeric" onchange="dpLoopFromInputs()">
+    <span style="font-size:9px;color:var(--dim)">cell</span>
+    <input type="number" class="bb-mini-inp" id="dpLoopInCell" min="1" step="1" value="1" style="width:34px" inputmode="numeric" onchange="dpLoopFromInputs()">
     <span style="font-size:10px;color:var(--ora);font-weight:700;margin-left:6px">Out</span>
     <span style="font-size:9px;color:var(--dim)">bar</span>
-    <input type="number" class="bb-mini-inp" id="dpLoopOutBar" min="1" step="1" value="1" style="width:38px" inputmode="numeric" onchange="dpLoopFromInputs()">
+    <input type="number" class="bb-mini-inp" id="dpLoopOutBar" min="1" step="1" value="1" style="width:34px" inputmode="numeric" onchange="dpLoopFromInputs()">
     <span style="font-size:9px;color:var(--dim)">beat</span>
-    <input type="number" class="bb-mini-inp" id="dpLoopOutBeat" min="1" step="1" value="4" style="width:38px" inputmode="numeric" onchange="dpLoopFromInputs()">
+    <input type="number" class="bb-mini-inp" id="dpLoopOutBeat" min="1" step="1" value="4" style="width:34px" inputmode="numeric" onchange="dpLoopFromInputs()">
+    <span style="font-size:9px;color:var(--dim)">cell</span>
+    <input type="number" class="bb-mini-inp" id="dpLoopOutCell" min="1" step="1" value="4" style="width:34px" inputmode="numeric" onchange="dpLoopFromInputs()">
     <button class="bb-pill" onclick="dpLoopFull()" title="Loop the whole groove">Full</button>
-    <span style="font-size:9px;color:var(--dim);margin-left:2px">(Out beat is inclusive; drag the orange handles too)</span>
+    <button class="bb-pill" onclick="dpLoopFromSel()" title="Loop exactly the region marked in the Select lane">From Sel</button>
+    <span id="dpLoopLenDisp" style="font-size:9px;color:var(--ora);font-weight:700;min-width:80px"></span>
+    <span style="font-size:9px;color:var(--dim);margin-left:2px">(Out cell is inclusive; handles snap to cells)</span>
   </div>
   <div class="dm-grid-wrap" id="dpGridWrap">
     <div class="dm-grid" id="dpGrid"></div>
@@ -681,62 +614,18 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
   </div>
 </div>
 <input type="file" id="dpImportInput" accept="application/json,.json" style="display:none" onchange="dpImportGroovesFile(this)">
-<!-- Sample trim editor -->
-<div class="bb-samed" id="bbSEModal">
-  <div class="bb-samed-card">
-    <div class="bb-samed-title">Trim Sample</div>
-    <div class="bb-samed-name" id="bbSEName">&mdash;</div>
-    <canvas id="bbSECanvas"></canvas>
-    <div class="bb-samed-times">
-      <span>Start: <b id="bbSEStartTime">0.000</b>s</span>
-      <span>Len: <b id="bbSELenTime">0.000</b>s</span>
-      <span>End: <b id="bbSEEndTime">0.000</b>s</span>
-    </div>
-    <div class="bb-samed-row" style="gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0">
-      <span style="font-size:11px;color:var(--dim);font-weight:700">Row Speed</span>
-      <input type="range" id="bbSERowSpeed" min="0.25" max="3" step="0.05" value="1" style="flex:1;min-width:80px" oninput="bbSERowSpeedChange(this.value)">
-      <span id="bbSERowSpeedVal" style="font-size:12px;font-weight:700;min-width:42px">1.00&times;</span>
-      <button class="bb-pill" id="bbSERowReverse" onclick="bbSERowToggleReverse()" style="font-size:11px">Reverse</button>
-      <button class="bb-pill" id="bbSERowPP" onclick="bbSERowTogglePP()" style="font-size:11px">M.Tempo</button>
-      <button class="bb-pill" onclick="bbSERowApplyAll()" style="font-size:11px;background:var(--acc);color:#fff">Apply to all clips</button>
-    </div>
-    <div class="bb-samed-row">
-      <button class="bb-samed-prev" onclick="bbSEPreview()">&#9654; Preview</button>
-      <button class="bb-samed-apply" onclick="bbSEApply()">Apply Trim</button>
-    </div>
-    <div class="bb-samed-row">
-      <button class="bb-samed-cancel" onclick="bbSEClose()">Cancel</button>
-    </div>
-    <div class="bb-samed-hint">Drag the green/red handles to set start and end</div>
+<!-- Beat Builder: the groove as drum notation (read-only) -->
+<div id="dpNotes">
+  <div class="bb-top">
+    <button class="cbtn" onclick="dpNotesClose()">&larr;</button>
+    <span class="dm-title">Notation</span>
+    <button class="bb-pill" onclick="dpNotesZoom(-1)" title="Fewer bars per line (bigger)">&minus;</button>
+    <span id="dpNotesPerLine" style="font-size:10px;color:var(--dim);font-weight:700;min-width:74px;text-align:center">auto</span>
+    <button class="bb-pill" onclick="dpNotesZoom(1)" title="More bars per line (smaller)">+</button>
+    <button class="bb-pill" onclick="dpNotesDraw()" title="Redraw after edits">Refresh</button>
+    <button class="bb-pill" onclick="dpNotesPng()" style="color:var(--grn)">PNG</button>
   </div>
-</div>
-<!-- Clip context menu -->
-<div class="bb-ctx" id="bbCtx">
-  <button onclick="bbCtxAction('reverse')" id="bbCtxReverse">Reverse</button>
-  <button onclick="bbCtxAction('speed')">Speed / Pitch...</button>
-  <button onclick="bbCtxAction('duplicate')">Duplicate</button>
-  <button onclick="bbCtxAction('reset')">Reset trim/speed</button>
-  <button onclick="bbCtxAction('delete')" class="bb-ctx-del">Delete clip</button>
-</div>
-<!-- Clip speed panel -->
-<div class="bb-samed" id="bbSpeedModal">
-  <div class="bb-samed-card" style="max-width:340px">
-    <div class="bb-samed-title" style="color:var(--acc)">Clip Speed</div>
-    <div class="bb-samed-name" id="bbSpeedClipName">&mdash;</div>
-    <div style="display:flex;align-items:center;gap:10px;margin:10px 0">
-      <span style="font-size:12px;color:var(--dim)">Speed</span>
-      <input type="range" id="bbSpeedSlider" min="0.25" max="2.5" step="0.05" value="1" style="flex:1;margin:0" oninput="bbSpeedChange(this.value)">
-      <span id="bbSpeedVal" style="font-size:14px;font-weight:700;color:var(--acc);min-width:42px;text-align:right">1.00&times;</span>
-    </div>
-    <div class="loop-row" style="margin:4px 0">
-      <span class="loop-row-lbl">Preserve Pitch (Master Tempo)</span>
-      <div class="toggle" id="bbPresPitchTog" onclick="bbTogglePresPitch()"></div>
-    </div>
-    <div class="bb-samed-row">
-      <button class="bb-samed-prev" onclick="bbSpeedPreview()">&#9654; Preview</button>
-      <button class="bb-samed-apply" onclick="bbSpeedClose()">Done</button>
-    </div>
-  </div>
+  <div class="dp-notes-wrap" id="dpNotesWrap"><canvas id="dpNotesCv"></canvas></div>
 </div>
 <!-- Drum Pad (Phase 4): 4x4 synth-voice pads + metronome + live looping -->
 <div id="drumPad">
@@ -1555,8 +1444,8 @@ document.addEventListener('visibilitychange', function() {
 // above (which only acts when the main transport is playing).
 document.addEventListener('visibilitychange', function() {
   if (document.hidden) {
-    var bbShown = document.getElementById('drumPlus').classList.contains('show');
-    if (db2.playing && bbShown && !dpBgActive) dpEnterBackground();
+    var dpShown = document.getElementById("drumPlus").classList.contains("show");
+    if (db2.playing && dpShown && !dpBgActive) dpEnterBackground();
   } else {
     if (dpBgActive) dpExitBackground();
   }
@@ -2479,7 +2368,7 @@ var recAnalyser = null, recAnalyserCtx = null;
 var dpRecPending = false;   // true when the recorder was opened to add a Beat Builder instrument
 
 function openRecorder() {
-  dpRecPending = false;   // default target is main/bb; dpRecordInstrument re-arms after this
+  dpRecPending = false;   // default target is the main player; dpRecordInstrument re-arms after this
   document.getElementById('recModal').classList.add('show');
   document.getElementById('recTimer').textContent = '0:00';
   document.getElementById('recHint').textContent = 'Tap the red button to start';
@@ -2499,7 +2388,6 @@ function closeRecorder() {
   document.getElementById('recHint').textContent = 'Ready';
   document.getElementById('recLevelBar').style.width = '0%';
   stopMicStream();
-  if (typeof bb !== 'undefined') bb.recordingRowId = 0;
   dpRecPending = false;
   document.getElementById('recModal').classList.remove('show');
 }
@@ -2593,7 +2481,6 @@ function onRecStop() {
     recAborted = false;
     recChunks = [];
     stopMicStream();
-    if (typeof bb !== 'undefined') bb.recordingRowId = 0;
     dpRecPending = false;
     log('Rec aborted');
     return;
@@ -2616,12 +2503,6 @@ function onRecStop() {
     if (dpRecPending) {
       dpRecPending = false;
       dpAddRecordedInstrument(name, ab);
-      return;
-    }
-    if (bb.recordingRowId) {
-      var rid = bb.recordingRowId; bb.recordingRowId = 0;
-      setStatus('Decoding sample...');
-      bbAssignBufferToRow(rid, name, ab, true);
       return;
     }
     setStatus('Analyzing recording...');
@@ -2673,1110 +2554,9 @@ function startLevelMeter(stream) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  Beat Builder (Phase 1)
+//  Shared musical constant — ticks per quarter note (32nds + triplets divide it)
 // ══════════════════════════════════════════════════════════════════════════════
-var TPQ = 192; // ticks per quarter note (supports 32nd + triplets)
-var bb = {
-  bpm: 120, tsNum: 4, tsDen: 4, bars: 2,
-  snap: '16',        // '4','8','16','32','8t','16t'
-  pxPerBeat: 80,
-  rows: [],          // {id,name,buffer,url,mute,vol,color,sampleName}
-  clips: [],         // {id,rowId,startTick,durTicks}
-  nextId: 1,
-  playing: false,
-  loopOn: true,
-  playStartCtxT: 0,
-  playStartTick: 0,
-  activeSources: [],
-  rafId: 0,
-  selectedClipId: 0,
-  recordingRowId: 0,
-  loadRowId: 0,
-  dragState: null,
-  longPressTimer: 0,
-  rowHeadW: 140,
-  rowH: 62,
-  selMode: false,
-  selectedClipIds: [],
-  clipboard: null,
-  pasteArmed: false,
-  marquee: null,
-  history: [],
-  redoStack: []
-};
-function bbSnapshot(label) {
-  try {
-    bb.history.push({
-      label: label || '',
-      clips: JSON.parse(JSON.stringify(bb.clips)),
-      selectedClipId: bb.selectedClipId,
-      selectedClipIds: bb.selectedClipIds.slice()
-    });
-    if (bb.history.length > 50) bb.history.shift();
-    bb.redoStack = [];
-  } catch(e) {}
-}
-function bbUndo() {
-  if (bb.history.length === 0) { setStatus('Nothing to undo', 'err'); setTimeout(function(){setStatus('');}, 1000); return; }
-  bb.redoStack.push({
-    label: 'redo',
-    clips: JSON.parse(JSON.stringify(bb.clips)),
-    selectedClipId: bb.selectedClipId,
-    selectedClipIds: bb.selectedClipIds.slice()
-  });
-  var s = bb.history.pop();
-  bb.clips = s.clips;
-  bb.selectedClipId = s.selectedClipId;
-  bb.selectedClipIds = s.selectedClipIds;
-  bbRedrawAll();
-  if (bb.playing) bbRestart();
-  setStatus('Undo' + (s.label ? ': ' + s.label : ''), 'ok');
-  setTimeout(function(){setStatus('');}, 900);
-}
-function bbRedo() {
-  if (bb.redoStack.length === 0) { setStatus('Nothing to redo', 'err'); setTimeout(function(){setStatus('');}, 1000); return; }
-  bb.history.push({
-    label: 'undo',
-    clips: JSON.parse(JSON.stringify(bb.clips)),
-    selectedClipId: bb.selectedClipId,
-    selectedClipIds: bb.selectedClipIds.slice()
-  });
-  var s = bb.redoStack.pop();
-  bb.clips = s.clips;
-  bb.selectedClipId = s.selectedClipId;
-  bb.selectedClipIds = s.selectedClipIds;
-  bbRedrawAll();
-  if (bb.playing) bbRestart();
-  setStatus('Redo', 'ok');
-  setTimeout(function(){setStatus('');}, 900);
-}
-
-function bbOpen() {
-  unlockSilentMode();
-  ensureCtx();
-  if (bb.rows.length === 0) {
-    for (var i = 0; i < 8; i++) bbAddRow();
-  }
-  document.getElementById('beatBuilder').classList.add('show');
-  bbRender();
-}
-function bbClose() {
-  bbStop();
-  document.getElementById('beatBuilder').classList.remove('show');
-}
-function bbAddRow() {
-  var idx = bb.rows.length;
-  var hue = (idx * 47) % 360;
-  bb.rows.push({
-    id: bb.nextId++, name: 'Inst ' + (idx + 1),
-    buffer: null, mute: false, vol: 0.8,
-    color: 'hsl(' + hue + ',70%,55%)',
-    sampleName: ''
-  });
-}
-function bbAddRows(n) {
-  for (var i = 0; i < n; i++) bbAddRow();
-  bbRender();
-}
-function bbSetBpm(v) {
-  var n = parseFloat(v);
-  if (isNaN(n) || n < 20 || n > 300) return;
-  bb.bpm = n;
-  bbRender();
-}
-function bbSetTs(v) {
-  var p = v.split('/');
-  bb.tsNum = parseInt(p[0], 10);
-  bb.tsDen = parseInt(p[1], 10);
-  bbRender();
-}
-function bbChangeBars(d) {
-  bb.bars = Math.max(1, Math.min(64, bb.bars + d));
-  document.getElementById('bbBarsDisp').textContent = bb.bars;
-  bbRender();
-}
-function bbSetSnap(v) { bb.snap = v; bbRender(); }
-function bbToggleLoop() {
-  bb.loopOn = !bb.loopOn;
-  document.getElementById('bbLoopBtn').classList.toggle('on', bb.loopOn);
-}
-function bbZoom(f) {
-  bb.pxPerBeat = Math.max(20, Math.min(300, bb.pxPerBeat * f));
-  bbRender();
-}
-// ── Grid math ───────────────────────────────────────────────────────────────
-function bbTicksPerBar() { return bb.tsNum * (TPQ * 4 / bb.tsDen); }
-function bbTotalTicks() { return bb.bars * bbTicksPerBar(); }
-function bbSnapTicks() {
-  var s = bb.snap;
-  if (s === '8t') return TPQ / 3;         // 1/8 triplet = 64 ticks
-  if (s === '16t') return TPQ / 6;        // 1/16 triplet = 32 ticks
-  var n = parseInt(s, 10);
-  return TPQ * 4 / n;                      // 1/n note in ticks
-}
-function bbTickToPx(t) {
-  var secsPerTick = 60 / bb.bpm / TPQ;
-  return t * secsPerTick * bb.bpm / 60 * bb.pxPerBeat;
-  // simplified: t / TPQ * pxPerBeat
-}
-function bbPatternPx() { return bbTotalTicks() / TPQ * bb.pxPerBeat; }
-function bbPxToTick(px) { return px / bb.pxPerBeat * TPQ; }
-function bbSecToTick(sec) { return sec * bb.bpm / 60 * TPQ; }
-function bbTickToSec(t) { return t / TPQ * 60 / bb.bpm; }
-
-// ── Render ──────────────────────────────────────────────────────────────────
-function bbRender() {
-  document.getElementById('bbBpm').value = bb.bpm;
-  document.getElementById('bbTs').value = bb.tsNum + '/' + bb.tsDen;
-  document.getElementById('bbBarsDisp').textContent = bb.bars;
-  document.getElementById('bbSnap').value = bb.snap;
-  document.getElementById('bbLoopBtn').classList.toggle('on', bb.loopOn);
-  bbRenderRows();
-  bbDrawTimeline();
-  bbRedrawAll();
-}
-function bbRenderRows() {
-  var container = document.getElementById('bbRows');
-  container.innerHTML = '';
-  for (var i = 0; i < bb.rows.length; i++) {
-    var r = bb.rows[i];
-    var rowEl = document.createElement('div');
-    rowEl.className = 'bb-row';
-    rowEl.dataset.rowId = r.id;
-    var head = document.createElement('div');
-    head.className = 'bb-row-head';
-    head.style.borderLeft = '4px solid ' + r.color;
-    head.innerHTML =
-      '<input class="bb-row-name" value="' + esc(r.name) + '" onchange="bbSetRowName(' + r.id + ',this.value)">' +
-      '<div class="bb-row-info">' + (r.sampleName ? esc(r.sampleName.substring(0,20)) : '(no sample)') + '</div>' +
-      '<div class="bb-row-btns">' +
-        '<button class="bbr-rec" onclick="bbRowRec(' + r.id + ')">REC</button>' +
-        '<button class="bbr-load" onclick="bbRowLoad(' + r.id + ')">File</button>' +
-        '<button class="bbr-edit" onclick="bbSEOpen(' + r.id + ')">E</button>' +
-        '<button class="bbr-mute' + (r.mute ? ' on' : '') + '" onclick="bbToggleMute(' + r.id + ')">M</button>' +
-      '</div>' +
-      '<input type="range" class="bb-row-vol" min="0" max="1" step="0.05" value="' + r.vol + '" oninput="bbSetVol(' + r.id + ',this.value)">';
-    rowEl.appendChild(head);
-    var cv = document.createElement('canvas');
-    cv.className = 'bb-row-canvas';
-    cv.dataset.rowId = r.id;
-    rowEl.appendChild(cv);
-    container.appendChild(rowEl);
-    bbAttachRowCanvas(cv, r.id);
-  }
-}
-function bbDrawTimeline() {
-  var tl = document.getElementById('bbTimelineCanvas');
-  if (!tl._bbBound) {
-    tl._bbBound = true;
-    tl.style.cursor = 'pointer';
-    tl.addEventListener('click', function(e) {
-      var rect = tl.getBoundingClientRect();
-      var x = e.clientX - rect.left;
-      var beatsPerBar = bb.tsNum * (4 / bb.tsDen);
-      var barPx = beatsPerBar * bb.pxPerBeat;
-      var bar = Math.floor(x / barPx);
-      if (bar < 0 || bar >= bb.bars) return;
-      var ticksPerBar = bbTicksPerBar();
-      var t0 = bar * ticksPerBar, t1 = (bar + 1) * ticksPerBar;
-      bb.selectedClipIds = [];
-      for (var i = 0; i < bb.clips.length; i++) {
-        var c = bb.clips[i];
-        if (c.startTick < t1 && c.startTick + c.durTicks > t0) bb.selectedClipIds.push(c.id);
-      }
-      bb.selMode = true;
-      document.getElementById('bbSelBtn').classList.add('on');
-      bbRedrawAll();
-      setStatus('Bar ' + (bar + 1) + ': ' + bb.selectedClipIds.length + ' clip(s) selected', 'ok');
-    });
-  }
-  var w = bbPatternPx();
-  var dpr = window.devicePixelRatio || 1;
-  tl.style.width = w + 'px';
-  tl.width = Math.floor(w * dpr);
-  tl.height = Math.floor(22 * dpr);
-  var ctx = tl.getContext('2d');
-  ctx.scale(dpr, dpr);
-  ctx.fillStyle = '#2c2c2e';
-  ctx.fillRect(0, 0, w, 22);
-  var beatsPerBar = bb.tsNum * (4 / bb.tsDen);
-  ctx.fillStyle = '#8e8e93';
-  ctx.font = '10px -apple-system,sans-serif';
-  for (var bar = 0; bar <= bb.bars; bar++) {
-    var x = bar * beatsPerBar * bb.pxPerBeat;
-    ctx.fillStyle = '#ff9f0a';
-    ctx.fillRect(x, 0, 1, 22);
-    ctx.fillStyle = '#f2f2f7';
-    if (bar < bb.bars) ctx.fillText((bar + 1), x + 3, 13);
-  }
-}
-function bbAttachRowCanvas(cv, rowId) {
-  bbDrawRowCanvas(cv, rowId);
-  // Touch / mouse handlers
-  var getX = function(e) {
-    var rect = cv.getBoundingClientRect();
-    var cx = (e.touches ? e.touches[0].clientX : e.clientX);
-    return cx - rect.left;
-  };
-  var downFn = function(e) {
-    e.preventDefault();
-    var x = getX(e);
-    // Paste armed: next tap places clipboard
-    if (bb.pasteArmed && bb.clipboard) {
-      bbPasteAt(rowId, bbPxToTick(x));
-      bb.pasteArmed = false;
-      setStatus('', '');
-      return;
-    }
-    // Select mode
-    if (bb.selMode) {
-      var clipInSel = bbClipAt(rowId, bbPxToTick(x));
-      if (clipInSel) {
-        var ix = bb.selectedClipIds.indexOf(clipInSel.id);
-        if (ix >= 0) bb.selectedClipIds.splice(ix, 1);
-        else bb.selectedClipIds.push(clipInSel.id);
-        bbRedrawAll();
-      } else {
-        bbStartMarquee(e, cv, rowId);
-      }
-      return;
-    }
-    var clip = bbClipAt(rowId, bbPxToTick(x));
-    if (clip) {
-      var wasSelected = (bb.selectedClipId === clip.id);
-      bb.selectedClipId = clip.id;
-      // edge-resize detection (only when already selected, handles ~14px)
-      var cx0 = clip.startTick / TPQ * bb.pxPerBeat;
-      var cw = Math.max(4, clip.durTicks / TPQ * bb.pxPerBeat);
-      var rel = x - cx0;
-      var mode = 'move';
-      if (wasSelected && cw > 30) {
-        if (rel > cw - 14) mode = 'resize-right';
-        else if (rel < 14) mode = 'resize-left';
-      }
-      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, origDurTicks: clip.durTicks, origTrimStart: clip.trimStart, origTrimEnd: clip.trimEnd, origSpeed: clip.speed, mode: mode, moved: false, snapped: false };
-      bbDrawRowCanvas(cv, rowId);
-      bb.longPressTimer = setTimeout(function() {
-        if (bb.dragState && !bb.dragState.moved) {
-          bbShowCtx(e, clip.id);
-        }
-      }, 550);
-    } else {
-      // Place new clip at snapped position
-      var row = bbRowById(rowId);
-      if (!row || !row.buffer) { setStatus('Load a sample for this row first', 'err'); setTimeout(function(){setStatus('');}, 1500); return; }
-      var t = bbSnap(bbPxToTick(x));
-      bbSnapshot('add clip');
-      var clip = bbMakeClip(rowId, t);
-      bb.clips.push(clip);
-      bb.selectedClipId = clip.id;
-      bb.dragState = { clipId: clip.id, startX: x, origStartTick: clip.startTick, origDurTicks: clip.durTicks, origTrimStart: clip.trimStart, origTrimEnd: clip.trimEnd, mode: 'move', moved: false, snapped: true };
-      bbDrawRowCanvas(cv, rowId);
-    }
-  };
-  var moveFn = function(e) {
-    if (!bb.dragState) return;
-    e.preventDefault();
-    var x = getX(e);
-    var dx = x - bb.dragState.startX;
-    if (Math.abs(dx) > 3 && !bb.dragState.moved) {
-      bb.dragState.moved = true;
-      if (!bb.dragState.snapped) { bbSnapshot(bb.dragState.mode); bb.dragState.snapped = true; }
-    }
-    var clip = bbClipById(bb.dragState.clipId);
-    if (!clip) return;
-    var row = bbRowById(clip.rowId);
-    var sampleDur = row && row.buffer ? row.buffer.duration : 0;
-    var ds = bb.dragState;
-    var changed = false;
-    if (ds.mode === 'move') {
-      var newTick = bbSnap(Math.max(0, ds.origStartTick + bbPxToTick(dx)));
-      if (newTick !== clip.startTick) { clip.startTick = newTick; changed = true; }
-    } else if (ds.mode === 'resize-right') {
-      // Time-stretch: change speed to fit new duration, keep trim unchanged
-      var dTicks = bbSnap(bbPxToTick(dx));
-      var newDur = Math.max(bbSnapTicks(), ds.origDurTicks + dTicks);
-      var origSampleSec = ds.origTrimEnd - ds.origTrimStart;
-      if (origSampleSec > 0.001) {
-        var newSec = bbTickToSec(newDur);
-        var newSpeed = Math.max(0.1, Math.min(4, origSampleSec / newSec));
-        if (newDur !== clip.durTicks || newSpeed !== clip.speed) {
-          clip.durTicks = newDur;
-          clip.speed = newSpeed;
-          clip.preservePitch = true;
-          changed = true;
-        }
-      }
-    } else if (ds.mode === 'resize-left') {
-      // Time-stretch from left: move start + adjust speed
-      var dTicks2 = bbSnap(bbPxToTick(dx));
-      var newStart = Math.max(0, ds.origStartTick + dTicks2);
-      var endTick = ds.origStartTick + ds.origDurTicks;
-      var newDur2 = Math.max(bbSnapTicks(), endTick - newStart);
-      newStart = endTick - newDur2;
-      var origSampleSec2 = ds.origTrimEnd - ds.origTrimStart;
-      if (origSampleSec2 > 0.001) {
-        var newSec2 = bbTickToSec(newDur2);
-        var newSpeed2 = Math.max(0.1, Math.min(4, origSampleSec2 / newSec2));
-        if (clip.startTick !== newStart || clip.durTicks !== newDur2 || clip.speed !== newSpeed2) {
-          clip.startTick = newStart;
-          clip.durTicks = newDur2;
-          clip.speed = newSpeed2;
-          clip.preservePitch = true;
-          changed = true;
-        }
-      }
-    }
-    if (changed) bbDrawRowCanvas(cv, rowId);
-  };
-  var upFn = function(e) {
-    var wasDrag = bb.dragState && bb.dragState.moved;
-    if (bb.longPressTimer) { clearTimeout(bb.longPressTimer); bb.longPressTimer = 0; }
-    bb.dragState = null;
-    if (wasDrag && bb.playing) bbRestart();
-  };
-  cv.addEventListener('touchstart', downFn, { passive: false });
-  cv.addEventListener('touchmove', moveFn, { passive: false });
-  cv.addEventListener('touchend', upFn);
-  cv.addEventListener('mousedown', downFn);
-  cv.addEventListener('mousemove', moveFn);
-  cv.addEventListener('mouseup', upFn);
-  cv.addEventListener('mouseleave', upFn);
-}
-function bbDrawRowCanvas(cv, rowId) {
-  var w = bbPatternPx();
-  var dpr = window.devicePixelRatio || 1;
-  cv.style.width = w + 'px';
-  cv.width = Math.floor(w * dpr);
-  cv.height = Math.floor(bb.rowH * dpr);
-  var ctx = cv.getContext('2d');
-  ctx.scale(dpr, dpr);
-  ctx.fillStyle = '#1c1c1e';
-  ctx.fillRect(0, 0, w, bb.rowH);
-  // Grid lines
-  var beatsPerBar = bb.tsNum * (4 / bb.tsDen);
-  var totalBeats = bb.bars * beatsPerBar;
-  // subdivisions (32nd or triplet)
-  var subTicks = bbSnapTicks();
-  var subPx = subTicks / TPQ * bb.pxPerBeat;
-  if (subPx >= 4) {
-    ctx.fillStyle = '#2a2a2c';
-    for (var t = subTicks; t < bbTotalTicks(); t += subTicks) {
-      var x = t / TPQ * bb.pxPerBeat;
-      ctx.fillRect(x, 0, 1, bb.rowH);
-    }
-  }
-  // Beat lines
-  ctx.fillStyle = '#3a3a3c';
-  for (var b = 0; b <= totalBeats; b++) {
-    var x = b * bb.pxPerBeat;
-    ctx.fillRect(x, 0, 1, bb.rowH);
-  }
-  // Bar lines
-  ctx.fillStyle = '#ff9f0a';
-  for (var bar = 0; bar <= bb.bars; bar++) {
-    var x = bar * beatsPerBar * bb.pxPerBeat;
-    ctx.fillRect(x, 0, (bar === 0 || bar === bb.bars) ? 2 : 1, bb.rowH);
-  }
-  // Clips
-  var row = bbRowById(rowId);
-  for (var i = 0; i < bb.clips.length; i++) {
-    var c = bb.clips[i];
-    if (c.rowId !== rowId) continue;
-    var cx = c.startTick / TPQ * bb.pxPerBeat;
-    var cw = Math.max(4, c.durTicks / TPQ * bb.pxPerBeat);
-    var sel = (c.id === bb.selectedClipId) || (bb.selectedClipIds.indexOf(c.id) >= 0);
-    ctx.fillStyle = row.color;
-    ctx.globalAlpha = 0.75;
-    ctx.fillRect(cx, 4, cw, bb.rowH - 8);
-    ctx.globalAlpha = 1;
-    if (sel) {
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(cx + 1, 5, cw - 2, bb.rowH - 10);
-    } else {
-      ctx.strokeStyle = 'rgba(0,0,0,.4)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(cx + 0.5, 4.5, cw - 1, bb.rowH - 9);
-    }
-    // left edge bright
-    ctx.fillStyle = '#fff';
-    ctx.globalAlpha = 0.6;
-    ctx.fillRect(cx, 4, 2, bb.rowH - 8);
-    ctx.globalAlpha = 1;
-    // Indicators: reverse arrow + speed label
-    if (cw > 24) {
-      ctx.fillStyle = 'rgba(0,0,0,.55)';
-      ctx.font = 'bold 10px -apple-system,sans-serif';
-      var lbl = '';
-      if (c.reverse) lbl += '\u21A9 ';
-      if (c.speed && c.speed !== 1) lbl += c.speed.toFixed(2) + 'x';
-      if (lbl) ctx.fillText(lbl, cx + 4, bb.rowH - 7);
-    }
-    // resize handles when selected
-    if (sel && cw > 30) {
-      ctx.fillStyle = 'rgba(255,255,255,.8)';
-      ctx.fillRect(cx + cw - 3, 10, 3, bb.rowH - 20);
-      ctx.fillRect(cx, 10, 3, bb.rowH - 20);
-    }
-  }
-}
-function bbRedrawAll() {
-  var cvs = document.querySelectorAll('.bb-row-canvas');
-  for (var i = 0; i < cvs.length; i++) {
-    var rid = parseInt(cvs[i].dataset.rowId, 10);
-    bbDrawRowCanvas(cvs[i], rid);
-  }
-}
-function bbMakeClip(rowId, startTick) {
-  var r = bbRowById(rowId);
-  var dur = r && r.buffer ? r.buffer.duration : 0.1;
-  var clip = {
-    id: bb.nextId++, rowId: rowId, startTick: startTick,
-    trimStart: 0, trimEnd: dur, speed: 1.0, preservePitch: true, reverse: false,
-    durTicks: 0
-  };
-  clip.durTicks = bbSecToTick((clip.trimEnd - clip.trimStart) / clip.speed);
-  return clip;
-}
-function bbGetReversed(row) {
-  if (row._reversedBuffer && row._reversedFor === row.buffer) return row._reversedBuffer;
-  var src = row.buffer;
-  var out = audioCtx.createBuffer(src.numberOfChannels, src.length, src.sampleRate);
-  for (var ch = 0; ch < src.numberOfChannels; ch++) {
-    var from = src.getChannelData(ch);
-    var to = out.getChannelData(ch);
-    var L = from.length;
-    for (var i = 0; i < L; i++) to[i] = from[L - 1 - i];
-  }
-  row._reversedBuffer = out;
-  row._reversedFor = src;
-  return out;
-}
-function bbRowById(id) { for (var i = 0; i < bb.rows.length; i++) if (bb.rows[i].id === id) return bb.rows[i]; return null; }
-function bbClipById(id) { for (var i = 0; i < bb.clips.length; i++) if (bb.clips[i].id === id) return bb.clips[i]; return null; }
-function bbClipAt(rowId, tick) {
-  for (var i = bb.clips.length - 1; i >= 0; i--) {
-    var c = bb.clips[i];
-    if (c.rowId === rowId && tick >= c.startTick && tick <= c.startTick + c.durTicks) return c;
-  }
-  return null;
-}
-function bbSnap(tick) {
-  var s = bbSnapTicks();
-  return Math.round(tick / s) * s;
-}
-function bbSetRowName(id, v) { var r = bbRowById(id); if (r) r.name = v; }
-function bbSetVol(id, v) { var r = bbRowById(id); if (r) { r.vol = parseFloat(v); if (bb.playing) bbRestart(); } }
-function bbToggleMute(id) {
-  var r = bbRowById(id); if (!r) return;
-  r.mute = !r.mute;
-  bbRenderRows();
-  bbRedrawAll();
-  if (bb.playing) bbRestart();
-}
-
-// ── Context menu ────────────────────────────────────────────────────────────
-var bbCtxOpenAt = 0;
-function bbShowCtx(e, clipId) {
-  bb.selectedClipId = clipId;
-  bbRedrawAll();
-  var c = bbClipById(clipId);
-  document.getElementById('bbCtxReverse').textContent = (c && c.reverse) ? 'Un-reverse' : 'Reverse';
-  var ctx = document.getElementById('bbCtx');
-  var tx = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
-  var cx = tx ? tx.clientX : e.clientX;
-  var cy = tx ? tx.clientY : e.clientY;
-  ctx.style.left = Math.min(window.innerWidth - 160, Math.max(8, cx)) + 'px';
-  ctx.style.top = Math.min(window.innerHeight - 240, Math.max(8, cy)) + 'px';
-  ctx.classList.add('show');
-  bbCtxOpenAt = Date.now();
-}
-function bbHideCtx() { document.getElementById('bbCtx').classList.remove('show'); }
-function bbCtxAction(action) {
-  bbHideCtx();
-  var c = bbClipById(bb.selectedClipId);
-  if (!c) return;
-  if (action === 'delete') {
-    bbSnapshot('delete');
-    bb.clips = bb.clips.filter(function(x) { return x.id !== c.id; });
-    bb.selectedClipId = 0;
-    bbRedrawAll();
-  } else if (action === 'reverse') {
-    bbSnapshot('reverse');
-    c.reverse = !c.reverse;
-    bbRedrawAll();
-  } else if (action === 'duplicate') {
-    bbSnapshot('duplicate');
-    var nc = {
-      id: bb.nextId++, rowId: c.rowId,
-      startTick: c.startTick + c.durTicks,
-      trimStart: c.trimStart, trimEnd: c.trimEnd,
-      speed: c.speed, preservePitch: c.preservePitch, reverse: c.reverse,
-      durTicks: c.durTicks
-    };
-    bb.clips.push(nc);
-    bb.selectedClipId = nc.id;
-    bbRedrawAll();
-  } else if (action === 'reset') {
-    bbSnapshot('reset');
-    var row = bbRowById(c.rowId);
-    if (row && row.buffer) {
-      c.trimStart = 0; c.trimEnd = row.buffer.duration;
-      c.speed = 1.0; c.preservePitch = true; c.reverse = false;
-      c.durTicks = bbSecToTick(c.trimEnd - c.trimStart);
-      bbRedrawAll();
-    }
-  } else if (action === 'speed') {
-    bbSpeedOpen(c.id);
-    return;
-  }
-  if (bb.playing) bbRestart();
-}
-// ── Clip speed panel ────────────────────────────────────────────────────────
-var bbSpeedClipId = 0;
-function bbSpeedOpen(clipId) {
-  var c = bbClipById(clipId); if (!c) return;
-  bbSpeedClipId = clipId;
-  bb._speedSnapDone = false;
-  var row = bbRowById(c.rowId);
-  document.getElementById('bbSpeedClipName').textContent = (row ? row.name : '') + (row && row.sampleName ? ' — ' + row.sampleName : '');
-  document.getElementById('bbSpeedSlider').value = c.speed;
-  document.getElementById('bbSpeedVal').textContent = c.speed.toFixed(2) + '\u00D7';
-  document.getElementById('bbPresPitchTog').classList.toggle('on', !!c.preservePitch);
-  document.getElementById('bbSpeedModal').classList.add('show');
-}
-function bbSpeedClose() {
-  bbSpeedStopPreview();
-  document.getElementById('bbSpeedModal').classList.remove('show');
-  bbSpeedClipId = 0;
-}
-function bbSpeedChange(v) {
-  var c = bbClipById(bbSpeedClipId); if (!c) return;
-  if (!bb._speedSnapDone) { bbSnapshot('speed'); bb._speedSnapDone = true; }
-  var sp = parseFloat(v);
-  c.speed = sp;
-  document.getElementById('bbSpeedVal').textContent = sp.toFixed(2) + '\u00D7';
-  // resync durTicks on grid so visual length matches new playback time
-  c.durTicks = bbSecToTick((c.trimEnd - c.trimStart) / c.speed);
-  bbRedrawAll();
-  if (bb.playing) bbRestart();
-}
-function bbTogglePresPitch() {
-  var c = bbClipById(bbSpeedClipId); if (!c) return;
-  c.preservePitch = !c.preservePitch;
-  document.getElementById('bbPresPitchTog').classList.toggle('on', c.preservePitch);
-}
-var _bbSpeedPrevSrc = null;
-function bbSpeedPreview() {
-  bbSpeedStopPreview();
-  var c = bbClipById(bbSpeedClipId); if (!c) return;
-  var row = bbRowById(c.rowId); if (!row || !row.buffer) return;
-  ensureCtx();
-  var src = audioCtx.createBufferSource();
-  src.buffer = c.reverse ? bbGetReversed(row) : row.buffer;
-  src.playbackRate.value = c.speed;
-  if ('preservesPitch' in src) src.preservesPitch = !!c.preservePitch;
-  if ('webkitPreservesPitch' in src) src.webkitPreservesPitch = !!c.preservePitch;
-  src.connect(audioCtx.destination);
-  var srcDur = row.buffer.duration;
-  var off = c.reverse ? Math.max(0, srcDur - c.trimEnd) : c.trimStart;
-  try { src.start(0, off, Math.max(0.01, c.trimEnd - c.trimStart)); } catch(e) {}
-  _bbSpeedPrevSrc = src;
-}
-function bbSpeedStopPreview() {
-  if (_bbSpeedPrevSrc) { try { _bbSpeedPrevSrc.stop(); } catch(e) {} _bbSpeedPrevSrc = null; }
-}
-
-// ── Select mode, marquee, copy/paste ───────────────────────────────────────
-function bbToggleSelMode() {
-  bb.selMode = !bb.selMode;
-  document.getElementById('bbSelBtn').classList.toggle('on', bb.selMode);
-  if (!bb.selMode) { bb.selectedClipIds = []; bbRedrawAll(); }
-  setStatus(bb.selMode ? 'Select mode: tap clips or drag marquee' : '', bb.selMode ? 'ok' : '');
-}
-function bbStartMarquee(e, cv, rowId) {
-  var rect = cv.getBoundingClientRect();
-  var x0 = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-  var y0 = (e.touches ? e.touches[0].clientY : e.clientY);
-  var rowEl = cv.parentElement;
-  var rowRect = rowEl.getBoundingClientRect();
-  var startRowY = y0;
-  // Origin in bbInner coords
-  var inner = document.getElementById('bbInner');
-  var innerRect = inner.getBoundingClientRect();
-  var mx0 = rect.left - innerRect.left + x0;
-  var my0 = rowRect.top - innerRect.top;
-  bb.marquee = { mx0: mx0, my0: my0, mx1: mx0, my1: my0 + bb.rowH, startRowId: rowId };
-  var box = document.getElementById('bbMarquee');
-  box.style.display = 'block';
-  bbUpdateMarqueeBox();
-  var moveFn = function(ev) {
-    ev.preventDefault();
-    var cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
-    var cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
-    bb.marquee.mx1 = cx - innerRect.left;
-    bb.marquee.my1 = cy - innerRect.top;
-    bbUpdateMarqueeBox();
-  };
-  var upFn = function() {
-    document.removeEventListener('touchmove', moveFn, { passive: false });
-    document.removeEventListener('touchend', upFn);
-    document.removeEventListener('mousemove', moveFn);
-    document.removeEventListener('mouseup', upFn);
-    bbFinishMarquee();
-  };
-  document.addEventListener('touchmove', moveFn, { passive: false });
-  document.addEventListener('touchend', upFn);
-  document.addEventListener('mousemove', moveFn);
-  document.addEventListener('mouseup', upFn);
-}
-function bbUpdateMarqueeBox() {
-  if (!bb.marquee) return;
-  var m = bb.marquee;
-  var left = Math.min(m.mx0, m.mx1), top = Math.min(m.my0, m.my1);
-  var w = Math.abs(m.mx1 - m.mx0), h = Math.abs(m.my1 - m.my0);
-  var box = document.getElementById('bbMarquee');
-  box.style.left = left + 'px'; box.style.top = top + 'px';
-  box.style.width = w + 'px'; box.style.height = h + 'px';
-}
-function bbFinishMarquee() {
-  if (!bb.marquee) return;
-  var m = bb.marquee;
-  var left = Math.min(m.mx0, m.mx1), right = Math.max(m.mx0, m.mx1);
-  var top = Math.min(m.my0, m.my1), bot = Math.max(m.my0, m.my1);
-  // Convert to ticks (row canvases start after rowHeadW in scrollable area,
-  // and marquee coords are relative to bbInner's content box).
-  var tickLeft = bbPxToTick(Math.max(0, left - bb.rowHeadW));
-  var tickRight = bbPxToTick(Math.max(0, right - bb.rowHeadW));
-  // Find rows whose row element overlaps [top, bot]
-  var rowEls = document.querySelectorAll('#bbRows .bb-row');
-  var inner = document.getElementById('bbInner');
-  var innerRect = inner.getBoundingClientRect();
-  var hits = [];
-  for (var i = 0; i < rowEls.length; i++) {
-    var rEl = rowEls[i];
-    var rect = rEl.getBoundingClientRect();
-    var rTop = rect.top - innerRect.top, rBot = rect.bottom - innerRect.top;
-    if (rBot < top || rTop > bot) continue;
-    hits.push(parseInt(rEl.dataset.rowId, 10));
-  }
-  // Select all clips in those rows whose time range overlaps [tickLeft, tickRight]
-  bb.selectedClipIds = [];
-  for (var j = 0; j < bb.clips.length; j++) {
-    var c = bb.clips[j];
-    if (hits.indexOf(c.rowId) < 0) continue;
-    var cS = c.startTick, cE = c.startTick + c.durTicks;
-    if (cE < tickLeft || cS > tickRight) continue;
-    bb.selectedClipIds.push(c.id);
-  }
-  document.getElementById('bbMarquee').style.display = 'none';
-  bb.marquee = null;
-  bbRedrawAll();
-  setStatus(bb.selectedClipIds.length + ' clip(s) selected', 'ok');
-  setTimeout(function(){ if (bb.selMode) setStatus('Select mode: tap clips or drag marquee', 'ok'); }, 1200);
-}
-function bbCopy() {
-  if (bb.selectedClipIds.length === 0) { setStatus('Nothing selected', 'err'); setTimeout(function(){setStatus('');}, 1200); return; }
-  var sel = bb.clips.filter(function(c){ return bb.selectedClipIds.indexOf(c.id) >= 0; });
-  var minTick = Infinity, minRowIdx = Infinity;
-  for (var i = 0; i < sel.length; i++) {
-    if (sel[i].startTick < minTick) minTick = sel[i].startTick;
-    var ri = bbRowIndex(sel[i].rowId);
-    if (ri < minRowIdx) minRowIdx = ri;
-  }
-  bb.clipboard = {
-    anchorTick: minTick,
-    anchorRowIdx: minRowIdx,
-    items: sel.map(function(c){
-      return {
-        rowOffset: bbRowIndex(c.rowId) - minRowIdx,
-        tickOffset: c.startTick - minTick,
-        durTicks: c.durTicks,
-        trimStart: c.trimStart, trimEnd: c.trimEnd,
-        speed: c.speed, preservePitch: c.preservePitch, reverse: c.reverse
-      };
-    })
-  };
-  setStatus('Copied ' + sel.length + ' clip(s)', 'ok');
-  setTimeout(function(){setStatus('');}, 1200);
-}
-function bbPasteArm() {
-  if (!bb.clipboard) { setStatus('Clipboard empty', 'err'); setTimeout(function(){setStatus('');}, 1200); return; }
-  bb.pasteArmed = true;
-  setStatus('Tap grid position to paste', 'ok');
-}
-function bbPasteAt(rowId, tick) {
-  if (!bb.clipboard) return;
-  bbSnapshot('paste');
-  var tRowIdx = bbRowIndex(rowId);
-  var tTick = bbSnap(tick);
-  var newIds = [];
-  for (var i = 0; i < bb.clipboard.items.length; i++) {
-    var it = bb.clipboard.items[i];
-    var destRowIdx = tRowIdx + it.rowOffset;
-    if (destRowIdx < 0 || destRowIdx >= bb.rows.length) continue;
-    var destRow = bb.rows[destRowIdx];
-    if (!destRow.buffer) continue;
-    var nc = {
-      id: bb.nextId++, rowId: destRow.id,
-      startTick: tTick + it.tickOffset,
-      trimStart: Math.min(it.trimStart, destRow.buffer.duration - 0.01),
-      trimEnd: Math.min(it.trimEnd, destRow.buffer.duration),
-      speed: it.speed, preservePitch: it.preservePitch, reverse: it.reverse,
-      durTicks: it.durTicks
-    };
-    bb.clips.push(nc);
-    newIds.push(nc.id);
-  }
-  bb.selectedClipIds = newIds;
-  bbRedrawAll();
-  setStatus('Pasted ' + newIds.length + ' clip(s)', 'ok');
-  setTimeout(function(){setStatus('');}, 1200);
-  if (bb.playing) bbRestart();
-}
-function bbDeleteSel() {
-  var ids = bb.selectedClipIds.slice();
-  if (ids.length === 0 && bb.selectedClipId) ids = [bb.selectedClipId];
-  if (ids.length === 0) { setStatus('Nothing selected', 'err'); setTimeout(function(){setStatus('');}, 1000); return; }
-  bbSnapshot('delete');
-  bb.clips = bb.clips.filter(function(c){ return ids.indexOf(c.id) < 0; });
-  bb.selectedClipIds = [];
-  bb.selectedClipId = 0;
-  bbRedrawAll();
-  setStatus('Deleted ' + ids.length + ' clip(s)', 'ok');
-  setTimeout(function(){setStatus('');}, 1000);
-  if (bb.playing) bbRestart();
-}
-function bbRowIndex(id) { for (var i = 0; i < bb.rows.length; i++) if (bb.rows[i].id === id) return i; return -1; }
-
-document.addEventListener('click', function(e) {
-  if (Date.now() - bbCtxOpenAt < 400) return;
-  var ctx = document.getElementById('bbCtx');
-  if (!ctx.contains(e.target)) bbHideCtx();
-});
-
-// ── Sample loading ──────────────────────────────────────────────────────────
-function bbRowRec(rowId) {
-  bb.recordingRowId = rowId;
-  openRecorder();
-  document.getElementById('recHint').textContent = 'Recording for: ' + bbRowById(rowId).name;
-}
-function bbRowLoad(rowId) {
-  bb.loadRowId = rowId;
-  document.getElementById('bbFileInput').click();
-}
-document.getElementById('bbFileInput').addEventListener('change', function(e) {
-  var f = e.target.files[0]; if (!f) return;
-  var rid = bb.loadRowId; bb.loadRowId = 0;
-  var reader = new FileReader();
-  reader.onload = function(ev) { bbAssignBufferToRow(rid, f.name, ev.target.result, true); };
-  reader.readAsArrayBuffer(f);
-  e.target.value = '';
-});
-function bbAssignBufferToRow(rowId, name, arrayBuf, autoEdit) {
-  ensureCtx();
-  var copy = arrayBuf.slice(0);
-  audioCtx.decodeAudioData(copy).then(function(buf) {
-    var r = bbRowById(rowId); if (!r) return;
-    r.buffer = buf;
-    r.sampleName = name;
-    bbRenderRows();
-    bbRedrawAll();
-    setStatus('Sample loaded: ' + name, 'ok');
-    setTimeout(function(){setStatus('');}, 1200);
-    if (autoEdit) bbSEOpen(rowId);
-  }).catch(function(err) {
-    setStatus('Decode failed: ' + err.message, 'err');
-    log('BB decode err: ' + err.message);
-  });
-}
-
-// ── Sample Trim Editor ──────────────────────────────────────────────────────
-var bbSE = { rowId: 0, startSec: 0, endSec: 0, dragging: null, previewSrc: null };
-function bbSEOpen(rowId) {
-  var r = bbRowById(rowId);
-  if (!r || !r.buffer) { setStatus('No sample to edit', 'err'); setTimeout(function(){setStatus('');}, 1200); return; }
-  bbSE.rowId = rowId;
-  bbSE.startSec = 0;
-  bbSE.endSec = r.buffer.duration;
-  document.getElementById('bbSEName').textContent = r.name + ' — ' + (r.sampleName || '');
-  document.getElementById('bbSEModal').classList.add('show');
-  bbSEDraw();
-  bbSEUpdateTimes();
-  bbSEAttachHandlers();
-  bbSEInitRowControls();
-}
-function bbSEClose() {
-  bbSEStopPreview();
-  document.getElementById('bbSEModal').classList.remove('show');
-}
-function bbSECanvas() { return document.getElementById('bbSECanvas'); }
-function bbSEDraw() {
-  var r = bbRowById(bbSE.rowId); if (!r || !r.buffer) return;
-  var cv = bbSECanvas();
-  var dpr = window.devicePixelRatio || 1;
-  var rect = cv.getBoundingClientRect();
-  var w = rect.width, h = 140;
-  cv.width = Math.floor(w * dpr); cv.height = Math.floor(h * dpr);
-  var ctx = cv.getContext('2d');
-  ctx.scale(dpr, dpr);
-  ctx.fillStyle = '#2c2c2e'; ctx.fillRect(0, 0, w, h);
-  // waveform
-  var data = r.buffer.getChannelData(0);
-  var len = data.length;
-  var bins = Math.floor(w);
-  var step = len / bins;
-  var mid = h / 2;
-  ctx.fillStyle = '#6e6e73';
-  for (var i = 0; i < bins; i++) {
-    var s = Math.floor(i * step), e = Math.min(len, Math.floor((i + 1) * step));
-    var min = 1, max = -1;
-    for (var j = s; j < e; j += 4) { var v = data[j]; if (v < min) min = v; if (v > max) max = v; }
-    var y1 = mid - max * (mid - 4);
-    var y2 = mid - min * (mid - 4);
-    ctx.fillRect(i, y1, 1, Math.max(1, y2 - y1));
-  }
-  // selection overlay (darken outside)
-  var dur = r.buffer.duration;
-  var xs = bbSE.startSec / dur * w;
-  var xe = bbSE.endSec / dur * w;
-  ctx.fillStyle = 'rgba(0,0,0,.55)';
-  ctx.fillRect(0, 0, xs, h);
-  ctx.fillRect(xe, 0, w - xe, h);
-  // handles
-  ctx.fillStyle = '#30d158'; ctx.fillRect(xs - 1, 0, 3, h);
-  ctx.fillStyle = '#ff453a'; ctx.fillRect(xe - 1, 0, 3, h);
-  // handle grab zones (top/bottom triangles)
-  ctx.fillStyle = '#30d158';
-  ctx.fillRect(xs - 8, 0, 16, 8); ctx.fillRect(xs - 8, h - 8, 16, 8);
-  ctx.fillStyle = '#ff453a';
-  ctx.fillRect(xe - 8, 0, 16, 8); ctx.fillRect(xe - 8, h - 8, 16, 8);
-}
-function bbSEUpdateTimes() {
-  document.getElementById('bbSEStartTime').textContent = bbSE.startSec.toFixed(3);
-  document.getElementById('bbSEEndTime').textContent = bbSE.endSec.toFixed(3);
-  document.getElementById('bbSELenTime').textContent = (bbSE.endSec - bbSE.startSec).toFixed(3);
-}
-function bbSEAttachHandlers() {
-  var cv = bbSECanvas();
-  if (cv._bbSEBound) return;
-  cv._bbSEBound = true;
-  var getX = function(e) {
-    var rect = cv.getBoundingClientRect();
-    var cx = (e.touches ? e.touches[0].clientX : e.clientX);
-    return cx - rect.left;
-  };
-  var xToSec = function(x) {
-    var r = bbRowById(bbSE.rowId); if (!r || !r.buffer) return 0;
-    var w = cv.getBoundingClientRect().width;
-    return Math.max(0, Math.min(r.buffer.duration, x / w * r.buffer.duration));
-  };
-  var down = function(e) {
-    e.preventDefault();
-    var r = bbRowById(bbSE.rowId); if (!r || !r.buffer) return;
-    var w = cv.getBoundingClientRect().width;
-    var x = getX(e);
-    var xs = bbSE.startSec / r.buffer.duration * w;
-    var xe = bbSE.endSec / r.buffer.duration * w;
-    bbSE.dragging = (Math.abs(x - xs) < Math.abs(x - xe)) ? 'start' : 'end';
-    move(e);
-  };
-  var move = function(e) {
-    if (!bbSE.dragging) return;
-    e.preventDefault();
-    var sec = xToSec(getX(e));
-    if (bbSE.dragging === 'start') bbSE.startSec = Math.min(sec, bbSE.endSec - 0.01);
-    else bbSE.endSec = Math.max(sec, bbSE.startSec + 0.01);
-    bbSEDraw(); bbSEUpdateTimes();
-  };
-  var up = function() { bbSE.dragging = null; };
-  cv.addEventListener('touchstart', down, { passive: false });
-  cv.addEventListener('touchmove', move, { passive: false });
-  cv.addEventListener('touchend', up);
-  cv.addEventListener('mousedown', down);
-  cv.addEventListener('mousemove', move);
-  cv.addEventListener('mouseup', up);
-  cv.addEventListener('mouseleave', up);
-}
-// Row-level speed/reverse/pitch controls
-var bbSERowState = { speed: 1, reverse: false, preservePitch: true };
-function bbSEInitRowControls() {
-  bbSERowState = { speed: 1, reverse: false, preservePitch: true };
-  document.getElementById('bbSERowSpeed').value = 1;
-  document.getElementById('bbSERowSpeedVal').textContent = '1.00\u00D7';
-  document.getElementById('bbSERowReverse').classList.remove('on');
-  document.getElementById('bbSERowPP').classList.remove('on');
-}
-function bbSERowSpeedChange(v) {
-  bbSERowState.speed = parseFloat(v);
-  document.getElementById('bbSERowSpeedVal').textContent = bbSERowState.speed.toFixed(2) + '\u00D7';
-}
-function bbSERowToggleReverse() {
-  bbSERowState.reverse = !bbSERowState.reverse;
-  document.getElementById('bbSERowReverse').classList.toggle('on', bbSERowState.reverse);
-}
-function bbSERowTogglePP() {
-  bbSERowState.preservePitch = !bbSERowState.preservePitch;
-  document.getElementById('bbSERowPP').classList.toggle('on', bbSERowState.preservePitch);
-}
-function bbSERowApplyAll() {
-  var rowId = bbSE.rowId;
-  bbSnapshot('row speed/reverse');
-  var count = 0;
-  for (var i = 0; i < bb.clips.length; i++) {
-    var c = bb.clips[i];
-    if (c.rowId !== rowId) continue;
-    if (bbSERowState.speed !== 1) {
-      c.speed = bbSERowState.speed;
-      c.durTicks = bbSecToTick((c.trimEnd - c.trimStart) / c.speed);
-    }
-    c.reverse = bbSERowState.reverse;
-    c.preservePitch = bbSERowState.preservePitch;
-    count++;
-  }
-  bbRedrawAll();
-  if (bb.playing) bbRestart();
-  setStatus('Applied to ' + count + ' clip(s)', 'ok');
-  setTimeout(function(){setStatus('');}, 1200);
-}
-
-function bbSEPreview() {
-  bbSEStopPreview();
-  var r = bbRowById(bbSE.rowId); if (!r || !r.buffer) return;
-  ensureCtx();
-  var src = audioCtx.createBufferSource();
-  src.buffer = r.buffer;
-  src.connect(audioCtx.destination);
-  var dur = bbSE.endSec - bbSE.startSec;
-  try { src.start(0, bbSE.startSec, dur); } catch(e) {}
-  bbSE.previewSrc = src;
-}
-function bbSEStopPreview() {
-  if (bbSE.previewSrc) { try { bbSE.previewSrc.stop(); } catch(e) {} bbSE.previewSrc = null; }
-}
-function bbSEApply() {
-  var r = bbRowById(bbSE.rowId); if (!r || !r.buffer) return;
-  bbSnapshot('trim sample');
-  var src = r.buffer;
-  var sr = src.sampleRate;
-  var s0 = Math.floor(bbSE.startSec * sr);
-  var s1 = Math.floor(bbSE.endSec * sr);
-  var len = Math.max(1, s1 - s0);
-  var nb = audioCtx.createBuffer(src.numberOfChannels, len, sr);
-  for (var ch = 0; ch < src.numberOfChannels; ch++) {
-    var from = src.getChannelData(ch);
-    var to = nb.getChannelData(ch);
-    for (var i = 0; i < len; i++) to[i] = from[s0 + i] || 0;
-  }
-  // update row and any existing clips that used the old duration to new duration
-  var oldDur = src.duration;
-  r.buffer = nb;
-  for (var i = 0; i < bb.clips.length; i++) {
-    var c = bb.clips[i];
-    if (c.rowId === r.id) {
-      // rescale clip length proportionally (clips used old sample length)
-      var oldSec = c.durTicks / TPQ * 60 / bb.bpm;
-      if (Math.abs(oldSec - oldDur) < 0.001) {
-        c.durTicks = bbSecToTick(nb.duration);
-      }
-    }
-  }
-  setStatus('Sample trimmed', 'ok');
-  setTimeout(function(){setStatus('');}, 1000);
-  bbSEClose();
-  bbRedrawAll();
-}
-
-
-// ── Playback ────────────────────────────────────────────────────────────────
-function bbTogglePlay() {
-  if (bb.playing) bbStop(); else bbPlay();
-}
-function bbRestart() {
-  if (!bb.playing) return;
-  var elapsed = audioCtx.currentTime - bb.playStartCtxT;
-  var loopDurSec = bbTickToSec(bbTotalTicks());
-  var posInLoop = bb.loopOn ? (elapsed % loopDurSec) : elapsed;
-  bbStop();
-  bb.playing = true;
-  bb.playStartCtxT = audioCtx.currentTime - posInLoop + 0.02;
-  bb.playStartTick = 0;
-  bbScheduleAll();
-  document.getElementById('bbPlayBtn').innerHTML = '&#10074;&#10074;';
-  bbAnim();
-}
-function bbPlay() {
-  ensureCtx();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  bbStop();
-  bb.playing = true;
-  bb.playStartCtxT = audioCtx.currentTime + 0.05;
-  bb.playStartTick = 0;
-  bbScheduleAll();
-  document.getElementById('bbPlayBtn').innerHTML = '&#10074;&#10074;';
-  bbAnim();
-}
-function bbScheduleAll() {
-  var loopDurSec = bbTickToSec(bbTotalTicks());
-  var repeats = bb.loopOn ? 200 : 1; // ~long enough
-  for (var rep = 0; rep < repeats; rep++) {
-    var baseCtxT = bb.playStartCtxT + rep * loopDurSec;
-    if (!bb.loopOn && rep > 0) break;
-    for (var i = 0; i < bb.clips.length; i++) {
-      var c = bb.clips[i];
-      var row = bbRowById(c.rowId);
-      if (!row || !row.buffer || row.mute) continue;
-      var startSec = bbTickToSec(c.startTick);
-      var when = baseCtxT + startSec;
-      if (when < audioCtx.currentTime) continue;
-      var src = audioCtx.createBufferSource();
-      var buf = c.reverse ? bbGetReversed(row) : row.buffer;
-      src.buffer = buf;
-      if (c.speed && c.speed !== 1) src.playbackRate.value = c.speed;
-      if ('preservesPitch' in src) src.preservesPitch = !!c.preservePitch;
-      if ('webkitPreservesPitch' in src) src.webkitPreservesPitch = !!c.preservePitch;
-      var g = audioCtx.createGain();
-      g.gain.value = row.vol;
-      src.connect(g).connect(audioCtx.destination);
-      // offset into source buffer; for reverse, flip
-      var srcDur = row.buffer.duration;
-      var off = c.reverse ? Math.max(0, srcDur - c.trimEnd) : (c.trimStart || 0);
-      var segLen = Math.max(0.001, (c.trimEnd - c.trimStart));
-      try { src.start(when, off, segLen); } catch (e) {}
-      bb.activeSources.push(src);
-    }
-  }
-}
-function bbStop() {
-  bb.playing = false;
-  for (var i = 0; i < bb.activeSources.length; i++) {
-    try { bb.activeSources[i].stop(); } catch (e) {}
-  }
-  bb.activeSources = [];
-  if (bb.rafId) { cancelAnimationFrame(bb.rafId); bb.rafId = 0; }
-  document.getElementById('bbPlayBtn').innerHTML = '&#9654;';
-  var ph = document.getElementById('bbPlayhead');
-  ph.style.display = 'none';
-}
-function bbAnim() {
-  if (!bb.playing) return;
-  var ph = document.getElementById('bbPlayhead');
-  var elapsed = audioCtx.currentTime - bb.playStartCtxT;
-  var loopDurSec = bbTickToSec(bbTotalTicks());
-  if (elapsed < 0) { bb.rafId = requestAnimationFrame(bbAnim); return; }
-  var t;
-  if (bb.loopOn) t = elapsed % loopDurSec;
-  else {
-    if (elapsed >= loopDurSec) { bbStop(); return; }
-    t = elapsed;
-  }
-  var tickPos = bbSecToTick(t);
-  var px = tickPos / TPQ * bb.pxPerBeat;
-  ph.style.display = 'block';
-  ph.style.left = (bb.rowHeadW + px) + 'px';
-  bb.rafId = requestAnimationFrame(bbAnim);
-}
+var TPQ = 192;
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  Shared synth instrument list (used by Beat Builder) — Step 1
@@ -3805,9 +2585,10 @@ var DM_INSTRUMENTS = [
 // ============================================================================
 var db2 = {
   bpm: 120,
-  tsNum: 4, tsDen: 4,    // fixed 4/4 in Step 1; arbitrary meters come in Step 2
+  tsNum: 4, tsDen: 4,    // notated time signature (any numerator / denominator)
+  feel: 'auto',          // 'auto' | 'simple' | 'compound' — what one BPM beat is (see dpIsCompound)
   bars: 1,
-  cpb: 4,                // grid cells per beat (÷2 ×2 change it); 4 cells/quarter-beat = 16ths
+  cpb: 4,                // grid cells per beat (− + walk DP_LADDER); 4 cells/quarter-beat = 16ths
   swing: 50,             // 50 = straight … ~66 = triplet shuffle … 75 = hard
   loop: { on: false, inTick: 0, outTick: 0 },  // loop a bar/beat range (ticks); outTick exclusive
   tapTimes: [],          // tap-tempo timestamps
@@ -3815,9 +2596,12 @@ var db2 = {
   mutes: {},             // instId -> bool (silences playback)
   hidden: {},            // instId -> bool (hides the row; still plays)
   metro: { on: false, sub: 'beat' },  // metronome: sub = beat|8th|16th|trip|shuffle
-  vol: 0.9,
+  metroVol: 1,           // metronome level; its own bus bypasses the master limiter
+  vol: 1,                // master level (the limiter below catches peaks; normal hits sit at 0.58)
   noiseBuf: null,
   master: null,
+  limiter: null,         // soft limiter after the master bus (keeps dense grooves from clipping)
+  metroGain: null,       // metronome bus (master-independent, so a busy groove can't bury the click)
   playing: false,
   timerId: 0,
   rafId: 0,
@@ -3840,39 +2624,69 @@ var db2 = {
 };
 
 // All positions are in ticks (TPQ ticks per quarter note) so hits survive grid changes.
-// Beat-relative model: one beat = the 1/tsDen note = TPQ ticks. BPM = beats/min.
-// This keeps tick math integer for ANY numerator and ANY denominator.
-function dpTicksPerBeat() { return TPQ; }
-function dpTicksPerBar() { return db2.tsNum * TPQ; }
+// TRUE NOTE-VALUE MODEL: one 1/den note = TPQ*4/den ticks, a bar is tsNum of them.
+// The FELT BEAT — what BPM counts, what the metronome accents, what the grid splits
+// into cells — is one 1/den note in a simple meter and a DOTTED one (three 1/den
+// notes) in a compound meter, so 6/8 is 2 dotted-quarter beats of 3 eighths, not 6.
+// 4/4 and 3/4 come out tick-identical to the old beat=TPQ model.
+function dpNoteTicks(den) { return Math.max(1, Math.round(TPQ * 4 / (den || 4))); }
+function dpIsCompound() {
+  if (db2.tsNum % 3 !== 0) return false;                  // only meters that group in 3s
+  if (db2.feel === 'simple') return false;
+  if (db2.feel === 'compound') return true;
+  return db2.tsDen >= 8 && db2.tsNum >= 6;                // auto: 6/8, 9/8, 12/8, 6/16 ...
+}
+function dpFeelName() { return dpIsCompound() ? 'Compound' : 'Simple'; }
+function dpTicksPerBeat() { return dpNoteTicks(db2.tsDen) * (dpIsCompound() ? 3 : 1); }
+function dpTicksPerBar() { return db2.tsNum * dpNoteTicks(db2.tsDen); }
+function dpBeatsPerBar() { return Math.max(1, Math.round(dpTicksPerBar() / dpTicksPerBeat())); }
 function dpPatternTicks() { return db2.bars * dpTicksPerBar(); }
-function dpStepTicks() { return Math.round(TPQ / db2.cpb); }  // ticks per grid cell
+function dpStepTicks() { return Math.max(1, Math.round(dpTicksPerBeat() / db2.cpb)); }  // ticks per grid cell
 function dpTotalSteps() { return Math.round(dpPatternTicks() / dpStepTicks()); }
-function dpTickToSec(t) { return t / TPQ * 60 / db2.bpm; }
+function dpTickToSec(t) { return t / dpTicksPerBeat() * 60 / db2.bpm; }
 function dpStepDur() { return dpTickToSec(dpStepTicks()); }
+// Name a duration in ticks: "1/8", "1/16T" (triplet), "1/4." (dotted). Used by the
+// subdivision display and the notation view.
+function dpNoteName(ticks) {
+  var whole = TPQ * 4, i, v;
+  for (i = 0; i < 8; i++) {                 // straight: 1, 1/2, 1/4 ... 1/128
+    v = whole / Math.pow(2, i);
+    if (ticks === v) return i === 0 ? '1/1' : '1/' + Math.pow(2, i);
+    if (ticks === Math.round(v * 1.5)) return (i === 0 ? '1/1' : '1/' + Math.pow(2, i)) + '.';
+    if (ticks === Math.round(v * 2 / 3)) return '1/' + Math.pow(2, i) + 'T';   // 3 of these fill one 1/2^(i-1)
+  }
+  return ticks + 't';
+}
 function dpLoopActive() { return db2.loop.on && db2.loop.outTick > db2.loop.inTick; }
 function dpLoopDur() { return dpLoopActive() ? dpTickToSec(db2.loop.outTick - db2.loop.inTick) : dpTickToSec(dpPatternTicks()); }
-// bar/beat (both 1-based) <-> tick
-function dpBarBeatToTick(bar, beat) { return (bar - 1) * dpTicksPerBar() + (beat - 1) * TPQ; }
+// bar / beat / cell (all 1-based) <-> tick.  cell = grid step inside the beat.
+function dpBarBeatToTick(bar, beat, cell) {
+  return (bar - 1) * dpTicksPerBar() + (beat - 1) * dpTicksPerBeat() + ((cell || 1) - 1) * dpStepTicks();
+}
 function dpTickToBarBeat(tick) {
-  var bar = Math.floor(tick / dpTicksPerBar());
-  var beat = Math.floor((tick - bar * dpTicksPerBar()) / TPQ);
-  return { bar: bar + 1, beat: beat + 1 };
+  var tpbar = dpTicksPerBar(), tpb = dpTicksPerBeat(), st = dpStepTicks();
+  var bar = Math.floor(tick / tpbar), rest = tick - bar * tpbar;
+  var beat = Math.floor(rest / tpb);
+  var cell = Math.floor((rest - beat * tpb) / st);
+  return { bar: bar + 1, beat: beat + 1, cell: cell + 1 };
 }
 
-// Apply swing: warp a tick's position inside its eighth-note so the off-beat
-// 16th slides from 0.5 (straight) toward `ratio` (≈0.667 = triplet shuffle).
+// Apply swing: warp a tick's position inside its half-beat so the off-beat
+// subdivision slides from 0.5 (straight) toward `ratio` (≈0.667 = triplet shuffle).
+// Compound meters already divide the beat in 3, so swing is skipped there.
 function dpSwingSec(tick) {
   var ratio = db2.swing / 100;
-  if (ratio <= 0.5) return dpTickToSec(tick);
-  var eighth = TPQ / 2;
-  var e = Math.floor(tick / eighth);
-  var within = (tick - e * eighth) / eighth;          // 0..1 inside the eighth
+  if (ratio <= 0.5 || dpIsCompound()) return dpTickToSec(tick);
+  var unit = dpTicksPerBeat() / 2;
+  var e = Math.floor(tick / unit);
+  var within = (tick - e * unit) / unit;              // 0..1 inside the half-beat
   var np = (within <= 0.5)
     ? within * (ratio / 0.5)
     : ratio + (within - 0.5) * ((1 - ratio) / 0.5);
-  return dpTickToSec(e * eighth + np * eighth);
+  return dpTickToSec(e * unit + np * unit);
 }
-function dpVelGain(v) { return v === 1 ? 0.4 : v === 3 ? 1.0 : 0.85; }  // ghost / accent / normal
+// Dynamics: a wide spread so accents punch and ghosts stay under the groove.
+function dpVelGain(v) { return v === 1 ? 0.26 : v === 3 ? 1.0 : 0.58; }  // ghost / accent / normal
 // Full instrument list = built-in synth voices + recorded sample instruments.
 function dpInsts() { return DM_INSTRUMENTS.concat(db2.userInsts); }
 function dpFindInst(id) {
@@ -3901,7 +2715,9 @@ function dpSyncAllUI() {
   document.getElementById('dpLoopBtn').classList.toggle('on', db2.loop.on);
   document.getElementById('dpSongBtn').classList.toggle('on', db2.songOn);
   document.getElementById('dpLoopRow').style.display = db2.loop.on ? 'flex' : 'none';
+  dpUpdateMeterDisp();
   dpUpdateSubDisp();
+  dpSetMetroVol(db2.metroVol);
   dpUpdateTitle();
   dpClampLoop();
   dpSyncLoopInputs();
@@ -3936,21 +2752,73 @@ function dpSetTs() {
   if (isNaN(num) || num < 1 || num > 64) { document.getElementById('dpTsNum').value = db2.tsNum; return; }
   if (isNaN(den) || den < 1 || den > 64) { document.getElementById('dpTsDen').value = db2.tsDen; return; }
   db2.tsNum = num; db2.tsDen = den;
-  dpUpdateSubDisp();
+  dpFixCpb();
+  dpUpdateMeterDisp(); dpUpdateSubDisp();
   dpClampLoop(); dpSyncLoopInputs();
   if (db2.playing) dpRestart(); else dpRender();
 }
-function dpUpdateSubDisp() {
-  document.getElementById('dpSubDisp').textContent = '1/' + (db2.tsDen * db2.cpb) + ' · ' + db2.cpb + '/beat';
-}
-function dpSubFiner() {   // more cells per beat (finer grid)
-  if (db2.cpb >= 64) return;
-  db2.cpb *= 2; dpUpdateSubDisp();
+// Simple ↔ compound: how the bar is felt (and therefore what BPM counts).
+function dpCycleFeel() {
+  db2.feel = db2.feel === 'auto' ? 'simple' : db2.feel === 'simple' ? 'compound' : 'auto';
+  dpFixCpb();
+  dpUpdateMeterDisp(); dpUpdateSubDisp();
+  dpClampLoop(); dpSyncLoopInputs();
   if (db2.playing) dpRestart(); else dpRender();
 }
-function dpSubCoarser() { // fewer cells per beat (off-grid hits preserved internally)
-  if (db2.cpb <= 1) return;
-  db2.cpb /= 2; dpUpdateSubDisp();
+function dpUpdateMeterDisp() {
+  var el = document.getElementById('dpFeelBtn');
+  if (el) el.textContent = 'Feel: ' + (db2.feel === 'auto' ? 'Auto' : db2.feel === 'simple' ? 'Simple' : 'Compound');
+  var d = document.getElementById('dpMeterDisp');
+  if (d) d.textContent = dpBeatsPerBar() + ' beat' + (dpBeatsPerBar() === 1 ? '' : 's') + '/bar of '
+                       + dpNoteName(dpTicksPerBeat()) + ' · ' + dpFeelName();
+}
+// ── Grid subdivision ──
+// The ladder carries straight AND triplet divisions, so both live in one meter:
+// 12 cells/beat contains the 16ths (every 3rd cell) and the 8th triplets (every 4th).
+var DP_LADDER = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64];
+function dpLadder() {                       // only divisions that land on whole ticks
+  var tpb = dpTicksPerBeat(), out = [];
+  for (var i = 0; i < DP_LADDER.length; i++) if (tpb % DP_LADDER[i] === 0) out.push(DP_LADDER[i]);
+  return out.length ? out : [1];
+}
+function dpFixCpb() {                       // keep cpb on the ladder after a meter change
+  var L = dpLadder();
+  for (var i = 0; i < L.length; i++) if (L[i] === db2.cpb) return;
+  var best = L[0];
+  for (var j = 0; j < L.length; j++) if (Math.abs(L[j] - db2.cpb) < Math.abs(best - db2.cpb)) best = L[j];
+  db2.cpb = best;
+}
+function dpUpdateSubDisp() {
+  var mixed = (db2.cpb % 12 === 0) ? ' · mixed' : '';
+  document.getElementById('dpSubDisp').textContent = dpNoteName(dpStepTicks()) + ' · ' + db2.cpb + '/beat' + mixed;
+}
+function dpSubStep(dir) {                   // dir +1 = finer, -1 = coarser
+  var L = dpLadder(), idx = -1;
+  for (var i = 0; i < L.length; i++) if (L[i] === db2.cpb) idx = i;
+  if (idx < 0) { dpFixCpb(); idx = 0; for (var j = 0; j < L.length; j++) if (L[j] === db2.cpb) idx = j; }
+  var ni = idx + dir;
+  if (ni < 0 || ni >= L.length) return;
+  db2.cpb = L[ni];
+  dpUpdateSubDisp();
+  if (db2.playing) dpRestart(); else dpRender();
+}
+function dpSubFiner() { dpSubStep(1); }     // more cells per beat (finer grid)
+function dpSubCoarser() { dpSubStep(-1); }  // fewer cells per beat (off-grid hits preserved internally)
+// Quick presets: straight only, triplets only, or one grid holding both.
+function dpSubPreset(kind) {
+  var want = kind === 'trip' ? 3 : kind === 'both' ? 12 : 4;
+  var L = dpLadder(), cand = [], i;
+  for (i = 0; i < L.length; i++) {
+    if (kind === 'both' && L[i] % 12 !== 0) continue;                 // holds straight AND triplet cells
+    if (kind === 'trip' && (L[i] % 3 !== 0 || L[i] % 12 === 0)) continue;
+    if (kind === 'straight' && L[i] % 3 === 0) continue;
+    cand.push(L[i]);
+  }
+  if (!cand.length) { alert('This meter cannot be divided that way — try another time signature.'); return; }
+  var best = cand[0];
+  for (i = 0; i < cand.length; i++) if (Math.abs(cand[i] - want) < Math.abs(best - want)) best = cand[i];
+  db2.cpb = best;
+  dpUpdateSubDisp();
   if (db2.playing) dpRestart(); else dpRender();
 }
 // ── Tap tempo ──
@@ -4173,8 +3041,9 @@ function dpSongModalOpen() {
   var dur = loopOut - loopIn;
   var ref = (gridBPM >= 20 && gridBPM <= 300) ? gridBPM : db2.bpm;
   var guessBeats = Math.max(1, Math.round(dur * ref / 60));
-  var bars = Math.max(1, Math.round(guessBeats / db2.tsNum));
-  var beats = guessBeats - bars * db2.tsNum;
+  var bpbar = dpBeatsPerBar();
+  var bars = Math.max(1, Math.round(guessBeats / bpbar));
+  var beats = guessBeats - bars * bpbar;
   if (beats < 0) beats = 0;
   document.getElementById('dpSongBars').value = bars;
   document.getElementById('dpSongBeats').value = beats;
@@ -4185,7 +3054,7 @@ function dpSongModalOpen() {
 function dpSongReadBeats() {
   var bars = parseInt(document.getElementById('dpSongBars').value, 10) || 0;
   var beats = parseInt(document.getElementById('dpSongBeats').value, 10) || 0;
-  return bars * db2.tsNum + beats;
+  return bars * dpBeatsPerBar() + beats;            // felt beats (2 per bar in 6/8, not 6)
 }
 function dpSongUpdateHint() {
   var dur = loopOut - loopIn;
@@ -4209,8 +3078,8 @@ function dpSongConfirm() {
   db2.songBaseBpm = bpm;                           // remember the fit tempo for later speed changes
   db2.songMT = document.getElementById('dpSongMT').checked;
   document.getElementById('dpBpm').value = bpm.toFixed(1);
-  db2.bars = Math.ceil(totalBeats / db2.tsNum);
-  db2.loop = { on: true, inTick: 0, outTick: totalBeats * TPQ };
+  db2.bars = Math.ceil(totalBeats / dpBeatsPerBar());
+  db2.loop = { on: true, inTick: 0, outTick: totalBeats * dpTicksPerBeat() };
   db2.songOn = true;
   document.getElementById('dpSongModal').classList.remove('show');
   document.getElementById('dpSongBtn').classList.add('on');
@@ -4324,35 +3193,54 @@ function dpToggleLoop() {
   dpClampLoop(); dpSyncLoopInputs(); dpRender();
   if (db2.playing) dpRestart();
 }
+// Loop ranges work at GRID-CELL resolution, so a loop can be shorter than a beat
+// (e.g. two 16ths) — the minimum length is one cell of the current subdivision.
 function dpClampLoop() {
-  var p = dpPatternTicks();
+  var p = dpPatternTicks(), st = dpStepTicks();
   if (db2.loop.outTick <= 0 || db2.loop.outTick > p) db2.loop.outTick = p;
   if (db2.loop.inTick < 0) db2.loop.inTick = 0;
-  if (db2.loop.inTick >= db2.loop.outTick) db2.loop.inTick = Math.max(0, db2.loop.outTick - TPQ);
+  if (db2.loop.inTick >= db2.loop.outTick) db2.loop.inTick = Math.max(0, db2.loop.outTick - st);
 }
 function dpLoopFull() {
   db2.loop.inTick = 0; db2.loop.outTick = dpPatternTicks();
   dpSyncLoopInputs(); dpRender(); if (db2.playing) dpRestart();
 }
+// Loop exactly the region marked in the Select lane.
+function dpLoopFromSel() {
+  if (db2.selEnd <= db2.selStart) { alert('Mark a region in the Select lane (top) first: tap a start cell, then an end cell.'); return; }
+  var st = dpStepTicks();
+  db2.loop.inTick = db2.selStart * st;
+  db2.loop.outTick = Math.max(db2.loop.inTick + st, db2.selEnd * st);
+  if (!db2.loop.on) { db2.loop.on = true; document.getElementById('dpLoopBtn').classList.add('on'); document.getElementById('dpLoopRow').style.display = 'flex'; }
+  dpClampLoop(); dpSyncLoopInputs(); dpRender(); if (db2.playing) dpRestart();
+}
 function dpSyncLoopInputs() {
+  var st = dpStepTicks();
   var i = dpTickToBarBeat(db2.loop.inTick);
-  var o = dpTickToBarBeat(Math.max(db2.loop.inTick, db2.loop.outTick - TPQ));  // show inclusive last beat
+  var o = dpTickToBarBeat(Math.max(db2.loop.inTick, db2.loop.outTick - st));  // show inclusive last cell
   document.getElementById('dpLoopInBar').value = i.bar;
   document.getElementById('dpLoopInBeat').value = i.beat;
+  document.getElementById('dpLoopInCell').value = i.cell;
   document.getElementById('dpLoopOutBar').value = o.bar;
   document.getElementById('dpLoopOutBeat').value = o.beat;
+  document.getElementById('dpLoopOutCell').value = o.cell;
+  var h = document.getElementById('dpLoopLenDisp');
+  if (h) {
+    var nCells = Math.round((db2.loop.outTick - db2.loop.inTick) / st);
+    h.textContent = dpNoteName(Math.max(st, db2.loop.outTick - db2.loop.inTick))
+                  + ' (' + nCells + ' cell' + (nCells === 1 ? '' : 's') + ')';
+  }
 }
 function dpLoopFromInputs() {
-  var inBar = parseInt(document.getElementById('dpLoopInBar').value, 10);
-  var inBeat = parseInt(document.getElementById('dpLoopInBeat').value, 10);
-  var outBar = parseInt(document.getElementById('dpLoopOutBar').value, 10);
-  var outBeat = parseInt(document.getElementById('dpLoopOutBeat').value, 10);
-  if (isNaN(inBar) || isNaN(inBeat) || isNaN(outBar) || isNaN(outBeat)) return;
-  var p = dpPatternTicks();
-  var inTick = dpBarBeatToTick(inBar, inBeat);
-  var outTick = dpBarBeatToTick(outBar, outBeat) + TPQ;   // out beat inclusive
-  inTick = Math.max(0, Math.min(inTick, p - TPQ));
-  outTick = Math.max(inTick + TPQ, Math.min(outTick, p));
+  var gv = function (id) { return parseInt(document.getElementById(id).value, 10); };
+  var inBar = gv('dpLoopInBar'), inBeat = gv('dpLoopInBeat'), inCell = gv('dpLoopInCell');
+  var outBar = gv('dpLoopOutBar'), outBeat = gv('dpLoopOutBeat'), outCell = gv('dpLoopOutCell');
+  if (isNaN(inBar) || isNaN(inBeat) || isNaN(inCell) || isNaN(outBar) || isNaN(outBeat) || isNaN(outCell)) return;
+  var p = dpPatternTicks(), st = dpStepTicks();
+  var inTick = dpBarBeatToTick(inBar, inBeat, inCell);
+  var outTick = dpBarBeatToTick(outBar, outBeat, outCell) + st;   // out cell inclusive
+  inTick = Math.max(0, Math.min(Math.round(inTick / st) * st, p - st));
+  outTick = Math.max(inTick + st, Math.min(Math.round(outTick / st) * st, p));
   db2.loop.inTick = inTick; db2.loop.outTick = outTick;
   dpSyncLoopInputs(); dpRender(); if (db2.playing) dpRestart();
 }
@@ -4365,14 +3253,14 @@ function dpAttachLoopDrag() {
 function dpHandleDrag(el, which) {
   el.addEventListener('pointerdown', function (e) {
     e.preventDefault(); e.stopPropagation();
-    var wrap = document.getElementById('dpGridWrap'), stepTicks = dpStepTicks(), p = dpPatternTicks();
+    var wrap = document.getElementById('dpGridWrap'), stepTicks = dpStepTicks(), p = dpPatternTicks(), cw = dpCellW();
     function move(ev) {
       var rect = wrap.getBoundingClientRect();
       var x = ev.clientX - rect.left + wrap.scrollLeft - 96;
-      var beatTick = Math.round((x / 26) * stepTicks / TPQ) * TPQ;   // snap to beat
-      if (which === 'in') db2.loop.inTick = Math.max(0, Math.min(beatTick, db2.loop.outTick - TPQ));
-      else db2.loop.outTick = Math.max(db2.loop.inTick + TPQ, Math.min(beatTick, p));
-      el.style.left = (96 + ((which === 'in' ? db2.loop.inTick : db2.loop.outTick) / stepTicks) * 26) + 'px';
+      var cellTick = Math.round(x / cw) * stepTicks;                 // snap to grid cell (sub-beat loops)
+      if (which === 'in') db2.loop.inTick = Math.max(0, Math.min(cellTick, db2.loop.outTick - stepTicks));
+      else db2.loop.outTick = Math.max(db2.loop.inTick + stepTicks, Math.min(cellTick, p));
+      el.style.left = (96 + ((which === 'in' ? db2.loop.inTick : db2.loop.outTick) / stepTicks) * cw) + 'px';
       dpSyncLoopInputs();
     }
     function up() {
@@ -4389,7 +3277,7 @@ function dpGrooves() { try { return JSON.parse(localStorage.getItem('drumpluspat
 function dpSerialize() {
   var ui = [];
   for (var i = 0; i < db2.userInsts.length; i++) ui.push({ id: db2.userInsts[i].id, name: db2.userInsts[i].name });
-  return { v: 1, bpm: db2.bpm, tsNum: db2.tsNum, tsDen: db2.tsDen, bars: db2.bars, cpb: db2.cpb, swing: db2.swing,
+  return { v: 2, bpm: db2.bpm, tsNum: db2.tsNum, tsDen: db2.tsDen, feel: db2.feel, bars: db2.bars, cpb: db2.cpb, swing: db2.swing,
     metro: { on: db2.metro.on, sub: db2.metro.sub },
     loop: { on: db2.loop.on, inTick: db2.loop.inTick, outTick: db2.loop.outTick },
     cells: db2.cells, mutes: db2.mutes, hidden: db2.hidden, userInsts: ui };
@@ -4595,15 +3483,41 @@ function dpDeleteGroove(name, ev) {
   if (db2.currentGroove === name) { db2.currentGroove = null; dpUpdateTitle(); }
   dpLibOpen();
 }
+// v1 grooves were written under the old "beat = TPQ regardless of denominator"
+// model. For 4/4 and 3/4 that is identical to the note-value model, so only other
+// denominators need rescaling: ticks shrink to real note values and the BPM number
+// moves to whatever the felt beat is now.
+function dpMigrateV1(g) {
+  if ((g.v || 1) >= 2 || !g.tsDen || g.tsDen === 4) return g;
+  var note = Math.max(1, Math.round(TPQ * 4 / g.tsDen));
+  var comp = (g.tsNum % 3 === 0 && g.tsDen >= 8 && g.tsNum >= 6);
+  var beat = note * (comp ? 3 : 1);
+  var f = note / TPQ;
+  var cells = {}, id, m, k, t;
+  for (id in (g.cells || {})) {
+    if (!g.cells.hasOwnProperty(id)) continue;
+    m = g.cells[id]; cells[id] = {};
+    for (k in m) { if (!m.hasOwnProperty(k)) continue; t = Math.round(parseInt(k, 10) * f); cells[id][t] = m[k]; }
+  }
+  g.cells = cells;
+  if (g.loop) { g.loop.inTick = Math.round(g.loop.inTick * f); g.loop.outTick = Math.round(g.loop.outTick * f); }
+  g.bpm = Math.max(20, Math.min(300, g.bpm * note / beat));
+  g.v = 2;
+  log('Groove migrated to the note-value meter model (x' + f.toFixed(3) + ' ticks)');
+  return g;
+}
 function dpLoadGroove(name) {
   var g = dpGrooves()[name];
   if (!g) return;
   dpStop();
+  g = dpMigrateV1(g);
   db2.bpm = g.bpm; db2.tsNum = g.tsNum; db2.tsDen = g.tsDen; db2.bars = g.bars;
+  db2.feel = g.feel || 'auto';
   db2.cpb = g.cpb || 4; db2.swing = g.swing || 50;
   db2.metro = g.metro || { on: false, sub: 'beat' };
   db2.loop = g.loop || { on: false, inTick: 0, outTick: 0 };
   db2.cells = g.cells || {}; db2.mutes = g.mutes || {}; db2.hidden = g.hidden || {};
+  dpFixCpb();
   dpEnsureCells();
   db2.currentGroove = name; dpUpdateTitle();
   dpLibClose();
@@ -4612,13 +3526,26 @@ function dpLoadGroove(name) {
 
 // ── Grid rendering ──
 function dpVelClass(v) { return v === 1 ? ' on v1' : v === 3 ? ' on v3' : v > 0 ? ' on v2' : ''; }
+// Classify a cell by where it sits inside the beat. On a mixed grid (12/beat) the
+// straight cells (s16/e) and the triplet cells (t3/t6) get different tints so both
+// rhythms stay readable side by side.
 function dpLineClass(tickInBar) {
-  var tpb = dpTicksPerBeat();
-  if (tickInBar % tpb === 0) return ' q';                 // beat (strongest after bar)
-  if (tickInBar % (tpb / 2) === 0) return ' e';           // half-beat
-  if (tickInBar % (tpb / 4) === 0) return ' s16';         // quarter-beat
+  var tpb = dpTicksPerBeat(), r = tickInBar % tpb, comp = dpIsCompound();
+  if (r === 0) return ' q';                               // beat (strongest after bar)
+  if (comp) {                                             // compound: the beat divides in 3 first
+    if (r * 3 % tpb === 0) return ' e';                   // the three 1/den notes
+    if (r * 6 % tpb === 0) return ' s16';                 // their halves
+    if (r * 2 % tpb === 0) return ' t3';                  // duple against the compound beat
+    return '';
+  }
+  if (r * 2 % tpb === 0) return ' e';                     // half-beat
+  if (r * 3 % tpb === 0) return ' t3';                    // triplet third
+  if (r * 4 % tpb === 0) return ' s16';                   // quarter-beat
+  if (r * 6 % tpb === 0) return ' t6';                    // 16th-triplet
   return '';                                              // finer → faint default
 }
+// Cell pixel width — narrows as the grid gets finer so a 12/beat bar still fits.
+function dpCellW() { return db2.cpb <= 4 ? 26 : db2.cpb <= 6 ? 22 : db2.cpb <= 12 ? 18 : 14; }
 function dpRenderRuler(total, stepTicks, ticksPerBar) {
   var tpb = dpTicksPerBeat();
   var html = '<div class="dm-ruler"><div class="dm-ruler-label"></div><div class="dm-steps">';
@@ -4672,12 +3599,14 @@ function dpRender() {
     html += '</div></div>';
   }
   if (dpLoopActive()) {
-    var inX = 96 + (db2.loop.inTick / stepTicks) * 26;
-    var outX = 96 + (db2.loop.outTick / stepTicks) * 26;
+    var cw = dpCellW();
+    var inX = 96 + (db2.loop.inTick / stepTicks) * cw;
+    var outX = 96 + (db2.loop.outTick / stepTicks) * cw;
     html += '<div class="dm-loop-handle" id="dpHIn" style="left:' + inX + 'px"><span class="dm-loop-tag">IN</span></div>';
     html += '<div class="dm-loop-handle" id="dpHOut" style="left:' + outX + 'px"><span class="dm-loop-tag" style="border-radius:0 0 0 4px;right:0">OUT</span></div>';
   }
   grid.innerHTML = html;
+  grid.style.setProperty('--dpcw', dpCellW() + 'px');   // cells shrink on fine/mixed grids
   dpMarkOffGrid();
   dpAttachLoopDrag();
   db2.lastVisualStep = -1;  // grid rebuilt → re-apply playhead highlight next frame
@@ -4746,23 +3675,54 @@ function dpDeleteCell(cell) {
 }
 
 // ── Synthesis ──
+// Master bus → soft limiter → speakers. The limiter keeps a dense groove (kick +
+// snare + hats + toms on the same tick) from clipping into mush, which used to
+// swallow whichever voice was quietest.
 function dpMaster() {
   if (!db2.master) {
     db2.master = audioCtx.createGain();
     db2.master.gain.value = db2.vol;
-    db2.master.connect(audioCtx.destination);
+    if (audioCtx.createDynamicsCompressor) {
+      db2.limiter = audioCtx.createDynamicsCompressor();
+      db2.limiter.threshold.value = -8;
+      db2.limiter.knee.value = 6;
+      db2.limiter.ratio.value = 8;
+      db2.limiter.attack.value = 0.003;
+      db2.limiter.release.value = 0.12;
+      db2.master.connect(db2.limiter).connect(audioCtx.destination);
+    } else {
+      db2.master.connect(audioCtx.destination);
+    }
   }
   return db2.master;
 }
+// The metronome gets its own bus straight to the speakers, so the limiter (and a
+// busy groove) can never duck the click away.
+function dpMetroBus() {
+  if (!db2.metroGain) {
+    db2.metroGain = audioCtx.createGain();
+    db2.metroGain.gain.value = db2.metroVol;
+    db2.metroGain.connect(audioCtx.destination);
+  }
+  return db2.metroGain;
+}
 function dpNoise() {
   if (!db2.noiseBuf) {
-    var n = Math.floor(audioCtx.sampleRate * 2);
+    var n = Math.floor(audioCtx.sampleRate * 4);
     var b = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
     var d = b.getChannelData(0);
     for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
     db2.noiseBuf = b;
   }
   return db2.noiseBuf;
+}
+// Start a noise source at a RANDOM offset. Snare, hats and cymbals share one noise
+// buffer; starting them all at sample 0 meant a hat under a snare was literally a
+// band-passed copy of the same waveform and fused into it — now they decorrelate.
+function dpNoiseStart(node, when, stopAt) {
+  var off = Math.random() * 2;               // buffer is 4 s, longest tail ~1.7 s
+  try { node.start(when, off); } catch (e) { node.start(when); }
+  node.stop(stopAt);
 }
 function dpEnv(node, when, peak, decay) {
   node.gain.setValueAtTime(0.0001, when);
@@ -4779,30 +3739,39 @@ function dpKick(when, g) {
 function dpSnare(when, g) {
   var n = audioCtx.createBufferSource(); n.buffer = dpNoise();
   var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1500;
+  // Band-limit the snare at 7.2 kHz: it leaves the hi-hat's own octave free, so a
+  // closed hat on the same tick still cuts through instead of being masked.
+  var lp = audioCtx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7200;
   var ng = audioCtx.createGain(); dpEnv(ng, when, g * 0.9, 0.2);
-  n.connect(hp).connect(ng).connect(dpMaster()); n.start(when); n.stop(when + 0.25);
+  n.connect(hp).connect(lp).connect(ng).connect(dpMaster()); dpNoiseStart(n, when, when + 0.25);
   var o = audioCtx.createOscillator(); o.type = 'triangle'; o.frequency.value = 180;
   var og = audioCtx.createGain(); dpEnv(og, when, g * 0.5, 0.12);
   o.connect(og).connect(dpMaster()); o.start(when); o.stop(when + 0.15);
 }
 function dpHat(when, g, open) {
   var n = audioCtx.createBufferSource(); n.buffer = dpNoise(); n.playbackRate.value = 1.5;
-  var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 8000;
+  var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 8200;
   var ng = audioCtx.createGain();
-  var peak = Math.max(0.0001, g * 0.6);
+  var peak = Math.max(0.0001, g * 0.95);
   if (open) {
     // Open hat: stays audible across up to a quarter note (clamped), so it reads as
     // an open hat; a following hat (open OR closed) chokes it early — see below.
-    var dec = Math.min(Math.max(15 * db2.tsDen / db2.bpm, 0.2), 0.9);   // one quarter note, clamped
+    var dec = Math.min(Math.max(dpTickToSec(TPQ), 0.2), 0.9);           // one quarter note, clamped
     ng.gain.setValueAtTime(0.0001, when);
     ng.gain.exponentialRampToValueAtTime(peak, when + 0.003);           // attack
     ng.gain.exponentialRampToValueAtTime(peak * 0.4, when + 0.05);      // initial transient
     ng.gain.exponentialRampToValueAtTime(peak * 0.18, when + dec * 0.7);// sustained body (stays audible)
     ng.gain.exponentialRampToValueAtTime(0.0001, when + dec);           // release by the quarter-note cap
-    n.connect(hp).connect(ng).connect(dpMaster()); n.start(when); n.stop(when + dec + 0.05);
+    n.connect(hp).connect(ng).connect(dpMaster()); dpNoiseStart(n, when, when + dec + 0.05);
   } else {
-    dpEnv(ng, when, peak, 0.045);
-    n.connect(hp).connect(ng).connect(dpMaster()); n.start(when); n.stop(when + 0.12);
+    dpEnv(ng, when, peak, 0.055);
+    n.connect(hp).connect(ng).connect(dpMaster()); dpNoiseStart(n, when, when + 0.13);
+    // A narrow 11 kHz "tick" on top gives the closed hat an attack that survives
+    // a simultaneous snare or kick.
+    var t = audioCtx.createBufferSource(); t.buffer = dpNoise();
+    var bp = audioCtx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 11000; bp.Q.value = 1.6;
+    var tg = audioCtx.createGain(); dpEnv(tg, when, peak * 0.5, 0.018);
+    t.connect(bp).connect(tg).connect(dpMaster()); dpNoiseStart(t, when, when + 0.06);
   }
   // Choke a still-ringing open hat right when THIS hat starts (tight fade = ends at the next hat).
   if (db2.openHatGain) { try { db2.openHatGain.gain.cancelScheduledValues(when); db2.openHatGain.gain.setTargetAtTime(0.0001, when, 0.004); } catch (e) {} }
@@ -4820,7 +3789,7 @@ function dpCymbal(when, g, bright, decay) {
   var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = bright;
   var bp = audioCtx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = bright * 1.4; bp.Q.value = 0.7;
   var ng = audioCtx.createGain(); dpEnv(ng, when, g * 0.45, decay);
-  n.connect(hp).connect(bp).connect(ng).connect(dpMaster()); n.start(when); n.stop(when + decay + 0.05);
+  n.connect(hp).connect(bp).connect(ng).connect(dpMaster()); dpNoiseStart(n, when, when + decay + 0.05);
 }
 function dpBell(when, g) {
   var freqs = [820, 1200, 2400];
@@ -4860,32 +3829,52 @@ function dpPlaySample(id, when, g) {
 
 // ── Metronome (coupled to BPM + time signature) ──
 // level 2 = accented downbeat, 1 = other beats, 0 = subdivision click.
+// Two detuned partials and a longer tail make the click cut through a full groove,
+// and it runs on its own bus (dpMetroBus) so nothing can duck it.
 function dpClick(when, level) {
-  var freq = level === 2 ? 1600 : level === 1 ? 1100 : 820;
-  var peak = (level === 2 ? 0.9 : level === 1 ? 0.55 : 0.3) * db2.vol;
-  var o = audioCtx.createOscillator(); o.type = level === 0 ? 'sine' : 'square';
-  o.frequency.value = freq;
+  var freq = level === 2 ? 2000 : level === 1 ? 1500 : 1050;
+  var peak = (level === 2 ? 1.0 : level === 1 ? 0.75 : 0.45) * db2.vol;
+  var dec = level === 0 ? 0.035 : 0.05;
+  var bus = dpMetroBus();
   var g = audioCtx.createGain();
   g.gain.setValueAtTime(0.0001, when);
   g.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), when + 0.001);
-  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.035);
-  o.connect(g).connect(dpMaster()); o.start(when); o.stop(when + 0.05);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dec);
+  g.connect(bus);
+  var o = audioCtx.createOscillator(); o.type = level === 0 ? 'triangle' : 'square';
+  o.frequency.value = freq;
+  o.connect(g); o.start(when); o.stop(when + dec + 0.02);
+  var o2 = audioCtx.createOscillator(); o2.type = 'square';    // upper partial = presence
+  o2.frequency.value = freq * 2.01;
+  var g2 = audioCtx.createGain(); g2.gain.value = 0.35;
+  o2.connect(g2).connect(g); o2.start(when); o2.stop(when + dec + 0.02);
+}
+function dpSetMetroVol(v) {
+  db2.metroVol = parseFloat(v);
+  var sl = document.getElementById('dpMetroVol');
+  if (sl && parseFloat(sl.value) !== db2.metroVol) sl.value = db2.metroVol;
+  var d = document.getElementById('dpMetroVolDisp');
+  if (d) d.textContent = Math.round(db2.metroVol * 100) + '%';
+  if (db2.metroGain) db2.metroGain.gain.value = db2.metroVol;
 }
 function dpMetroTicks() {
   if (!db2.metro.on) return [];
   var out = [], tpb = dpTicksPerBeat(), ticksPerBar = dpTicksPerBar(), ptot = dpPatternTicks();
-  var offs;
+  var comp = dpIsCompound(), offs;
+  // Subdivisions are relative to the FELT beat, so in 6/8 "8th" means the three
+  // eighths inside the dotted-quarter beat, not a duple half-beat.
   switch (db2.metro.sub) {
-    case '8th':     offs = [0, tpb / 2]; break;
-    case '16th':    offs = [0, tpb / 4, tpb / 2, tpb * 3 / 4]; break;
+    case '8th':     offs = comp ? [0, tpb / 3, tpb * 2 / 3] : [0, tpb / 2]; break;
+    case '16th':    offs = comp ? [0, tpb / 6, tpb / 3, tpb / 2, tpb * 2 / 3, tpb * 5 / 6]
+                                : [0, tpb / 4, tpb / 2, tpb * 3 / 4]; break;
     case 'trip':    offs = [0, tpb / 3, tpb * 2 / 3]; break;
-    case 'shuffle': offs = [0, tpb * 2 / 3]; break;   // 1st & 3rd of an eighth-note triplet
+    case 'shuffle': offs = [0, tpb * 2 / 3]; break;   // 1st & 3rd of a beat triplet
     default:        offs = [0]; break;                // beat
   }
   for (var t = 0; t < ptot; t += tpb) {
     var beatInBar = t % ticksPerBar;
     for (var j = 0; j < offs.length; j++) {
-      var tick = t + offs[j];
+      var tick = Math.round(t + offs[j]);
       if (tick >= ptot) continue;
       out.push({ tick: tick, level: j === 0 ? (beatInBar === 0 ? 2 : 1) : 0 });
     }
@@ -4981,6 +3970,405 @@ function dpTestTone() {
   o.connect(g).connect(audioCtx.destination);   // straight to output, bypassing dpMaster + scheduler
   o.start(when); o.stop(when + 0.32);
   log('Test tone: state=' + audioCtx.state + ' t=' + audioCtx.currentTime.toFixed(2) + ' sr=' + audioCtx.sampleRate);
+}
+
+// ============================================================================
+//  NOTATION VIEW (read-only) -- the groove as drum sheet music.
+//  Canvas-drawn on white paper (no music font ships offline): 5-line staff,
+//  percussion clef, standard drum-key positions, stems up for the hands and
+//  down for the feet, beaming per beat, rests in the hands voice, accents (>)
+//  and ghost notes in ( ). Note lengths are "until the next hit in the same
+//  voice, capped at the beat" -- the way drum charts are written -- so a lone
+//  hit on a beat reads as a quarter note. Export with PNG.
+// ============================================================================
+var dpNt = { perLine: 0 };          // bars per system; 0 = auto-fit to the screen
+
+// Staff position: 0 = bottom line, 1 = first space ... 8 = top line, 10 = first
+// ledger above. head: n = filled oval, x = cross, d = diamond, t = triangle.
+var DP_STAFF = {
+  crash2:    { pos: 12, head: 'x' },
+  crash1:    { pos: 10, head: 'x' },
+  hatopen:   { pos: 9,  head: 'x', open: true },
+  hatclosed: { pos: 9,  head: 'x' },
+  rideedge:  { pos: 8,  head: 'x' },
+  ridebell:  { pos: 8,  head: 'd' },
+  riderim:   { pos: 8,  head: 't' },
+  tomhi:     { pos: 7,  head: 'n' },
+  tommid:    { pos: 6,  head: 'n' },
+  snare:     { pos: 5,  head: 'n' },
+  tomlo:     { pos: 3,  head: 'n' },
+  kick:      { pos: 1,  head: 'n', down: true }
+};
+function dpStaffFor(id) {
+  if (DP_STAFF[id]) return DP_STAFF[id];
+  var idx = 0;                                    // recorded samples sit below the staff
+  for (var i = 0; i < db2.userInsts.length; i++) if (db2.userInsts[i].id === id) idx = i;
+  return { pos: -1 - idx * 2, head: 'n', down: true };
+}
+// Nearest notated value for a length in ticks: straight, dotted or triplet.
+function dpDurInfo(t) {
+  var base = TPQ * 4, cands = [], best = null, i, v, fl;
+  for (i = 0; i <= 6; i++) {
+    v = base / Math.pow(2, i);
+    fl = i <= 2 ? 0 : i - 2;                       // quarter and longer carry no flags
+    cands.push({ t: v,         flags: fl, dot: false, trip: false, hollow: i <= 1, stem: i >= 1 });
+    cands.push({ t: v * 1.5,   flags: fl, dot: true,  trip: false, hollow: i <= 1, stem: i >= 1 });
+    cands.push({ t: v * 2 / 3, flags: fl, dot: false, trip: true,  hollow: i <= 1, stem: i >= 1 });
+  }
+  for (i = 0; i < cands.length; i++) if (!best || Math.abs(cands[i].t - t) < Math.abs(best.t - t)) best = cands[i];
+  return best;
+}
+// One voice of one beat: onsets with the length to the next onset (beat-capped).
+function dpVoiceNotes(map, ticks, voice, b1) {
+  var list = [], i, t;
+  for (i = 0; i < ticks.length; i++) {
+    t = ticks[i];
+    if (!map[t][voice].length) continue;
+    list.push({ tick: t, heads: map[t][voice] });
+  }
+  for (i = 0; i < list.length; i++) {
+    list[i].dur = (i + 1 < list.length ? list[i + 1].tick : b1) - list[i].tick;
+    list[i].info = dpDurInfo(list[i].dur);
+  }
+  return list;
+}
+// bars[] -> beats[] -> { start, end, up[], down[], trip }
+function dpNotesModel() {
+  var tpbar = dpTicksPerBar(), tpb = dpTicksPerBeat(), INS = dpInsts(), bars = [];
+  var comp = dpIsCompound(), bpbar = dpBeatsPerBar();
+  for (var b = 0; b < db2.bars; b++) {
+    var beats = [];
+    for (var be = 0; be < bpbar; be++) {
+      var b0 = b * tpbar + be * tpb, b1 = b0 + tpb;
+      var map = {}, ticks = [], trip = false, i, k, t, off;
+      for (i = 0; i < INS.length; i++) {
+        var id = INS[i].id, m = db2.cells[id];
+        if (!m) continue;
+        for (k in m) {
+          if (!m.hasOwnProperty(k)) continue;
+          t = parseInt(k, 10);
+          if (t < b0 || t >= b1 || m[k] <= 0) continue;
+          var stf = dpStaffFor(id);
+          if (!map[t]) { map[t] = { up: [], down: [] }; ticks.push(t); }
+          map[t][stf.down ? 'down' : 'up'].push({ id: id, vel: m[k], st: stf, name: INS[i].name });
+          off = t - b0;                              // a third of the beat that is not a half/quarter
+          if (!comp && off * 3 % tpb === 0 && off * 2 % tpb !== 0 && off * 4 % tpb !== 0) trip = true;
+        }
+      }
+      ticks.sort(function (x, y) { return x - y; });
+      beats.push({ start: b0, end: b1, trip: trip,
+                   up: dpVoiceNotes(map, ticks, 'up', b1),
+                   down: dpVoiceNotes(map, ticks, 'down', b1) });
+    }
+    bars.push(beats);
+  }
+  return bars;
+}
+// -- Glyphs (all hand-drawn: no music font offline) --
+function dpNHead(g, x, y, kind, hollow) {
+  if (kind === 'x') {
+    g.lineWidth = 1.7;
+    g.beginPath(); g.moveTo(x - 3.7, y - 3.7); g.lineTo(x + 3.7, y + 3.7);
+    g.moveTo(x + 3.7, y - 3.7); g.lineTo(x - 3.7, y + 3.7); g.stroke();
+  } else if (kind === 'd') {
+    g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(x, y - 4.2); g.lineTo(x + 4.2, y); g.lineTo(x, y + 4.2); g.lineTo(x - 4.2, y);
+    g.closePath(); g.stroke();
+  } else if (kind === 't') {
+    g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(x, y - 4.4); g.lineTo(x + 4.2, y + 3.4); g.lineTo(x - 4.2, y + 3.4);
+    g.closePath(); g.stroke();
+  } else {
+    g.beginPath();
+    if (g.ellipse) g.ellipse(x, y, 4.5, 3.4, -0.32, 0, Math.PI * 2); else g.arc(x, y, 3.8, 0, Math.PI * 2);
+    if (hollow) { g.lineWidth = 1.6; g.stroke(); } else g.fill();
+  }
+}
+function dpNFlag(g, x, tipY, flags, up) {
+  g.lineWidth = 1.7;
+  for (var i = 0; i < flags; i++) {
+    var y = tipY + (up ? 1 : -1) * i * 5;
+    g.beginPath(); g.moveTo(x, y);
+    g.quadraticCurveTo(x + 7, y + (up ? 5 : -5), x + 3.5, y + (up ? 12 : -12));
+    g.stroke();
+  }
+}
+function dpNRest(g, x, y, flags) {          // y = middle staff line
+  g.lineWidth = 1.7;
+  if (flags <= 0) {                          // quarter rest
+    g.beginPath();
+    g.moveTo(x - 2.6, y - 9); g.lineTo(x + 2.6, y - 3.4); g.lineTo(x - 2.2, y + 0.6); g.lineTo(x + 3, y + 6);
+    g.stroke();
+    g.beginPath(); g.moveTo(x + 3, y + 6); g.quadraticCurveTo(x - 1.4, y + 3.4, x + 1.4, y + 9.4); g.stroke();
+  } else {                                   // 8th / 16th / 32nd rest
+    g.beginPath(); g.moveTo(x + 3.2, y - 6); g.lineTo(x - 2.2, y + 7); g.stroke();
+    for (var i = 0; i < flags; i++) {
+      var yy = y - 6 + i * 4.6;
+      g.beginPath(); g.arc(x + 1.6, yy, 1.6, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.moveTo(x + 2.8, yy); g.quadraticCurveTo(x + 5.4, yy + 2, x + 2.2, yy + 4.2); g.stroke();
+    }
+  }
+}
+function dpNClef(g, x, topY, LG) {          // percussion clef: two thick bars
+  g.fillRect(x, topY + LG * 1.05, 3.4, LG * 1.9);
+  g.fillRect(x + 6.5, topY + LG * 1.05, 3.4, LG * 1.9);
+}
+// -- The drawing pass --
+var DP_NZOOM = 1.4;                 // staff magnification: the whole drawing is done in
+                                    // design units (line gap 9) and scaled up by this.
+// Available paper width in CSS px. The overlay is display:none until it opens, so
+// clientWidth can still be 0 on the first draw — fall back to the viewport.
+function dpNotesAvailPx() {
+  var wrap = document.getElementById('dpNotesWrap');
+  var w = (wrap && wrap.clientWidth) || 0;
+  if (w < 80) w = (window.innerWidth || 380) - 28;
+  return w;
+}
+function dpNotesAutoPerLine() {
+  var w = dpNotesAvailPx() / DP_NZOOM;
+  var perBar = 60 + dpBeatsPerBar() * 34;                    // rough width one bar wants
+  return Math.max(1, Math.min(4, Math.floor((w - 70) / perBar)));
+}
+function dpNotesUsedInsts() {
+  var INS = dpInsts(), out = [], i, k, m, any;
+  var where = { 12: 'above staff', 10: 'above staff', 9: 'over top line', 8: 'top line',
+                7: '4th space', 6: '4th line', 5: '3rd space', 3: '2nd space', 1: '1st space' };
+  for (i = 0; i < INS.length; i++) {
+    m = db2.cells[INS[i].id]; any = false;
+    for (k in m) { if (m.hasOwnProperty(k) && m[k] > 0) { any = true; break; } }
+    if (!any) continue;
+    var st = dpStaffFor(INS[i].id);
+    var shape = st.head === 'x' ? 'x' : st.head === 'd' ? '<>' : st.head === 't' ? 'A' : 'o';
+    out.push(shape + ' ' + INS[i].name + ' - ' + (where[st.pos] || 'below staff'));
+  }
+  return out;
+}
+function dpNotesDraw() {
+  var cv = document.getElementById('dpNotesCv'), wrap = document.getElementById('dpNotesWrap');
+  if (!cv || !wrap) return;
+  var model = dpNotesModel();
+  var perLine = dpNt.perLine || dpNotesAutoPerLine();
+  var NK = DP_NZOOM;
+  var W = Math.max(280 * NK, dpNotesAvailPx() - 14) / NK;    // design-unit width (line gap 9)
+  var pl = document.getElementById('dpNotesPerLine');
+  if (pl) pl.textContent = perLine + ' bar' + (perLine === 1 ? '' : 's') + '/line';
+  var LG = 9, staffH = LG * 4, SYS_TOP = 56, SYS_BOT = 48, sysH = SYS_TOP + staffH + SYS_BOT;
+  var lines = Math.ceil(db2.bars / perLine);
+  var used = dpNotesUsedInsts(), keyH = 40 + Math.ceil(used.length / 2) * 13;
+  var H = keyH + lines * sysH + 14;
+  var dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(W * NK * dpr); cv.height = Math.round(H * NK * dpr);
+  cv.style.width = Math.round(W * NK) + 'px'; cv.style.height = Math.round(H * NK) + 'px';
+  var g = cv.getContext('2d');
+  g.setTransform(dpr * NK, 0, 0, dpr * NK, 0, 0);            // everything below is in design units
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#111'; g.strokeStyle = '#111'; g.lineWidth = 1;
+  g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+
+  // Title, tempo/meter line and the instrument key
+  g.font = 'bold 13px -apple-system,Helvetica,Arial,sans-serif';
+  g.fillText(db2.currentGroove || 'Untitled groove', 6, 16);
+  g.font = '10px -apple-system,Helvetica,Arial,sans-serif';
+  g.fillStyle = '#555';
+  g.fillText(Math.round(db2.bpm * 10) / 10 + ' BPM - ' + db2.tsNum + '/' + db2.tsDen + ' - ' + dpFeelName()
+             + ' (' + dpBeatsPerBar() + ' x ' + dpNoteName(dpTicksPerBeat()) + ' per bar)'
+             + (db2.swing > 50 && !dpIsCompound() ? ' - swing ' + db2.swing + '%' : ''), 6, 30);
+  for (var u = 0; u < used.length; u++) {
+    g.fillText(used[u], 6 + (u % 2) * (W - 12) / 2, 44 + Math.floor(u / 2) * 13);
+  }
+  g.fillStyle = '#111';
+
+  var tpbar = dpTicksPerBar(), tpb = dpTicksPerBeat();
+  for (var li = 0; li < lines; li++) {
+    var top = keyH + li * sysH + SYS_TOP, bottomY = top + staffH;
+    var x0 = 6, s;
+    for (s = 0; s < 5; s++) { g.beginPath(); g.moveTo(x0, top + s * LG); g.lineTo(W - 6, top + s * LG); g.stroke(); }
+    dpNClef(g, x0 + 7, top, LG);
+    var contentX = x0 + 26;
+    if (li === 0) {                                           // time signature on the first system only
+      g.font = 'bold 15px -apple-system,Helvetica,Arial,sans-serif';
+      g.textAlign = 'center';
+      g.fillText(String(db2.tsNum), contentX + 9, top + LG * 2 - 1);
+      g.fillText(String(db2.tsDen), contentX + 9, top + LG * 4 - 1);
+      g.textAlign = 'left';
+      contentX += 24;
+    }
+    g.beginPath(); g.moveTo(x0, top); g.lineTo(x0, bottomY); g.stroke();   // opening bar line
+    var barsHere = Math.min(perLine, db2.bars - li * perLine);
+    var barW = (W - 6 - contentX) / barsHere;
+    for (var bi = 0; bi < barsHere; bi++) {
+      var bIdx = li * perLine + bi, bx = contentX + bi * barW;
+      var lead = 9, trail = 8, span = barW - lead - trail;
+      var beats = model[bIdx];
+      for (var be = 0; be < beats.length; be++) {
+        dpNotesBeat(g, beats[be], bIdx, bx + lead, span, tpbar, tpb, top, bottomY, LG);
+      }
+      var rx = bx + barW;                                     // bar line (double at the very end)
+      g.beginPath(); g.moveTo(rx, top); g.lineTo(rx, bottomY); g.stroke();
+      if (bIdx === db2.bars - 1) g.fillRect(rx - 4.5, top, 2.6, staffH);
+    }
+  }
+}
+// One beat of one bar: both voices, with beams, flags, rests and brackets.
+function dpNotesBeat(g, beat, barIdx, bx, span, tpbar, tpb, top, bottomY, LG) {
+  var xOf = function (tick) { return bx + ((tick - barIdx * tpbar) / tpbar) * span; };
+  var yOf = function (pos) { return bottomY - pos * (LG / 2); };
+  var v, voice, notes, up, i, j, n, x;
+  for (v = 0; v < 2; v++) {
+    up = (v === 0);
+    voice = up ? 'up' : 'down';
+    notes = beat[voice];
+    if (up) {                                                  // rests live in the hands voice
+      var firstT = notes.length ? notes[0].tick : beat.end;
+      if (firstT > beat.start) dpNRest(g, xOf(beat.start) + 3, yOf(4), dpDurInfo(firstT - beat.start).flags);
+    }
+    if (!notes.length) continue;
+    for (i = 0; i < notes.length; i++) dpNotesChord(g, notes[i], xOf(notes[i].tick), yOf, up, top);
+    var tips = [];                                             // stem tip per note (beams share one)
+    for (i = 0; i < notes.length; i++) tips[i] = dpNoteTip(notes[i], yOf, up);
+    var groups = [], cur = null;                               // beam groups = runs of flagged notes
+    for (i = 0; i < notes.length; i++) {
+      if (notes[i].info.flags >= 1) { if (!cur) { cur = []; groups.push(cur); } cur.push(i); }
+      else cur = null;
+    }
+    for (var gi = 0; gi < groups.length; gi++) {
+      var grp = groups[gi], tip = null, ty;
+      for (j = 0; j < grp.length; j++) {
+        ty = dpNoteTip(notes[grp[j]], yOf, up);
+        tip = (tip === null) ? ty : (up ? Math.min(tip, ty) : Math.max(tip, ty));
+      }
+      for (j = 0; j < grp.length; j++) {                       // extend every stem to the shared tip
+        n = notes[grp[j]]; x = xOf(n.tick) + (up ? 4.2 : -4.2);
+        tips[grp[j]] = tip;
+        g.lineWidth = 1.5;
+        g.beginPath(); g.moveTo(x, dpNoteAnchor(n, yOf, up)); g.lineTo(x, tip); g.stroke();
+      }
+      var xa = xOf(notes[grp[0]].tick) + (up ? 4.2 : -4.2);
+      var xb = xOf(notes[grp[grp.length - 1]].tick) + (up ? 4.2 : -4.2);
+      if (grp.length === 1) {
+        dpNFlag(g, xa, tip, notes[grp[0]].info.flags, up);
+      } else {
+        for (var bm = 0; bm < 3; bm++) {                       // primary beam + secondary beams
+          var yy = tip + (up ? 1 : -1) * bm * 5, runStart = -1;
+          for (j = 0; j <= grp.length; j++) {
+            var has = (j < grp.length) && (notes[grp[j]].info.flags > bm);
+            if (has && runStart < 0) runStart = j;
+            if (!has && runStart >= 0) {
+              var x1 = xOf(notes[grp[runStart]].tick) + (up ? 4.2 : -4.2);
+              var x2 = xOf(notes[grp[j - 1]].tick) + (up ? 4.2 : -4.2);
+              if (Math.abs(x2 - x1) < 1) x2 = x1 + (runStart > 0 ? -6 : 6);   // lone short note: stub
+              g.fillRect(Math.min(x1, x2), yy - (up ? 0 : 2.6), Math.abs(x2 - x1), 2.6);
+              runStart = -1;
+            }
+          }
+        }
+      }
+      if (up && beat.trip) {                                   // one bracket per group of three
+        var chunk = [];
+        for (j = 0; j <= grp.length; j++) {
+          var isT = (j < grp.length) && notes[grp[j]].info.trip;
+          if (isT) chunk.push(grp[j]);
+          if (chunk.length && (!isT || chunk.length === 3)) {
+            dpNTrip(g, xOf(notes[chunk[0]].tick) + 4.2, xOf(notes[chunk[chunk.length - 1]].tick) + 4.2, tip);
+            chunk = [];
+          }
+        }
+      }
+    }
+    for (i = 0; i < notes.length; i++) {                       // accents sit above the beam
+      var acc = false;
+      for (j = 0; j < notes[i].heads.length; j++) if (notes[i].heads[j].vel === 3) acc = true;
+      if (!acc) continue;
+      var ax = xOf(notes[i].tick), ay = up ? tips[i] - 8 : tips[i] + 10;
+      g.lineWidth = 1.6;
+      g.beginPath(); g.moveTo(ax - 4, ay - 3.2); g.lineTo(ax + 4.5, ay); g.lineTo(ax - 4, ay + 3.2); g.stroke();
+    }
+    for (i = 0; i < notes.length; i++) {                       // un-beamed notes: plain stems
+      if (notes[i].info.flags >= 1 || !notes[i].info.stem) continue;
+      var xs = xOf(notes[i].tick) + (up ? 4.2 : -4.2);
+      g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(xs, dpNoteAnchor(notes[i], yOf, up)); g.lineTo(xs, dpNoteTip(notes[i], yOf, up)); g.stroke();
+    }
+  }
+}
+function dpNTrip(g, xa, xb, tip) {          // triplet bracket with its "3"
+  var bt = tip - 10;
+  if (xb - xa < 4) xb = xa + 10;
+  g.lineWidth = 1;
+  g.beginPath(); g.moveTo(xa - 3, bt + 4); g.lineTo(xa - 3, bt); g.lineTo(xb + 3, bt); g.lineTo(xb + 3, bt + 4); g.stroke();
+  g.font = 'bold 9px -apple-system,Helvetica,Arial,sans-serif';
+  g.textAlign = 'center';
+  g.fillStyle = '#fff'; g.fillRect((xa + xb) / 2 - 3.5, bt - 8, 7, 9);   // clear the bracket line
+  g.fillStyle = '#111'; g.fillText('3', (xa + xb) / 2, bt - 1);
+  g.textAlign = 'left';
+}
+function dpNoteAnchor(n, yOf, up) {         // where the stem meets the chord
+  var p = n.heads[0].st.pos, i;
+  for (i = 1; i < n.heads.length; i++) p = up ? Math.min(p, n.heads[i].st.pos) : Math.max(p, n.heads[i].st.pos);
+  return yOf(p);
+}
+function dpNoteTip(n, yOf, up) {            // free end of the stem
+  var far = n.heads[0].st.pos, i;
+  for (i = 1; i < n.heads.length; i++) far = up ? Math.max(far, n.heads[i].st.pos) : Math.min(far, n.heads[i].st.pos);
+  return yOf(far) + (up ? -26 : 26);
+}
+// Heads of one chord + ledger lines, accents, ghost parentheses, open-hat "o", dots.
+function dpNotesChord(g, n, x, yOf, up, top) {
+  var seen = {}, i, h, y, xx, accent = false, p2;
+  for (i = 0; i < n.heads.length; i++) {
+    h = n.heads[i]; y = yOf(h.st.pos);
+    // Heads on the same or a neighbouring position would collide (e.g. crash on the
+    // ledger line with a hi-hat right below it) — shift the later one to the right.
+    xx = (seen[h.st.pos] || seen[h.st.pos - 1] || seen[h.st.pos + 1]) ? x + 8 : x;
+    seen[h.st.pos] = true;
+    if (h.vel === 3) accent = true;
+    g.lineWidth = 1;
+    for (p2 = 10; p2 <= h.st.pos; p2 += 2) { g.beginPath(); g.moveTo(xx - 7, yOf(p2)); g.lineTo(xx + 7, yOf(p2)); g.stroke(); }
+    for (p2 = -2; p2 >= h.st.pos; p2 -= 2) { g.beginPath(); g.moveTo(xx - 7, yOf(p2)); g.lineTo(xx + 7, yOf(p2)); g.stroke(); }
+    dpNHead(g, xx, y, h.st.head, n.info.hollow);
+    if (h.vel === 1) {                                         // ghost note: ( x )
+      g.font = '12px -apple-system,Helvetica,Arial,sans-serif';
+      g.fillText('(', xx - 10.5, y + 4); g.fillText(')', xx + 5.5, y + 4);
+    }
+    if (h.st.open) {                                           // open hi-hat marker
+      g.lineWidth = 1.2;
+      g.beginPath(); g.arc(xx, y - 9, 2.6, 0, Math.PI * 2); g.stroke();
+    }
+    if (n.info.dot) { g.beginPath(); g.arc(xx + 8.5, y - 2, 1.5, 0, Math.PI * 2); g.fill(); }
+  }
+  return accent;                             // the caller draws the > above the beam
+}
+function dpNotesOpen() {
+  document.getElementById('dpNotes').classList.add('show');
+  // The overlay is display:none until now, so its width is only known once the
+  // browser has laid it out. Draw on the next frame and again a little later —
+  // the last pass is the one that gets the full paper width.
+  if (window.requestAnimationFrame) requestAnimationFrame(function () { requestAnimationFrame(dpNotesDraw); });
+  setTimeout(dpNotesDraw, 150);
+  setTimeout(dpNotesDraw, 450);
+}
+// Re-flow the page when the phone is rotated (or the window resized).
+window.addEventListener('resize', function () {
+  var el = document.getElementById('dpNotes');
+  if (el && el.classList.contains('show')) dpNotesDraw();
+});
+function dpNotesClose() { document.getElementById('dpNotes').classList.remove('show'); }
+function dpNotesZoom(d) {
+  dpNt.perLine = Math.max(1, Math.min(8, (dpNt.perLine || dpNotesAutoPerLine()) + d));
+  var el = document.getElementById('dpNotesPerLine');
+  if (el) el.textContent = dpNt.perLine + ' bars/line';
+  dpNotesDraw();
+}
+function dpNotesPng() {
+  var cv = document.getElementById('dpNotesCv');
+  var name = 'groove_' + (db2.currentGroove || 'untitled').replace(/[^A-Za-z0-9_-]/g, '_') + '_' + dpStamp() + '.png';
+  if (cv.toBlob) { cv.toBlob(function (b) { if (b) dpDownloadBlob(b, name); }); return; }
+  try {                                                        // older WebKit: dataURL -> blob
+    var du = cv.toDataURL('image/png'), bin = atob(du.split(',')[1]);
+    var arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    dpDownloadBlob(new Blob([arr], { type: 'image/png' }), name);
+  } catch (e) { alert('PNG export failed: ' + e.message); }
 }
 
 // ============================================================================
@@ -5539,7 +4927,9 @@ function dpRenderBgGroove() {
     var offline = new OAC(1, lenSamp, sr);
 
     var liveCtx = audioCtx, liveMaster = db2.master, liveNoise = db2.noiseBuf;
+    var liveLim = db2.limiter, liveMetro = db2.metroGain;
     audioCtx = offline; db2.master = null; db2.noiseBuf = null;   // dp* voice fns render into offline
+    db2.limiter = null; db2.metroGain = null;                     // (nodes are per-context — rebuild offline)
     try {
       for (var r = 0; r < reps; r++) {
         var base = r * loopDur;
@@ -5562,6 +4952,7 @@ function dpRenderBgGroove() {
       }
     } finally {
       audioCtx = liveCtx; db2.master = liveMaster; db2.noiseBuf = liveNoise;  // restore live (scheduling was synchronous)
+      db2.limiter = liveLim; db2.metroGain = liveMetro;
     }
     dpBgRendering = true; dpBgDirty = false;
     offline.startRendering().then(function (rbuf) {
@@ -5671,7 +5062,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v49 (Phase 5: Melody Transcriber - key/scale + rhythmic onsets in Loop Function)');
+log('Boot OK v50 (final cleanup: old Beat tool removed; note-value meter model + compound feel, triplet/mixed grids, cell-resolution loops, notation view, louder accents + audibility fixes)');
 </script>
 </body>
 </html>
