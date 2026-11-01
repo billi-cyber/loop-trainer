@@ -269,7 +269,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .dp-staff-label canvas,.dp-staff-bars canvas{display:block;flex-shrink:0}
 .dp-tapbar .dp-tap-lbl{font-size:10px;color:var(--dim);font-weight:700}
 .dp-tapbar .bb-pill.on{background:var(--acc);border-color:var(--acc);color:#fff}
-#dpStaffBtn.on,#dpViewBtn.on,#dpFollowBtn.on{background:var(--ora);border-color:var(--ora);color:#000}
+#dpStaffBtn.on,#dpGridBtn.on,#dpViewBtn.on,#dpFollowBtn.on{background:var(--ora);border-color:var(--ora);color:#000}
 /* v52: staff playhead (long + rows view) and flat-bar playheads */
 .dp-sph,.dp-fph{position:absolute;top:0;bottom:0;left:0;width:2px;margin-left:-1px;background:var(--grn);box-shadow:0 0 4px var(--grn);display:none;pointer-events:none;z-index:1}
 /* v52: rows view — one bar per line; staff block on top, grid block below (one bar open) */
@@ -282,6 +282,8 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 #dpGridWrap.rows.stack{display:block;overflow:auto}
 #dpGridWrap.rows.stack .dm-grid{display:block;min-width:max-content}
 #dpGridWrap.rows.stack .dp-pane-staff,#dpGridWrap.rows.stack .dp-pane-grid{max-height:none;overflow:visible}
+/* v54: grid block hidden -> the staff lines get the whole height */
+#dpGridWrap.rows.nogrid .dp-pane-staff{flex:1 1 auto;max-height:none;border-bottom:none}
 .dp-srow{display:flex;position:relative;background:#fff;border-bottom:1px solid #e3e3e8;cursor:pointer}
 .dp-srow .dp-staff-label::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:transparent}
 .dp-srow.open .dp-staff-label::after{background:var(--acc)}
@@ -532,8 +534,9 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="bb-pill" id="dpHitAccent" onclick="dpSetHitMode('accent')" title="Tap sets an accent (tap it again to clear)">Accent</button>
     <button class="bb-pill" id="dpHitGhost" onclick="dpSetHitMode('ghost')" title="Tap sets a ghost note (tap it again to clear)">Ghost</button>
     <button class="bb-pill" id="dpStaffBtn" onclick="dpToggleStaff()" style="margin-left:6px" title="Show the groove as drum notation right above the grid, updated as you tap">Staff</button>
+    <button class="bb-pill" id="dpGridBtn" onclick="dpToggleGrid()" title="Show or hide the grid (in the Rows view: the whole bottom block)">Grid</button>
     <button class="bb-pill" id="dpViewBtn" onclick="dpToggleView()" title="Rows view: one bar per line, staff on top, one bar of grid open below">Rows</button>
-    <button class="bb-pill" id="dpFollowBtn" onclick="dpToggleFollow()" title="While playing, open the bar that is being played" style="display:none">Follow</button>
+    <button class="bb-pill" id="dpFollowBtn" onclick="dpToggleFollow()" title="While playing, the music scrolls by itself: Rows view keeps the bar being played in the middle, the long view moves the bars from right to left">Follow</button>
     <button class="bb-pill" id="dpZoomBtn" onclick="dpZoomReset()" title="Pinch the grid with two fingers (or Ctrl + scroll) to zoom; tap to reset">Zoom 100%</button>
   </div>
   <div class="bb-top dp-ctrls" style="border-bottom:none;margin-bottom:4px;gap:6px">
@@ -548,7 +551,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <span id="dpMeterDisp" style="font-size:10px;color:var(--dim);font-weight:700">4 beats/bar of 1/4 &middot; Simple</span>
     <span style="font-size:10px;color:var(--dim);font-weight:700;margin-left:4px">Bars</span>
     <button class="bb-pill" onclick="dpChangeBars(-1)">&minus;</button>
-    <span id="dpBarsDisp" style="font-size:13px;font-weight:700;min-width:20px;text-align:center">1</span>
+    <span id="dpBarsDisp" onclick="dpBarsPrompt()" title="Tap to type the number of bars (1-64)" style="font-size:13px;font-weight:700;min-width:20px;text-align:center;cursor:pointer;text-decoration:underline dotted">1</span>
     <button class="bb-pill" onclick="dpChangeBars(1)">+</button>
   </div>
   <div class="bb-top dp-ctrls" style="border-bottom:none;margin-bottom:4px;gap:6px">
@@ -2915,11 +2918,22 @@ function dpSetSwing(v) {
   document.getElementById('dpSwingDisp').textContent = db2.swing + '%' + lbl;
   if (db2.playing) dpRebuildEvents();  // live, no restart (loop length unchanged)
 }
+// v54: up to 64 bars (was 16) so whole song parts fit; tap the bar count to type a number.
+var DP_MAX_BARS = 64;
 function dpChangeBars(d) {
-  db2.bars = Math.max(1, Math.min(16, db2.bars + d));      // hits beyond pattern are preserved internally
+  db2.bars = Math.max(1, Math.min(DP_MAX_BARS, db2.bars + d));      // hits beyond pattern are preserved internally
   document.getElementById('dpBarsDisp').textContent = db2.bars;
   dpClampLoop(); dpSyncLoopInputs();
   if (db2.playing) dpRestart(); else dpRender();
+}
+function dpBarsPrompt() {
+  var v = prompt('Number of bars (1-' + DP_MAX_BARS + '):', String(db2.bars));
+  if (v === null) return;
+  var n = parseInt(v, 10);
+  if (isNaN(n)) return;
+  n = Math.max(1, Math.min(DP_MAX_BARS, n));
+  dpPushHistory();
+  dpChangeBars(n - db2.bars);
 }
 // ── Show / hide instruments + record custom sample instruments ──
 function dpInstOpen() {
@@ -3452,7 +3466,7 @@ function dpSelPaste() {
   var dst = db2.selStart * st;                  // paste anchor = selection start (tap one cell to move it)
   var span = db2.barClip.span, tpbar = dpTicksPerBar();
   var needBars = Math.ceil((dst + span) / tpbar);
-  if (needBars > db2.bars) { db2.bars = Math.min(16, needBars); document.getElementById('dpBarsDisp').textContent = db2.bars; }
+  if (needBars > db2.bars) { db2.bars = Math.min(DP_MAX_BARS, needBars); document.getElementById('dpBarsDisp').textContent = db2.bars; }
   var limit = db2.bars * tpbar;
   var INS = dpInsts();
   for (var i = 0; i < INS.length; i++) {        // clear the destination span across all rows
@@ -3691,14 +3705,14 @@ function dpRender() {
   dpEnsureCells();
   if (dpUi.view === 'rows') { dpRenderRows(); return; }
   var wrap = document.getElementById('dpGridWrap');
-  if (wrap) { wrap.classList.remove('rows'); wrap.classList.remove('stack'); }
+  if (wrap) { wrap.classList.remove('rows'); wrap.classList.remove('stack'); wrap.classList.remove('nogrid'); }
   var grid = document.getElementById('dpGrid');
   var total = dpTotalSteps();
   var stepTicks = dpStepTicks();
   var ticksPerBar = dpTicksPerBar();
   var html = '<div class="dp-gridhead">' + dpStaffRowHtml() + dpRenderRuler(total, stepTicks, ticksPerBar) + '</div>';
-  html += dpSelLaneHtml(0, total) + dpInstRowsHtml(0, total);
-  if (dpLoopActive()) {
+  if (dpUi.gridOn) html += dpSelLaneHtml(0, total) + dpInstRowsHtml(0, total);
+  if (dpUi.gridOn && dpLoopActive()) {
     var cw = dpCellW();
     var inX = 96 + (db2.loop.inTick / stepTicks) * cw;
     var outX = 96 + (db2.loop.outTick / stepTicks) * cw;
@@ -4532,7 +4546,8 @@ function dpNotesPng() {
 var dpUi = {
   hitMode: 'cycle', staffOn: true, loaded: false,
   view: 'long',          // 'long' = all bars side by side | 'rows' = one bar per line (v52)
-  follow: false,         // rows view: the open grid bar follows the playhead while playing
+  follow: false,         // while playing, scroll the music along by itself (v54: staff-centred / right-to-left)
+  gridOn: true,          // v54: grid shown (rows view: the whole bottom block)
   zoom: 1,               // long view: cell width = base width x zoom (pinch, stepless)
   zoomRows: 1,           // rows view: cell width = fit-to-width x zoomRows (>= 1)
   openBar: 0,            // rows view: the bar whose grid is open
@@ -4549,6 +4564,8 @@ function dpUiLoad() {
     if (localStorage.getItem('dp_staff_on') === '0') dpUi.staffOn = false;
     if (localStorage.getItem('dp_view') === 'rows') dpUi.view = 'rows';
     if (localStorage.getItem('dp_follow') === '1') dpUi.follow = true;
+    if (localStorage.getItem('dp_grid_on') === '0') dpUi.gridOn = false;
+    if (!dpUi.staffOn && !dpUi.gridOn) dpUi.gridOn = true;          // never both hidden
     var z = parseFloat(localStorage.getItem('dp_zoom'));
     if (z > 0.1 && z < 20) dpUi.zoom = z;
     var zr = parseFloat(localStorage.getItem('dp_zoom_rows'));
@@ -4568,7 +4585,9 @@ function dpSyncTapBar() {
   var vb = document.getElementById('dpViewBtn');
   if (vb) vb.classList.toggle('on', dpUi.view === 'rows');
   var fb = document.getElementById('dpFollowBtn');
-  if (fb) { fb.style.display = dpUi.view === 'rows' ? '' : 'none'; fb.classList.toggle('on', dpUi.follow); }
+  if (fb) fb.classList.toggle('on', dpUi.follow);
+  var gb = document.getElementById('dpGridBtn');
+  if (gb) gb.classList.toggle('on', dpUi.gridOn);
   dpZoomLabel();
 }
 function dpSetHitMode(m) {
@@ -4578,6 +4597,7 @@ function dpSetHitMode(m) {
 }
 function dpToggleStaff() {
   dpUi.staffOn = !dpUi.staffOn;
+  if (!dpUi.staffOn && !dpUi.gridOn) { dpUi.gridOn = true; dpUiSave('dp_grid_on', '1'); }   // never both hidden
   dpUiSave('dp_staff_on', dpUi.staffOn ? '1' : '0');
   dpSyncTapBar();
   dpRender();
@@ -4589,6 +4609,13 @@ function dpToggleView() {
   dpSyncTapBar();
   dpRender();
   if (dpUi.view === 'rows') dpScrollOpenBar();
+}
+function dpToggleGrid() {
+  dpUi.gridOn = !dpUi.gridOn;
+  if (!dpUi.gridOn && !dpUi.staffOn) { dpUi.staffOn = true; dpUiSave('dp_staff_on', '1'); }   // never both hidden
+  dpUiSave('dp_grid_on', dpUi.gridOn ? '1' : '0');
+  dpSyncTapBar();
+  dpRender();
 }
 function dpToggleFollow() {
   dpUi.follow = !dpUi.follow;
@@ -4790,8 +4817,8 @@ function dpRenderRows() {
     }
     html += '</div></div>';
   }
-  html += '<div class="dp-pane-grid" id="dpPaneGrid"><div class="dp-pane-in">';
-  for (b = 0; b < bars; b++) {
+  if (dpUi.gridOn) html += '<div class="dp-pane-grid" id="dpPaneGrid"><div class="dp-pane-in">';
+  for (b = 0; dpUi.gridOn && b < bars; b++) {
     var s0 = b * n, s1 = s0 + n;
     if (b === dpUi.openBar) {
       html += '<div class="dp-gopen" id="dpOpenBarEl"><div class="dp-gridhead">' + dpRenderRuler(dpTotalSteps(), st, tpbar, s0, s1) + '</div>'
@@ -4800,7 +4827,7 @@ function dpRenderRows() {
       html += dpFlatBarHtml(b, s0, s1);
     }
   }
-  html += '</div></div>';
+  if (dpUi.gridOn) html += '</div></div>';
   grid.innerHTML = html;
   grid.style.setProperty('--dpcw', dpCellW() + 'px');
   dpRowsLayout();
@@ -4828,9 +4855,11 @@ function dpRowsLayout() {
   var wrap = document.getElementById('dpGridWrap');
   if (!wrap || !wrap.classList.contains('rows')) return;
   var h = wrap.clientHeight, ps = document.getElementById('dpPaneStaff');
-  var stack = h > 0 && h < DP_SPLIT_MIN;
+  var nogrid = !dpUi.gridOn;
+  var stack = !nogrid && h > 0 && h < DP_SPLIT_MIN;
   wrap.classList.toggle('stack', stack);
-  if (ps) ps.style.maxHeight = stack ? '' : Math.round(h * 0.45) + 'px';
+  wrap.classList.toggle('nogrid', nogrid);
+  if (ps) ps.style.maxHeight = (stack || nogrid) ? '' : Math.round(h * 0.45) + 'px';
 }
 function dpRowsStack() {
   var wrap = document.getElementById('dpGridWrap');
@@ -4848,6 +4877,38 @@ function dpWatchRowsSpace() {
     dpRowsLayout();
   }).observe(wrap);
 }
+// v54 Follow — the music scrolls by itself while playing, continuously (every frame,
+// no jumps), so long songs can be read without touching the screen:
+//  - rows view: the staff pane scrolls so the bar being played sits in the MIDDLE
+//    (at mid-bar it is exactly centred, so the motion is even); the open grid bar
+//    stays where the user put it. With the staff hidden it falls back to opening
+//    the bar being played in the grid.
+//  - long view: the bars move from right to left past a fixed playhead at ~1/3 of
+//    the visible width, so more of what's coming is on screen.
+// Touching / wheeling the area pauses Follow for DP_FOLLOW_HOLD ms (manual look-around).
+var DP_FOLLOW_HOLD = 2500, dpFollowHoldUntil = 0;
+function dpFollow(tick) {
+  if (!dpUi.follow || Date.now() < dpFollowHoldUntil || dpPinch) return;
+  var wrap = document.getElementById('dpGridWrap'), grid = document.getElementById('dpGrid');
+  if (!wrap || !grid) return;
+  if (dpUi.view === 'rows') {
+    var tpbar = dpTicksPerBar(), bar = Math.floor(tick / tpbar), f = tick / tpbar - bar;
+    if (bar >= db2.bars) bar = db2.bars - 1;
+    if (!dpUi.staffOn) {
+      if (bar !== dpUi.openBar) { dpUi.openBar = bar; dpRender(); dpScrollOpenBar(); }
+      return;
+    }
+    var row = grid.querySelector('.dp-srow[data-bar="' + bar + '"]');
+    var sc = dpRowsStack() ? wrap : document.getElementById('dpPaneStaff');
+    if (!row || !sc) return;
+    var top = row.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop;
+    sc.scrollTop = Math.max(0, Math.round(top + row.offsetHeight * f - sc.clientHeight / 2));
+    return;
+  }
+  var x = 96 + tick / dpStepTicks() * dpCellW();
+  wrap.scrollLeft = Math.max(0, Math.round(x - (96 + (wrap.clientWidth - 96) * 0.33)));
+}
+function dpFollowHold() { if (db2.playing && dpUi.follow) dpFollowHoldUntil = Date.now() + DP_FOLLOW_HOLD; }
 function dpOpenBar(b) {
   if (Date.now() - dpPinchEndAt < 400) return;
   if (b === dpUi.openBar) return;
@@ -4956,6 +5017,7 @@ function dpAttachZoom() {
   wrap._zoomAttached = true;
   function dist(t) { var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY; return Math.sqrt(dx * dx + dy * dy) || 1; }
   wrap.addEventListener('touchstart', function (e) {
+    dpFollowHold();                                   // the user looks around: Follow waits a moment
     if (e.touches.length !== 2) return;
     if (dpPressTimer) { clearTimeout(dpPressTimer); dpPressTimer = 0; }   // not a long-press delete
     dpPinch = { d0: dist(e.touches), z0: dpZoomGet() };
@@ -4976,7 +5038,8 @@ function dpAttachZoom() {
   wrap.addEventListener('gesturestart', function (e) { e.preventDefault(); });    // iOS: no page zoom
   wrap.addEventListener('gesturechange', function (e) { e.preventDefault(); });
   wrap.addEventListener('wheel', function (e) {
-    if (!e.ctrlKey) return;                           // trackpad pinch arrives as Ctrl+wheel
+    if (!e.ctrlKey) { dpFollowHold(); return; }       // plain scrolling: Follow waits a moment
+                                                      // trackpad pinch arrives as Ctrl+wheel
     e.preventDefault();
     dpZoomApply(dpZoomGet() * Math.exp(-e.deltaY * 0.01), e.clientX);
     if (dpWheelTimer) clearTimeout(dpWheelTimer);
@@ -5745,10 +5808,7 @@ function dpAnim() {
     var hi = dpLoopActive() ? db2.loop.outTick : dpPatternTicks();
     var ld = dpLoopDur();
     var posTick = lo + ((elapsed % ld) / ld) * (hi - lo);
-    if (dpUi.view === 'rows' && dpUi.follow) {           // rows view + Follow: open the bar being played
-      var curBar = Math.floor(posTick / dpTicksPerBar());
-      if (curBar !== dpUi.openBar && curBar < db2.bars) { dpUi.openBar = curBar; dpRender(); dpScrollOpenBar(); }
-    }
+    dpFollow(posTick);                                   // Follow: scroll the music along (v54)
     dpPhUpdate(posTick);
     var loStep = dpLoopActive() ? Math.round(db2.loop.inTick / stepTicks) : 0;
     var rangeSteps = dpLoopActive() ? Math.round((db2.loop.outTick - db2.loop.inTick) / stepTicks) : dpTotalSteps();
@@ -5775,7 +5835,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v53 (rows view fix: grid reachable on small screens; Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
+log('Boot OK v54 (Grid/Staff hide toggles; Follow scrolls the music: rows view centres the bar being played, long view moves bars right-to-left; Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
 </script>
 </body>
 </html>
