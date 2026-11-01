@@ -275,9 +275,13 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 /* v52: rows view — one bar per line; staff block on top, grid block below (one bar open) */
 #dpGridWrap.rows{overflow:hidden;display:flex;flex-direction:column}
 #dpGridWrap.rows .dm-grid{min-width:0;flex:1;min-height:0;display:flex;flex-direction:column}
-.dp-pane-staff{flex:0 0 auto;max-height:40vh;overflow:auto;-webkit-overflow-scrolling:touch;position:relative;background:#fff;border-bottom:2px solid var(--brd)}
+.dp-pane-staff{flex:0 0 auto;max-height:45%;overflow:auto;-webkit-overflow-scrolling:touch;position:relative;background:#fff;border-bottom:2px solid var(--brd)}
 .dp-pane-grid{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;position:relative}
 .dp-pane-in{min-width:max-content}
+/* v53: not enough height for two panes (small phone, controls open) -> one scroll for everything */
+#dpGridWrap.rows.stack{display:block;overflow:auto}
+#dpGridWrap.rows.stack .dm-grid{display:block;min-width:max-content}
+#dpGridWrap.rows.stack .dp-pane-staff,#dpGridWrap.rows.stack .dp-pane-grid{max-height:none;overflow:visible}
 .dp-srow{display:flex;position:relative;background:#fff;border-bottom:1px solid #e3e3e8;cursor:pointer}
 .dp-srow .dp-staff-label::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:transparent}
 .dp-srow.open .dp-staff-label::after{background:var(--acc)}
@@ -2796,6 +2800,7 @@ function dpOpen() {
   dpAttachGridPress();   // enable long-press-to-delete on grid cells (once)
   dpUiLoad();            // per-device tap mode, staff, view, zoom
   dpAttachZoom();        // two-finger pinch / Ctrl+wheel zoom on the grid (once)
+  dpWatchRowsSpace();    // rows view: re-split panes when the free height changes
   dpStaffResetHW();
   document.getElementById('drumPlus').classList.add('show');
   dpSyncAllUI();
@@ -3389,6 +3394,7 @@ function dpToggleControls() {
   var o = document.getElementById('drumPlus');
   var collapsed = o.classList.toggle('ctrl-collapsed');
   document.getElementById('dpCtrlToggle').innerHTML = collapsed ? '&#9660;' : '&#9650;';
+  dpRowsLayout();
 }
 function dpGrooveNames() { var all = dpGrooves(), n = []; for (var k in all) { if (all.hasOwnProperty(k)) n.push(k); } return n; }
 function dpLibOpen() {
@@ -3685,7 +3691,7 @@ function dpRender() {
   dpEnsureCells();
   if (dpUi.view === 'rows') { dpRenderRows(); return; }
   var wrap = document.getElementById('dpGridWrap');
-  if (wrap) wrap.classList.remove('rows');
+  if (wrap) { wrap.classList.remove('rows'); wrap.classList.remove('stack'); }
   var grid = document.getElementById('dpGrid');
   var total = dpTotalSteps();
   var stepTicks = dpStepTicks();
@@ -4764,9 +4770,12 @@ function dpFlatRefresh() {
 function dpRenderRows() {
   var wrap = document.getElementById('dpGridWrap'), grid = document.getElementById('dpGrid');
   if (!wrap || !grid) return;
+  var wasStack = wrap.classList.contains('rows') && wrap.classList.contains('stack');
   wrap.classList.add('rows');
   var oldS = document.getElementById('dpPaneStaff'), oldG = document.getElementById('dpPaneGrid');
-  var keep = { st: oldS ? oldS.scrollTop : 0, gt: oldG ? oldG.scrollTop : 0, l: oldG ? oldG.scrollLeft : 0 };
+  var keep = { st: oldS ? oldS.scrollTop : 0, gt: oldG ? oldG.scrollTop : 0, l: oldG ? oldG.scrollLeft : 0,
+               wt: wrap.scrollTop, wl: wrap.scrollLeft };
+  if (wasStack) keep.l = wrap.scrollLeft;
   dpUi.fitW = dpRowsFitW();
   var st = dpStepTicks(), tpbar = dpTicksPerBar(), n = Math.round(tpbar / st), bars = db2.bars, b;
   if (dpUi.openBar >= bars) dpUi.openBar = bars - 1;
@@ -4794,9 +4803,13 @@ function dpRenderRows() {
   html += '</div></div>';
   grid.innerHTML = html;
   grid.style.setProperty('--dpcw', dpCellW() + 'px');
+  dpRowsLayout();
   var ps = document.getElementById('dpPaneStaff'), pg = document.getElementById('dpPaneGrid');
-  if (ps) { ps.scrollTop = keep.st; ps.scrollLeft = keep.l; }
-  if (pg) { pg.scrollTop = keep.gt; pg.scrollLeft = keep.l; }
+  if (wrap.classList.contains('stack')) { wrap.scrollTop = keep.wt; wrap.scrollLeft = keep.l; }
+  else {
+    if (ps) { ps.scrollTop = keep.st; ps.scrollLeft = keep.l; }
+    if (pg) { pg.scrollTop = keep.gt; pg.scrollLeft = keep.l; }
+  }
   if (ps && pg) {                                  // zoomed past the screen: both panes pan together
     var lock = false;
     ps.onscroll = function () { if (lock) return; lock = true; pg.scrollLeft = ps.scrollLeft; lock = false; };
@@ -4805,6 +4818,35 @@ function dpRenderRows() {
   dpStaffDraw();
   dpMarkOffGrid();
   db2.lastVisualStep = -1;
+}
+// v53: split the rows view into two scrolling panes only when there is room for both.
+// The staff pane gets at most 45 % of the space actually left under the controls
+// (the v52 40vh cap ignored the controls, so on a phone the grid pane shrank to ~15 px
+// and could not be reached). Below DP_SPLIT_MIN px everything scrolls as one page.
+var DP_SPLIT_MIN = 420;
+function dpRowsLayout() {
+  var wrap = document.getElementById('dpGridWrap');
+  if (!wrap || !wrap.classList.contains('rows')) return;
+  var h = wrap.clientHeight, ps = document.getElementById('dpPaneStaff');
+  var stack = h > 0 && h < DP_SPLIT_MIN;
+  wrap.classList.toggle('stack', stack);
+  if (ps) ps.style.maxHeight = stack ? '' : Math.round(h * 0.45) + 'px';
+}
+function dpRowsStack() {
+  var wrap = document.getElementById('dpGridWrap');
+  return !!(wrap && wrap.classList.contains('rows') && wrap.classList.contains('stack'));
+}
+// Re-split when the space changes (controls collapsed/expanded, rotation, toolbar wrap).
+function dpWatchRowsSpace() {
+  var wrap = document.getElementById('dpGridWrap');
+  if (!wrap || wrap._roAttached || !window.ResizeObserver) return;
+  wrap._roAttached = true;
+  var lastH = -1;
+  new ResizeObserver(function () {
+    if (wrap.clientHeight === lastH) return;
+    lastH = wrap.clientHeight;
+    dpRowsLayout();
+  }).observe(wrap);
 }
 function dpOpenBar(b) {
   if (Date.now() - dpPinchEndAt < 400) return;
@@ -4816,6 +4858,14 @@ function dpOpenBar(b) {
 // Bring the open bar into view in both panes (staff line + its grid).
 function dpScrollOpenBar() {
   var pg = document.getElementById('dpPaneGrid'), el = document.getElementById('dpOpenBarEl');
+  if (dpRowsStack()) {                              // one scroller: bring the open bar's grid into view if it isn't
+    var wrap = document.getElementById('dpGridWrap');
+    if (wrap && el) {
+      var top = el.getBoundingClientRect().top - wrap.getBoundingClientRect().top;
+      if (top < 0 || top > wrap.clientHeight - 60) wrap.scrollTop = Math.max(0, wrap.scrollTop + top - 26);
+    }
+    return;
+  }
   if (pg && el) pg.scrollTop = Math.max(0, el.offsetTop - 26);
   var ps = document.getElementById('dpPaneStaff');
   if (ps) {
@@ -4873,7 +4923,7 @@ function dpZoomLabel() {
   var b = document.getElementById('dpZoomBtn');
   if (b) b.textContent = 'Zoom ' + Math.round(dpZoomGet() * 100) + '%';
 }
-function dpZoomScroller() { return dpUi.view === 'rows' ? document.getElementById('dpPaneGrid') : document.getElementById('dpGridWrap'); }
+function dpZoomScroller() { return dpUi.view === 'rows' && !dpRowsStack() ? document.getElementById('dpPaneGrid') : document.getElementById('dpGridWrap'); }
 function dpZoomApply(z, clientX) {
   var sc = dpZoomScroller(), grid = document.getElementById('dpGrid');
   if (!sc || !grid) return;
@@ -5725,7 +5775,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v52 (Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
+log('Boot OK v53 (rows view fix: grid reachable on small screens; Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
 </script>
 </body>
 </html>
