@@ -258,6 +258,16 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .dm-cell.playing.on::after{background:var(--grn);box-shadow:0 0 8px var(--grn)}
 .dm-range{flex:0 0 auto;width:84px;margin:0;height:12px}
 .dm-ruler{display:flex;height:20px;position:sticky;top:0;z-index:3;background:var(--sur2);border-bottom:1px solid var(--brd)}
+/* v51: live staff above the grid. Header (staff + ruler) sticks to the top while the rows scroll. */
+.dp-gridhead{position:sticky;top:0;z-index:4;background:var(--sur2)}
+.dp-gridhead .dm-ruler{position:relative;top:auto}
+.dp-staff-row{display:flex;background:#fff;border-bottom:1px solid var(--brd)}
+.dp-staff-label{position:sticky;left:0;z-index:2;width:96px;flex-shrink:0;background:#fff}
+.dp-staff-bars{display:flex}
+.dp-staff-label canvas,.dp-staff-bars canvas{display:block;flex-shrink:0}
+.dp-tapbar .dp-tap-lbl{font-size:10px;color:var(--dim);font-weight:700}
+.dp-tapbar .bb-pill.on{background:var(--acc);border-color:var(--acc);color:#fff}
+#dpStaffBtn.on{background:var(--ora);border-color:var(--ora);color:#000}
 .dm-ruler-label{position:sticky;left:0;z-index:2;width:96px;flex-shrink:0;background:var(--sur2);border-right:1px solid var(--brd)}
 .dm-rcell{width:var(--dpcw,26px);flex-shrink:0;font-size:9px;color:var(--dim);display:flex;align-items:center;padding-left:2px;font-variant-numeric:tabular-nums;overflow:hidden}
 .dp-sel-row{height:20px}
@@ -490,6 +500,14 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="bb-pill" onclick="dpUndo()" title="Undo">&#8634; Undo</button>
     <button class="bb-pill" onclick="dpRedo()" title="Redo">&#8635; Redo</button>
     <button class="cbtn" id="dpCtrlToggle" onclick="dpToggleControls()" title="Show/hide controls for a bigger grid">&#9650;</button>
+  </div>
+  <div class="bb-top dp-tapbar" style="border-bottom:none;margin-bottom:4px;gap:5px">
+    <span class="dp-tap-lbl">Tap</span>
+    <button class="bb-pill" id="dpHitCycle" onclick="dpSetHitMode('cycle')" title="Each tap steps: off, normal, accent, ghost, off">Cycle</button>
+    <button class="bb-pill" id="dpHitNormal" onclick="dpSetHitMode('normal')" title="Tap sets a normal hit (tap it again to clear)">Normal</button>
+    <button class="bb-pill" id="dpHitAccent" onclick="dpSetHitMode('accent')" title="Tap sets an accent (tap it again to clear)">Accent</button>
+    <button class="bb-pill" id="dpHitGhost" onclick="dpSetHitMode('ghost')" title="Tap sets a ghost note (tap it again to clear)">Ghost</button>
+    <button class="bb-pill" id="dpStaffBtn" onclick="dpToggleStaff()" style="margin-left:6px" title="Show the groove as drum notation right above the grid, updated as you tap">Staff</button>
   </div>
   <div class="bb-top dp-ctrls" style="border-bottom:none;margin-bottom:4px;gap:6px">
     <span style="font-size:10px;color:var(--dim);font-weight:700">BPM</span>
@@ -2574,7 +2592,9 @@ var DM_INSTRUMENTS = [
   { id:'tommid', name:'Tom Mid' },
   { id:'tomlo', name:'Tom Low' },
   { id:'snare', name:'Snare' },
-  { id:'kick', name:'Kick' }
+  { id:'xstick', name:'Cross Stick' },
+  { id:'kick', name:'Kick' },
+  { id:'hatfoot', name:'HiHat Foot' }
 ];
 
 // ============================================================================
@@ -2718,6 +2738,7 @@ function dpSyncAllUI() {
   dpUpdateMeterDisp();
   dpUpdateSubDisp();
   dpSetMetroVol(db2.metroVol);
+  dpSyncTapBar();
   dpUpdateTitle();
   dpClampLoop();
   dpSyncLoopInputs();
@@ -2729,6 +2750,8 @@ function dpOpen() {
   dpLoadUserInsts();   // restore recorded sample instruments from IndexedDB (once)
   dpEnsureCells();
   dpAttachGridPress();   // enable long-press-to-delete on grid cells (once)
+  dpUiLoad();            // per-device tap mode + staff on/off
+  dpStaffResetHW();
   document.getElementById('drumPlus').classList.add('show');
   dpSyncAllUI();
 }
@@ -3474,6 +3497,7 @@ function dpNewEmpty() {
   db2.cells = {}; dpEnsureCells();
   db2.currentGroove = null; dpUpdateTitle();
   dpLibClose();
+  dpStaffResetHW();
   dpRender();
 }
 function dpDeleteGroove(name, ev) {
@@ -3521,6 +3545,7 @@ function dpLoadGroove(name) {
   dpEnsureCells();
   db2.currentGroove = name; dpUpdateTitle();
   dpLibClose();
+  dpStaffResetHW();
   dpSyncAllUI();
 }
 
@@ -3565,7 +3590,7 @@ function dpRender() {
   var total = dpTotalSteps();
   var stepTicks = dpStepTicks();
   var ticksPerBar = dpTicksPerBar();
-  var html = dpRenderRuler(total, stepTicks, ticksPerBar);
+  var html = '<div class="dp-gridhead">' + dpStaffRowHtml() + dpRenderRuler(total, stepTicks, ticksPerBar) + '</div>';
   // Select lane (copy/paste): tap to set start, tap again to set end; selStart = paste anchor.
   html += '<div class="dm-row dp-sel-row"><div class="dm-row-label"><span class="dm-row-name">Select</span></div><div class="dm-steps" id="dpSelSteps">';
   for (var sc = 0; sc < total; sc++) {
@@ -3607,6 +3632,7 @@ function dpRender() {
   }
   grid.innerHTML = html;
   grid.style.setProperty('--dpcw', dpCellW() + 'px');   // cells shrink on fine/mixed grids
+  dpStaffDraw();          // live notation strip above the grid (no-op when hidden)
   dpMarkOffGrid();
   dpAttachLoopDrag();
   db2.lastVisualStep = -1;  // grid rebuilt → re-apply playhead highlight next frame
@@ -3638,11 +3664,18 @@ function dpCellTap(el) {
   var tick = parseInt(el.getAttribute('data-step'), 10) * dpStepTicks();
   var m = db2.cells[id];
   var cur = m[tick] || 0;
-  var next = cur === 0 ? 2 : cur === 2 ? 3 : cur === 3 ? 1 : 0;  // off → normal → accent → ghost → off
+  var next;
+  if (dpUi.hitMode === 'cycle') {
+    next = cur === 0 ? 2 : cur === 2 ? 3 : cur === 3 ? 1 : 0;  // off → normal → accent → ghost → off
+  } else {                                                      // fixed hit type: set it, or clear it if already that
+    var want = dpUi.hitMode === 'accent' ? 3 : dpUi.hitMode === 'ghost' ? 1 : 2;
+    next = cur === want ? 0 : want;
+  }
   if (next === 0) delete m[tick]; else m[tick] = next;
   el.classList.remove('on', 'v1', 'v2', 'v3');
   if (next > 0) { el.classList.add('on'); el.classList.add(next === 1 ? 'v1' : next === 3 ? 'v3' : 'v2'); }
   if (db2.playing) dpRebuildEvents();  // live edit
+  dpStaffQueue();
 }
 // Long-press a grid cell to delete its hit (delegated once on the persistent #dpGrid).
 var dpPressTimer = 0, dpPressLong = false;
@@ -3671,6 +3704,7 @@ function dpDeleteCell(cell) {
     delete m[tick];
     cell.classList.remove('on', 'v1', 'v2', 'v3');
     if (db2.playing) dpRebuildEvents();
+    dpStaffQueue();
   }
 }
 
@@ -3777,6 +3811,37 @@ function dpHat(when, g, open) {
   if (db2.openHatGain) { try { db2.openHatGain.gain.cancelScheduledValues(when); db2.openHatGain.gain.setTargetAtTime(0.0001, when, 0.004); } catch (e) {} }
   db2.openHatGain = open ? ng : null;
 }
+// Cross stick: stick laid across the snare, rim struck — a short woody "tock"
+// (bright click + a hollow mid body), no snare-wire noise tail.
+function dpXStick(when, g) {
+  var o = audioCtx.createOscillator(); o.type = 'triangle';
+  o.frequency.setValueAtTime(1350, when);
+  o.frequency.exponentialRampToValueAtTime(900, when + 0.018);
+  var og = audioCtx.createGain(); dpEnv(og, when, g * 0.75, 0.05);
+  o.connect(og).connect(dpMaster()); o.start(when); o.stop(when + 0.07);
+  var b = audioCtx.createOscillator(); b.type = 'sine'; b.frequency.value = 520;
+  var bg = audioCtx.createGain(); dpEnv(bg, when, g * 0.45, 0.08);
+  b.connect(bg).connect(dpMaster()); b.start(when); b.stop(when + 0.1);
+  var n = audioCtx.createBufferSource(); n.buffer = dpNoise();
+  var bp = audioCtx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 2;
+  var ng = audioCtx.createGain(); dpEnv(ng, when, g * 0.6, 0.035);
+  n.connect(bp).connect(ng).connect(dpMaster()); dpNoiseStart(n, when, when + 0.06);
+}
+// Hi-hat foot "chick": darker and softer than a stick-closed hat, and closing the
+// pedal chokes a still-ringing open hat exactly like a closed hat does.
+function dpHatFoot(when, g) {
+  var n = audioCtx.createBufferSource(); n.buffer = dpNoise();
+  var bp = audioCtx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 5200; bp.Q.value = 0.9;
+  var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3000;
+  var ng = audioCtx.createGain(); dpEnv(ng, when, g * 0.7, 0.05);
+  n.connect(bp).connect(hp).connect(ng).connect(dpMaster()); dpNoiseStart(n, when, when + 0.09);
+  var t = audioCtx.createBufferSource(); t.buffer = dpNoise();
+  var tb = audioCtx.createBiquadFilter(); tb.type = 'bandpass'; tb.frequency.value = 9000; tb.Q.value = 1.4;
+  var tg = audioCtx.createGain(); dpEnv(tg, when, g * 0.25, 0.012);
+  t.connect(tb).connect(tg).connect(dpMaster()); dpNoiseStart(t, when, when + 0.04);
+  if (db2.openHatGain) { try { db2.openHatGain.gain.cancelScheduledValues(when); db2.openHatGain.gain.setTargetAtTime(0.0001, when, 0.004); } catch (e) {} }
+  db2.openHatGain = null;
+}
 function dpTom(when, g, freq) {
   var o = audioCtx.createOscillator(); o.type = 'sine';
   o.frequency.setValueAtTime(freq * 1.8, when);
@@ -3805,6 +3870,8 @@ function dpTrigger(id, when, vel) {
   switch (id) {
     case 'kick': dpKick(when, g); break;
     case 'snare': dpSnare(when, g); break;
+    case 'xstick': dpXStick(when, g); break;
+    case 'hatfoot': dpHatFoot(when, g); break;
     case 'hatclosed': dpHat(when, g, false); break;
     case 'hatopen': dpHat(when, g, true); break;
     case 'tomhi': dpTom(when, g, 200); break;
@@ -3996,14 +4063,16 @@ var DP_STAFF = {
   tomhi:     { pos: 7,  head: 'n' },
   tommid:    { pos: 6,  head: 'n' },
   snare:     { pos: 5,  head: 'n' },
+  xstick:    { pos: 5,  head: 'x' },            // cross stick: x in the snare space
   tomlo:     { pos: 3,  head: 'n' },
-  kick:      { pos: 1,  head: 'n', down: true }
+  kick:      { pos: 1,  head: 'n', down: true },
+  hatfoot:   { pos: -1, head: 'x', down: true }  // hi-hat pedal: x below the staff, stem down
 };
 function dpStaffFor(id) {
   if (DP_STAFF[id]) return DP_STAFF[id];
   var idx = 0;                                    // recorded samples sit below the staff
   for (var i = 0; i < db2.userInsts.length; i++) if (db2.userInsts[i].id === id) idx = i;
-  return { pos: -1 - idx * 2, head: 'n', down: true };
+  return { pos: -3 - idx * 2, head: 'n', down: true };   // -1 belongs to the hi-hat foot
 }
 // Nearest notated value for a length in ticks: straight, dotted or triplet.
 function dpDurInfo(t) {
@@ -4132,7 +4201,7 @@ function dpNotesAutoPerLine() {
 function dpNotesUsedInsts() {
   var INS = dpInsts(), out = [], i, k, m, any;
   var where = { 12: 'above staff', 10: 'above staff', 9: 'over top line', 8: 'top line',
-                7: '4th space', 6: '4th line', 5: '3rd space', 3: '2nd space', 1: '1st space' };
+                7: '4th space', 6: '4th line', 5: '3rd space', 3: '2nd space', 1: '1st space', '-1': 'below staff' };
   for (i = 0; i < INS.length; i++) {
     m = db2.cells[INS[i].id]; any = false;
     for (k in m) { if (m.hasOwnProperty(k) && m[k] > 0) { any = true; break; } }
@@ -4372,6 +4441,144 @@ function dpNotesPng() {
 }
 
 // ============================================================================
+//  v51: live staff above the grid + tap mode (per-device UI prefs)
+//  The strip reuses the Notes engine unchanged (dpNotesModel / dpNotesBeat and the
+//  glyph fns); only the x mapping differs: every note sits over the CENTRE of its
+//  grid cell, so the staff and the rows below share one column axis. One canvas per
+//  bar keeps each canvas well under the iOS size limits.
+// ============================================================================
+var dpUi = { hitMode: 'cycle', staffOn: true, loaded: false };
+var dpStaffHW = { above: 0, below: 0 };   // height high-water mark: taps never shrink the strip,
+var dpStaffPending = false;               // so the rows don't jump under the finger mid-edit
+function dpUiLoad() {
+  if (dpUi.loaded) return;
+  dpUi.loaded = true;
+  try {
+    var m = localStorage.getItem('dp_hit_mode');
+    if (m === 'cycle' || m === 'normal' || m === 'accent' || m === 'ghost') dpUi.hitMode = m;
+    if (localStorage.getItem('dp_staff_on') === '0') dpUi.staffOn = false;
+  } catch (e) {}
+}
+function dpSyncTapBar() {
+  var ids = { cycle: 'dpHitCycle', normal: 'dpHitNormal', accent: 'dpHitAccent', ghost: 'dpHitGhost' };
+  for (var k in ids) {
+    if (!ids.hasOwnProperty(k)) continue;
+    var b = document.getElementById(ids[k]);
+    if (b) b.classList.toggle('on', dpUi.hitMode === k);
+  }
+  var sb = document.getElementById('dpStaffBtn');
+  if (sb) sb.classList.toggle('on', dpUi.staffOn);
+}
+function dpSetHitMode(m) {
+  dpUi.hitMode = m;
+  try { localStorage.setItem('dp_hit_mode', m); } catch (e) {}
+  dpSyncTapBar();
+}
+function dpToggleStaff() {
+  dpUi.staffOn = !dpUi.staffOn;
+  try { localStorage.setItem('dp_staff_on', dpUi.staffOn ? '1' : '0'); } catch (e) {}
+  dpSyncTapBar();
+  dpRender();
+}
+function dpStaffResetHW() { dpStaffHW.above = 0; dpStaffHW.below = 0; }
+function dpStaffRowHtml() {
+  if (!dpUi.staffOn) return '';
+  return '<div class="dp-staff-row"><div class="dp-staff-label"><canvas id="dpStaffKey"></canvas></div>'
+       + '<div class="dp-staff-bars" id="dpStaffBars"></div></div>';
+}
+// Coalesce a burst of taps into one redraw per frame.
+function dpStaffQueue() {
+  if (!dpUi.staffOn || dpStaffPending) return;
+  dpStaffPending = true;
+  var run = function () { dpStaffPending = false; dpStaffDraw(); };
+  if (window.requestAnimationFrame) requestAnimationFrame(run); else setTimeout(run, 16);
+}
+// Room the notes need above / below the bottom staff line, in design units
+// (line gap 9, so one staff position = 4.5).
+function dpStaffExtent(model) {
+  var maxUp = -99, minDown = 99, accUp = false, accDown = false, trip = false;
+  var b, be, i, j, n, h;
+  for (b = 0; b < model.length; b++) {
+    for (be = 0; be < model[b].length; be++) {
+      var beat = model[b][be];
+      for (i = 0; i < beat.up.length; i++) {
+        n = beat.up[i];
+        if (beat.trip) trip = true;
+        for (j = 0; j < n.heads.length; j++) { h = n.heads[j]; if (h.st.pos > maxUp) maxUp = h.st.pos; if (h.vel === 3) accUp = true; }
+      }
+      for (i = 0; i < beat.down.length; i++) {
+        n = beat.down[i];
+        for (j = 0; j < n.heads.length; j++) { h = n.heads[j]; if (h.st.pos < minDown) minDown = h.st.pos; if (h.vel === 3) accDown = true; }
+      }
+    }
+  }
+  var above = 46, below = 10;                       // empty staff: room for rests and a margin
+  if (maxUp > -99) above = Math.max(above, maxUp * 4.5 + 26 + (trip ? 19 : accUp ? 12 : 4));
+  if (minDown < 99) below = Math.max(below, 26 - minDown * 4.5 + (accDown ? 14 : 4));
+  return { above: above, below: below };
+}
+function dpStaffDraw() {
+  if (!dpUi.staffOn) return;
+  var barsEl = document.getElementById('dpStaffBars'), keyCv = document.getElementById('dpStaffKey');
+  if (!barsEl || !keyCv) return;
+  var model = dpNotesModel();
+  var st = dpStepTicks(), cw = dpCellW(), tpbar = dpTicksPerBar(), tpb = dpTicksPerBeat();
+  var K = db2.cpb <= 12 ? 0.8 : 0.7;                // design units -> CSS px (heads ~7 px wide)
+  var LG = 9, staffH = LG * 4;
+  var ext = dpStaffExtent(model);
+  dpStaffHW.above = Math.max(dpStaffHW.above, ext.above);
+  dpStaffHW.below = Math.max(dpStaffHW.below, ext.below);
+  var bottomY = dpStaffHW.above + 3, top = bottomY - staffH;
+  var Hd = bottomY + dpStaffHW.below + 3;            // design-unit height
+  var Hpx = Math.round(Hd * K);
+  var dprBase = Math.min(window.devicePixelRatio || 1, 2);
+  function prep(cv, wpx) {
+    var dpr = Math.min(dprBase, 16000 / Math.max(1, wpx));
+    cv.width = Math.max(1, Math.round(wpx * dpr)); cv.height = Math.max(1, Math.round(Hpx * dpr));
+    cv.style.width = wpx + 'px'; cv.style.height = Hpx + 'px';
+    var g = cv.getContext('2d');
+    g.setTransform(dpr * K, 0, 0, dpr * K, 0, 0);
+    g.fillStyle = '#fff'; g.fillRect(0, 0, wpx / K + 1, Hd + 1);
+    g.fillStyle = '#111'; g.strokeStyle = '#111'; g.lineWidth = 1;
+    g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+    return g;
+  }
+  function lines(g, x0, x1) {
+    g.lineWidth = 1;
+    for (var s = 0; s < 5; s++) { g.beginPath(); g.moveTo(x0, top + s * LG); g.lineTo(x1, top + s * LG); g.stroke(); }
+  }
+  // Sticky key cell: opening bar line, percussion clef, time signature.
+  var gk = prep(keyCv, 96), kw = 96 / K;
+  lines(gk, 5, kw + 1);
+  gk.beginPath(); gk.moveTo(5, top); gk.lineTo(5, bottomY); gk.stroke();
+  dpNClef(gk, 13, top, LG);
+  gk.font = 'bold 15px -apple-system,Helvetica,Arial,sans-serif';
+  gk.textAlign = 'center';
+  gk.fillText(String(db2.tsNum), 46, top + LG * 2 - 1);
+  gk.fillText(String(db2.tsDen), 46, top + LG * 4 - 1);
+  gk.textAlign = 'left';
+  // One canvas per bar, exactly as wide as that bar's cells.
+  while (barsEl.children.length < db2.bars) barsEl.appendChild(document.createElement('canvas'));
+  while (barsEl.children.length > db2.bars) barsEl.removeChild(barsEl.lastChild);
+  var barPx = Math.round(tpbar / st) * cw;
+  for (var b = 0; b < db2.bars; b++) {
+    var g = prep(barsEl.children[b], barPx), Wd = barPx / K;
+    lines(g, 0, Wd + 1);
+    var beats = model[b] || [];
+    for (var be = 0; be < beats.length; be++) {
+      dpNotesBeat(g, beats[be], b, 0.5 * cw / K, Wd, tpbar, tpb, top, bottomY, LG);
+    }
+    g.lineWidth = 1;
+    if (b === db2.bars - 1) {                         // final double bar line
+      g.fillRect(Wd - 3, top, 3, staffH);
+      g.beginPath(); g.moveTo(Wd - 6, top); g.lineTo(Wd - 6, bottomY); g.stroke();
+    } else {
+      g.beginPath(); g.moveTo(Wd - 0.6, top); g.lineTo(Wd - 0.6, bottomY); g.stroke();
+    }
+  }
+}
+
+// ============================================================================
 //  DRUM PAD (Phase 4) — 4x4 pads, metronome, live looping.
 //  Self-contained (`pad` state, pad*() fns, #drumPad overlay). Reuses the synth
 //  voices (dpTrigger), the metronome click (dpClick), the shared master gain
@@ -4393,14 +4600,14 @@ var pad = {
 
 // 12 synth voices in a drummer-friendly 4x4 (cymbals/ride top, toms/snare/kick
 // lower); the bottom row is filled with recorded sample instruments when present,
-// otherwise with extra copies of common voices so every pad plays something.
+// otherwise with hi-hat foot, cross stick and extra kick/snare pads.
 function padDefaultMap() {
   var base = ['crash1','crash2','ridebell','rideedge',
               'riderim','hatopen','hatclosed','tomhi',
               'tommid','tomlo','snare','kick'];
   var extras = [];
   for (var i = 0; i < db2.userInsts.length && extras.length < 4; i++) extras.push(db2.userInsts[i].id);
-  var fill = ['kick','snare','hatclosed','hatopen'], fi = 0;
+  var fill = ['hatfoot','xstick','kick','snare'], fi = 0;
   while (extras.length < 4) { extras.push(fill[fi % fill.length]); fi++; }
   return base.concat(extras);
 }
@@ -5062,7 +5269,7 @@ function dpAnim() {
 loadCustomTimeSigs();
 initCanvas();
 renderLibrary();
-log('Boot OK v50 (final cleanup: old Beat tool removed; note-value meter model + compound feel, triplet/mixed grids, cell-resolution loops, notation view, louder accents + audibility fixes)');
+log('Boot OK v51 (Beat Builder: live staff above the grid, tap modes Cycle/Normal/Accent/Ghost, new voices Cross Stick + HiHat Foot)');
 </script>
 </body>
 </html>
