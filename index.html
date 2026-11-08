@@ -396,6 +396,30 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .sb-info b{color:var(--txt)}
 .sb-name{background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:7px;padding:7px 8px;font-size:13px;flex:1;min-width:120px}
 .sb-msg{font-size:12px;color:var(--yel);text-align:center;padding:4px;min-height:18px}
+/* v56: settings collapse, mixer, grid panel, notation lines, bar editor */
+#songBuilder.ctrl-collapsed .sb-ctrls{display:none}
+.sb-vol{width:70px;flex:0 1 90px}
+.sb-pill-off{opacity:.45;text-decoration:line-through}
+.sb-gridpanel{display:none;background:var(--sur);border-radius:12px;padding:8px;margin-bottom:6px}
+.sb-gridpanel.show{display:block}
+.sb-lines{display:flex;flex-direction:column;gap:6px}
+.sb-line{position:relative;background:#fff;border-radius:8px;overflow:hidden;touch-action:pan-y}
+.sb-line canvas{display:block;width:100%}
+.sb-ph{position:absolute;top:0;bottom:0;width:2px;background:var(--grn);pointer-events:none;display:none;box-shadow:0 0 4px rgba(48,209,88,.8)}
+.sb-barpanel{background:var(--sur2);border-radius:12px;padding:8px;margin:2px 0 4px;border:1px solid var(--acc)}
+.sb-barpanel .sb-bp-title{font-size:12px;font-weight:800;color:var(--acc);margin-right:4px}
+.sb-dgrid{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:4px}
+.sb-drow{display:flex;align-items:stretch;height:24px;margin-bottom:2px}
+.sb-dlabel{flex:0 0 74px;font-size:10px;font-weight:700;color:var(--dim);display:flex;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:4px;cursor:pointer}
+.sb-dcells{display:flex;flex:1;gap:1px}
+.sb-dc{flex:1 0 16px;min-width:16px;background:#26262a;border-radius:3px;cursor:pointer;touch-action:manipulation;position:relative}
+.sb-dc.q{background:#34343a}
+.sb-dc.bl{margin-left:3px}
+.sb-dc.v2{background:var(--acc)}
+.sb-dc.v3{background:var(--ora)}
+.sb-dc.v1{background:#5a7fae}
+.sb-dc.og::after{content:'';position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:var(--yel)}
+.sb-dc.ph{box-shadow:inset 0 0 0 2px var(--grn)}
 </style>
 </head>
 <body>
@@ -580,7 +604,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
   </div>
 </div>
 <!-- Beat Builder overlay (ex Drum+) -->
-<!-- Song Builder (v55): arrange a song from bar-exact snippets cut out of recordings -->
+<!-- Song Builder (v55/v56): arrange a song from bar-exact snippets of recordings + a drum part in notation -->
 <div id="songBuilder">
   <div class="sb-head">
     <div class="bb-top">
@@ -591,29 +615,41 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
       <button class="bb-pill" onclick="sbUndo()" title="Undo">&#8634;</button>
       <button class="bb-pill" onclick="sbRedo()" title="Redo">&#8635;</button>
       <button class="bb-pill" onclick="sbMoreSheet()" title="Export and more">&#8943;</button>
+      <button class="bb-pill" id="sbCtrlBtn" onclick="sbToggleCtrls()" title="Show/hide the settings rows">&#9650;</button>
     </div>
-    <div class="sb-row">
-      <span class="sb-lbl">BPM</span>
-      <input type="number" class="bb-mini-inp" id="sbBpm" min="20" max="300" step="0.1" inputmode="decimal" onchange="sbSetBpm(this.value)">
-      <span class="sb-lbl">Sig</span>
-      <input type="number" class="bb-mini-inp" id="sbTsNum" min="1" max="32" step="1" style="width:36px" inputmode="numeric" onchange="sbSetTs()">
-      <span style="font-weight:800">/</span>
-      <input type="number" class="bb-mini-inp" id="sbTsDen" min="1" max="32" step="1" style="width:36px" inputmode="numeric" onchange="sbSetTs()">
-      <button class="bb-pill" id="sbLoopBtn" onclick="sbToggleLoop()" title="Loop the whole song">Loop</button>
-      <button class="bb-pill" id="sbClickBtn" onclick="sbToggleClick()" title="Metronome click over the song">Click</button>
-    </div>
-    <div class="sb-row">
-      <select class="bb-mini-sel" id="sbVerSel" onchange="sbPickVersion(this.value)" style="max-width:140px" title="Version"></select>
-      <button class="bb-pill" onclick="sbVersionSheet()" title="Copy, rename or delete versions">Versions&hellip;</button>
-      <button class="bb-pill" id="sbFollowBtn" onclick="sbToggleFollow()" title="Keep the bar being played in view">Follow</button>
-      <button class="bb-pill" id="sbEraseBtn" onclick="sbToggleErase()" title="Tap bars to clear them">Eraser</button>
+    <div class="sb-ctrls">
+      <div class="sb-row">
+        <span class="sb-lbl">BPM</span>
+        <input type="number" class="bb-mini-inp" id="sbBpm" min="20" max="300" step="0.01" inputmode="decimal" onchange="sbSetBpm(this.value)" style="width:58px">
+        <span class="sb-lbl">Sig</span>
+        <input type="number" class="bb-mini-inp" id="sbTsNum" min="1" max="32" step="1" style="width:36px" inputmode="numeric" onchange="sbSetTs()">
+        <span style="font-weight:800">/</span>
+        <input type="number" class="bb-mini-inp" id="sbTsDen" min="1" max="32" step="1" style="width:36px" inputmode="numeric" onchange="sbSetTs()">
+        <button class="bb-pill" id="sbLoopBtn" onclick="sbToggleLoop()" title="Loop the whole song">Loop</button>
+        <button class="bb-pill" id="sbClickBtn" onclick="sbToggleClick()" title="Metronome click over the song">Click</button>
+      </div>
+      <div class="sb-row">
+        <select class="bb-mini-sel" id="sbVerSel" onchange="sbPickVersion(this.value)" style="max-width:140px" title="Version"></select>
+        <button class="bb-pill" onclick="sbVersionSheet()" title="Copy, rename or delete versions">Versions&hellip;</button>
+        <button class="bb-pill" id="sbFollowBtn" onclick="sbToggleFollow()" title="Keep the bar being played in view">Follow</button>
+        <button class="bb-pill" id="sbEraseBtn" onclick="sbToggleErase()" title="Tap bars to remove their audio snippet">Eraser</button>
+      </div>
+      <div class="sb-row">
+        <button class="bb-pill" id="sbAudioBtn" onclick="sbToggleTrack('audio')" title="Play the audio snippets">Audio</button>
+        <input type="range" id="sbAudioVol" min="0" max="1.5" step="0.05" class="sb-vol" oninput="sbSetVol('audio', this.value)">
+        <button class="bb-pill" id="sbDrumsBtn" onclick="sbToggleTrack('drums')" title="Play the drum notes">Drums</button>
+        <input type="range" id="sbDrumsVol" min="0" max="1.5" step="0.05" class="sb-vol" oninput="sbSetVol('drums', this.value)">
+      </div>
     </div>
     <div class="sb-row" style="margin-bottom:2px;flex-wrap:nowrap">
       <span class="sb-pos" id="sbPos"></span>
-      <span class="sb-info" id="sbHint" style="flex:1;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span>
+      <button class="bb-pill" onclick="sbZoomStep(1)" title="Fewer bars per line (bigger notes)">+</button>
+      <button class="bb-pill" id="sbZoomBtn" onclick="sbZoomReset()" title="Pinch with two fingers (or Ctrl + wheel) to zoom; tap to reset to 4 bars per line">4/line</button>
+      <button class="bb-pill" onclick="sbZoomStep(-1)" title="More bars per line">&minus;</button>
     </div>
     <div class="sb-pal" id="sbPal"></div>
     <div class="sb-brushbar" id="sbBrush"></div>
+    <div class="sb-info" id="sbHint" style="min-height:0"></div>
   </div>
   <div class="sb-body" id="sbBody"></div>
 </div>
@@ -631,12 +667,37 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <input type="file" id="sbFileInp" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac" style="display:none" onchange="sbCutLoadFile(this)">
   </div>
   <div class="sb-row">
-    <span class="sb-lbl">Rec. BPM</span>
-    <input type="number" class="bb-mini-inp" id="sbSrcBpm" min="20" max="300" step="0.1" inputmode="decimal" onchange="sbCutSetSrcBpm(this.value)" style="width:58px">
-    <button class="bb-pill" onclick="sbCutSrcBpmMul(0.5)">/2</button>
-    <button class="bb-pill" onclick="sbCutSrcBpmMul(2)">x2</button>
-    <button class="bb-pill" onclick="sbCutAlignGrid()" title="Move the beat grid so a bar line sits at the cursor">Bar line here</button>
-    <button class="bb-pill" id="sbSnapBtn" onclick="sbCutToggleSnap()" title="In/Out snap to the beat grid">Snap</button>
+    <span class="grid-bpm" id="sbGridBpmDisp" style="font-size:15px">-- BPM</span>
+    <button class="bb-pill" id="sbGridEditBtn" onclick="sbCutToggleGridEdit()" title="Correct the beat grid like in the Loop Function">Edit Grid</button>
+    <button class="bb-pill" id="sbSnapBtn" onclick="sbCutToggleSnap()" title="IN/OUT jump to the nearest beat (off = free, unquantized)">Snap</button>
+    <button class="bb-pill" onclick="sbCutUseSongBpm()" title="Set the song tempo to this recording's BPM">Song BPM = this</button>
+  </div>
+  <div class="sb-gridpanel" id="sbGridPanel">
+    <div class="sb-row">
+      <span class="sb-lbl">BPM</span>
+      <button class="bb-pill" onclick="sbCutNudgeBpm(-1)">&minus;1</button>
+      <button class="bb-pill" onclick="sbCutNudgeBpm(-0.1)">&minus;.1</button>
+      <input type="number" class="bb-mini-inp" id="sbSrcBpm" min="20" max="300" step="0.01" inputmode="decimal" onchange="sbCutSetSrcBpm(this.value)" style="width:62px">
+      <button class="bb-pill" onclick="sbCutNudgeBpm(0.1)">+.1</button>
+      <button class="bb-pill" onclick="sbCutNudgeBpm(1)">+1</button>
+      <button class="bb-pill" onclick="sbCutSrcBpmMul(0.5)">/2</button>
+      <button class="bb-pill" onclick="sbCutSrcBpmMul(2)">x2</button>
+    </div>
+    <div class="sb-row">
+      <span class="sb-lbl">Grid</span>
+      <button class="bb-pill" onclick="sbCutNudgeGrid(-1)" title="Shift the grid 10 ms earlier">&#9664; 10ms</button>
+      <button class="bb-pill" onclick="sbCutNudgeGrid(1)" title="Shift the grid 10 ms later">10ms &#9654;</button>
+      <button class="bb-pill" onclick="sbCutShiftBeat(-1)" title="Move the 1 one beat earlier">1 &#8592; beat</button>
+      <button class="bb-pill" onclick="sbCutShiftBeat(1)" title="Move the 1 one beat later">beat &#8594; 1</button>
+      <button class="bb-pill" onclick="sbCutAlignGrid()" title="Put the 1 (bar line) at the cursor">1 at cursor</button>
+    </div>
+    <div class="sb-row">
+      <button class="bb-pill" onclick="sbCutTap()" style="min-width:60px">TAP</button>
+      <span id="sbTapVal" style="font-size:12px;min-width:70px;font-variant-numeric:tabular-nums">--</span>
+      <button class="bb-pill" onclick="sbCutApplyTap()">Apply</button>
+      <button class="bb-pill" onclick="sbCutResetGrid()">Reset to detected</button>
+    </div>
+    <div class="sb-info">Top half of the waveform: drag to shift the grid &middot; bottom half: drag to scroll. Shared with the Loop Function for this recording.</div>
   </div>
   <div class="sb-msg" id="sbCutMsg"></div>
   <canvas id="sbCutCv"></canvas>
@@ -664,6 +725,13 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="bb-pill" onclick="sbCutJump('out')" title="Cursor to Out">Go</button>
   </div>
   <div class="sb-row">
+    <span class="sb-lbl">Move loop</span>
+    <button class="bb-pill" onclick="sbCutMoveLoop(-1, false)" title="Move In and Out 10 ms earlier">&#9664; 10ms</button>
+    <button class="bb-pill" onclick="sbCutMoveLoop(1, false)" title="Move In and Out 10 ms later">10ms &#9654;</button>
+    <button class="bb-pill" onclick="sbCutMoveLoop(-1, true)" title="Move the whole loop one bar earlier">&#9664; bar</button>
+    <button class="bb-pill" onclick="sbCutMoveLoop(1, true)" title="Move the whole loop one bar later">bar &#9654;</button>
+  </div>
+  <div class="sb-row">
     <span class="sb-lbl">Bars</span>
     <button class="bb-pill" onclick="sbCutBars(-1)">&minus;</button>
     <span id="sbCutBarsDisp" style="font-size:15px;font-weight:800;min-width:22px;text-align:center">1</span>
@@ -679,7 +747,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <input type="range" id="sbCutGain" min="0" max="2" step="0.05" value="1" style="flex:1" oninput="sbCutSetGain(this.value)">
     <span id="sbCutGainDisp" style="font-size:11px;min-width:40px;text-align:right">100%</span>
   </div>
-  <div class="sb-info" style="margin-top:4px">Tap the waveform to place the cursor &middot; drag the green/red handles to move In/Out &middot; drag elsewhere to scroll &middot; pinch or mouse wheel to zoom. While playing, IN/OUT set the point at the play position (like the Loop Function). &#9664;/&#9654; nudge by 10 ms.</div>
+  <div class="sb-info" style="margin-top:4px">Tap the waveform to place the cursor &middot; drag the green/red handles to move In/Out freely (you hear the spot while dragging) &middot; drag elsewhere to scroll &middot; pinch or mouse wheel to zoom. While playing, IN/OUT set the point at the play position (like the Loop Function). &#9664;/&#9654; nudge by 10 ms. Snap is off by default, so loops are not quantized.</div>
 </div>
 <!-- Song Builder: action sheet -->
 <div id="sbSheet" class="sb-sheet" onclick="if(event.target===this)sbSheetClose()">
@@ -6020,6 +6088,9 @@ var sb = {
   master: null, clickBus: null, ctxOf: null,
   undo: [], redo: [],
   lastBar: -2, prevSched: null,
+  perLine: 4, sel: null, hitMode: 'cycle', cpb: 0, drumClip: null, ctrlHidden: false,
+  audioOn: true, drumsOn: true, audioVol: 1, drumsVol: 0.8, audioBus: null, drumBus: null,
+  lines: [], phEl: null, lastStep: -1,
   bgUrl: null, bgEl: null, bgActive: false, bgDirty: false, bgRendering: false, bgTimer: 0, bgInfo: null
 };
 function sbUid(p) { return p + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36); }
@@ -6033,9 +6104,18 @@ function sbLoadSongs() {
   sb.cur = (curId && sb.songs[curId]) || null;
   if (!sb.cur) { for (var k in sb.songs) { if (sb.songs.hasOwnProperty(k)) { sb.cur = sb.songs[k]; break; } } }
   if (!sb.cur) sb.cur = sbNewSongObj('My song');
-  try { sb.click = localStorage.getItem('sb_click') === '1'; sb.follow = localStorage.getItem('sb_follow') !== '0'; } catch (e) {}
+  try {
+    sb.click = localStorage.getItem('sb_click') === '1'; sb.follow = localStorage.getItem('sb_follow') !== '0';
+    var pl = parseInt(localStorage.getItem('sb_perline') || '4', 10); if (pl >= 1 && pl <= 16) sb.perLine = pl;
+    sb.audioOn = localStorage.getItem('sb_audio_on') !== '0'; sb.drumsOn = localStorage.getItem('sb_drums_on') !== '0';
+    var av = parseFloat(localStorage.getItem('sb_audio_vol')); if (!isNaN(av)) sb.audioVol = av;
+    var dv = parseFloat(localStorage.getItem('sb_drums_vol')); if (!isNaN(dv)) sb.drumsVol = dv;
+    sb.hitMode = localStorage.getItem('sb_hit_mode') || 'cycle';
+    sb.ctrlHidden = localStorage.getItem('sb_ctrl_hidden') === '1';
+  } catch (e) {}
   sbSave();
 }
+function sbPref(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
 function sbSave() {
   if (sb.cur) sb.songs[sb.cur.id] = sb.cur;
   try {
@@ -6150,12 +6230,8 @@ function sbAfterChange(tempoMayChange) {
 function sbOpen() {
   unlockSilentMode(); ensureCtx();
   sbLoadSongs();
-  if (!sb.bodyHooked) {   // a touch or wheel on the list pauses Follow for 2.5 s
-    sb.bodyHooked = true;
-    var body = document.getElementById('sbBody');
-    body.addEventListener('touchstart', function () { sbTouchAt = Date.now(); }, { passive: true });
-    body.addEventListener('wheel', function () { sbTouchAt = Date.now(); }, { passive: true });
-  }
+  sbAttachBody();         // tap bars, pinch / Ctrl+wheel zoom, touch pauses Follow
+  dpLoadUserInsts();      // recorded Beat Builder instruments can be used in the drum part
   document.getElementById('songBuilder').classList.add('show');
   sbRender();
   sbLoadBufs();
@@ -6173,10 +6249,40 @@ function sbBpm() { return sb.cur.bpm > 0 ? sb.cur.bpm : 120; }
 function sbBarDur() { return sb.cur.tsNum * 60 / sbBpm(); }
 function sbFlat() {
   var out = [], parts = sbVer().parts;
-  for (var p = 0; p < parts.length; p++)
-    for (var b = 0; b < parts[p].cells.length; b++) out.push({ pi: p, bi: b, pid: parts[p].id, cell: parts[p].cells[b] });
+  for (var p = 0; p < parts.length; p++) {
+    var dr = sbDrums(parts[p]);
+    for (var b = 0; b < parts[p].cells.length; b++) out.push({ pi: p, bi: b, pid: parts[p].id, cell: parts[p].cells[b], drums: dr[b] });
+  }
   return out;
 }
+// drum track of a part: one entry per bar, null or { instId: { tick: vel } } (ticks inside the bar)
+function sbDrums(part) {
+  if (!part.drums) part.drums = [];
+  while (part.drums.length < part.cells.length) part.drums.push(null);
+  if (part.drums.length > part.cells.length) part.drums.length = part.cells.length;
+  return part.drums;
+}
+function sbDrumsEmpty(d) {
+  if (!d) return true;
+  for (var id in d) if (d.hasOwnProperty(id)) for (var k in d[id]) if (d[id].hasOwnProperty(k) && d[id][k] > 0) return false;
+  return true;
+}
+// drum meter (same true-note-value model as the Beat Builder, feel = auto)
+function sbIsComp() { var s = sb.cur; return s.tsNum % 3 === 0 && s.tsDen >= 8 && s.tsNum >= 6; }
+function sbTpBar() { return sb.cur.tsNum * dpNoteTicks(sb.cur.tsDen); }
+function sbTpBeat() { return dpNoteTicks(sb.cur.tsDen) * (sbIsComp() ? 3 : 1); }
+function sbBeatsPerBar() { return Math.max(1, Math.round(sbTpBar() / sbTpBeat())); }
+function sbLadder() {
+  var tpb = sbTpBeat(), out = [];
+  for (var i = 0; i < DP_LADDER.length; i++) if (tpb % DP_LADDER[i] === 0 && DP_LADDER[i] <= 16) out.push(DP_LADDER[i]);
+  return out.length ? out : [1];
+}
+function sbFixCpb() {
+  var L = sbLadder(), want = sb.cpb || (sbIsComp() ? 6 : 4), best = L[0];
+  for (var i = 0; i < L.length; i++) if (Math.abs(L[i] - want) < Math.abs(best - want)) best = L[i];
+  sb.cpb = best;
+}
+function sbStepTicks() { return Math.max(1, Math.round(sbTpBeat() / sb.cpb)); }
 function sbRange(flat) {
   if (sb.partId) {
     for (var i = 0; i < flat.length; i++) if (flat[i].pid === sb.partId) {
@@ -6202,6 +6308,14 @@ function sbRender() {
   document.getElementById('sbClickBtn').classList.toggle('on', sb.click);
   document.getElementById('sbFollowBtn').classList.toggle('on', sb.follow);
   document.getElementById('sbEraseBtn').classList.toggle('on', sb.erase);
+  document.getElementById('songBuilder').classList.toggle('ctrl-collapsed', sb.ctrlHidden);
+  document.getElementById('sbCtrlBtn').innerHTML = sb.ctrlHidden ? '&#9660;' : '&#9650;';
+  var ab = document.getElementById('sbAudioBtn'), db = document.getElementById('sbDrumsBtn');
+  ab.classList.toggle('on', sb.audioOn); ab.classList.toggle('sb-pill-off', !sb.audioOn);
+  db.classList.toggle('on', sb.drumsOn); db.classList.toggle('sb-pill-off', !sb.drumsOn);
+  document.getElementById('sbAudioVol').value = sb.audioVol;
+  document.getElementById('sbDrumsVol').value = sb.drumsVol;
+  document.getElementById('sbZoomBtn').textContent = sb.perLine + '/line';
   var vs = document.getElementById('sbVerSel'), h = '';
   for (var i = 0; i < s.versions.length; i++) h += '<option value="' + esc(s.versions[i].id) + '"' + (s.versions[i].id === s.ver ? ' selected' : '') + '>' + esc(s.versions[i].name) + '</option>';
   vs.innerHTML = h;
@@ -6224,7 +6338,7 @@ function sbRenderPal() {
 }
 function sbRenderBrush() {
   var el = document.getElementById('sbBrush'), c = sb.brush ? sbClip(sb.brush) : null;
-  if (!c) { el.classList.remove('show'); sbHint(sb.erase ? 'Tap bars to clear them.' : (sb.cur.clips.length ? 'Pick a snippet, then tap bars to place it.' : '')); return; }
+  if (!c) { el.classList.remove('show'); sbHint(sb.erase ? 'Tap bars to clear them.' : (sb.cur.clips.length ? 'Pick a snippet and tap bars to place it · tap a bar to write drums.' : 'Tap a bar to write drums.')); return; }
   sbHint('');
   el.classList.add('show');
   el.innerHTML = '<span style="flex:1;min-width:120px">Tap bars to place <b>' + esc(c.name) + '</b> (' + c.bars + ' bar' + (c.bars === 1 ? '' : 's') + ')</span>'
@@ -6234,42 +6348,140 @@ function sbRenderBrush() {
     + '<button class="bb-pill" onclick="sbPickBrush(null)">Done</button>';
 }
 function sbRenderParts() {
-  var v = sbVer(), h = '', g = 0;
+  var v = sbVer(), h = '', g = 0, selG = sbSelG();
+  sbFixCpb();
   if (!v.parts.length) {
-    h += '<div class="sb-empty">No parts yet. Add parts below (e.g. Intro, Verse, Chorus),<br>then cut snippets from a recording with <b>+ Snippet</b> and tap bars to fill them.</div>';
+    h += '<div class="sb-empty">No parts yet. Add parts below (e.g. Intro, Verse, Chorus).<br>Cut snippets from a recording with <b>+ Snippet</b>, then tap bars to place them.<br>Tap a bar (without a snippet picked) to write drum notes for it.</div>';
   }
   for (var p = 0; p < v.parts.length; p++) {
-    var part = v.parts[p];
+    var part = v.parts[p], n = part.cells.length;
+    sbDrums(part);
     h += '<div class="sb-part' + (sb.partId === part.id ? ' looping' : '') + '" data-pid="' + part.id + '">'
       + '<div class="sb-phead">'
       + '<span class="sb-pname" onclick="sbRenamePart(' + p + ')">' + esc(part.name) + '<small>bar ' + (g + 1) + '</small></span>'
       + '<button class="bb-pill" onclick="sbPartBars(' + p + ',-1)">&minus;</button>'
-      + '<span class="sb-pbars" onclick="sbPartBarsPrompt(' + p + ')">' + part.cells.length + '</span>'
+      + '<span class="sb-pbars" onclick="sbPartBarsPrompt(' + p + ')">' + n + '</span>'
       + '<button class="bb-pill" onclick="sbPartBars(' + p + ',1)">+</button>'
       + '<button class="bb-pill' + (sb.partId === part.id && sb.playing ? ' on' : '') + '" onclick="sbPlayPart(' + p + ')" title="Loop this part">&#8635; &#9654;</button>'
       + '<button class="bb-pill" onclick="sbPartSheet(' + p + ')">&#8943;</button>'
-      + '</div><div class="sb-cells">';
-    for (var b = 0; b < part.cells.length; b++, g++) {
-      var cell = part.cells[b], clip = cell ? sbClip(cell.c) : null;
-      if (clip) {
-        var cont = cell.o > 0;
-        h += '<div class="sb-cell f' + (cont ? ' cont' : '') + '" data-g="' + g + '" style="background:' + clip.color + (cont ? 'cc' : '') + '" onclick="sbCellTap(' + p + ',' + b + ')">'
-          + '<span class="cn">' + (cont ? '&middot;&middot;' : esc(clip.name)) + '</span>'
-          + (clip.bars > 1 ? '<span class="co">' + (cell.o + 1) + '/' + clip.bars + '</span>' : '')
-          + '<span class="bn">' + (b + 1) + '</span></div>';
-      } else {
-        h += '<div class="sb-cell" data-g="' + g + '" onclick="sbCellTap(' + p + ',' + b + ')">'
-          + (sb.brush ? '<span class="plus">+</span>' : '') + '<span class="bn">' + (b + 1) + '</span></div>';
-      }
+      + '</div><div class="sb-lines">';
+    for (var b0 = 0; b0 < n; b0 += sb.perLine) {
+      var cnt = Math.min(sb.perLine, n - b0);
+      h += '<div class="sb-line" data-p="' + p + '" data-b0="' + b0 + '" data-n="' + cnt + '" data-g="' + (g + b0) + '"><canvas></canvas></div>';
+      if (selG >= g + b0 && selG < g + b0 + cnt) h += sbBarPanelHtml(p, selG - g);
     }
     h += '</div></div>';
+    g += n;
   }
   h += '<div class="sb-lbl" style="margin-top:6px">Add part</div><div class="sb-add">';
   for (var i = 0; i < SB_PART_PRESETS.length; i++) h += '<button class="bb-pill" onclick="sbAddPart(' + i + ')">+ ' + SB_PART_PRESETS[i][0] + '</button>';
   h += '<button class="bb-pill" onclick="sbAddPart(-1)">+ Custom&hellip;</button></div>';
-  document.getElementById('sbBody').innerHTML = h;
-  sb.lastBar = -2;
+  var body = document.getElementById('sbBody'), st = body.scrollTop;
+  body.innerHTML = h;
+  body.scrollTop = st;
+  sb.lastBar = -2; sb.lastStep = -1;
+  sbPaintAll();
 }
+// ── notation lines ───────────────────────────────────────────────────────────
+var SB_CLEF = 24, SB_BAND = 18, SB_TOPM = 30, SB_BOTM = 24, SB_LG = 9;
+function sbLineGeom(W, perLine) {
+  var barW = (W - SB_CLEF - 4) / perLine;
+  var K = Math.max(0.36, Math.min(1.6, barW / (24 + sbBeatsPerBar() * 34)));
+  return { barW: barW, K: K, H: Math.round(SB_BAND + K * (SB_TOPM + SB_LG * 4 + SB_BOTM)) };
+}
+function sbPaintAll() {
+  sb.lines = [];
+  var els = document.querySelectorAll('#sbBody .sb-line');
+  for (var i = 0; i < els.length; i++) sbPaintLineEl(els[i]);
+}
+function sbPaintLineEl(el) {
+  var p = +el.getAttribute('data-p'), b0 = +el.getAttribute('data-b0'), n = +el.getAttribute('data-n'), g0 = +el.getAttribute('data-g');
+  var part = sbVer().parts[p]; if (!part) return;
+  var W = el.clientWidth || 320, geo = sbLineGeom(W, sb.perLine), cv = el.querySelector('canvas');
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(geo.H * dpr); cv.style.height = geo.H + 'px';
+  var g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  sbPaintLine(g, 0, 0, W, part, b0, n, g0, sb.perLine, sbSelG());
+  el._geo = geo;
+  var found = false;
+  for (var i = 0; i < sb.lines.length; i++) if (sb.lines[i].g0 === g0) { sb.lines[i] = { el: el, g0: g0, n: n, geo: geo }; found = true; }
+  if (!found) sb.lines.push({ el: el, g0: g0, n: n, geo: geo });
+}
+function sbRepaintBar(gIdx) {
+  for (var i = 0; i < sb.lines.length; i++) { var L = sb.lines[i]; if (gIdx >= L.g0 && gIdx < L.g0 + L.n) { sbPaintLineEl(L.el); return; } }
+}
+function sbRR(g, x, y, w, h, r) {
+  g.beginPath(); g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
+  g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h); g.lineTo(x + r, y + h);
+  g.quadraticCurveTo(x, y + h, x, y + h - r); g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
+}
+function sbFitText(g, t, x, y, maxW) {
+  if (maxW < 8) return;
+  if (g.measureText(t).width > maxW) { while (t.length > 1 && g.measureText(t + '…').width > maxW) t = t.substring(0, t.length - 1); t += '…'; }
+  g.fillText(t, x, y);
+}
+// run fn with db2 temporarily holding one bar of song drums, so the Beat Builder
+// notation engine (dpNotesModel / dpNotesBeat) can draw it unchanged
+function sbWithBar(drums, fn) {
+  var k = { c: db2.cells, b: db2.bars, n: db2.tsNum, d: db2.tsDen, f: db2.feel };
+  db2.cells = drums || {}; db2.bars = 1; db2.tsNum = sb.cur.tsNum; db2.tsDen = sb.cur.tsDen; db2.feel = 'auto';
+  try { return fn(); } finally { db2.cells = k.c; db2.bars = k.b; db2.tsNum = k.n; db2.tsDen = k.d; db2.feel = k.f; }
+}
+function sbPaintLine(g, X, Y, W, part, b0, n, g0, perLine, selG) {
+  var geo = sbLineGeom(W, perLine), bw = geo.barW, K = geo.K, i, x;
+  var drums = sbDrums(part), font = '-apple-system,Helvetica,Arial,sans-serif';
+  g.fillStyle = '#fff'; g.fillRect(X, Y, W, geo.H);
+  for (i = 0; i < n; i++) {
+    x = X + SB_CLEF + i * bw;
+    if (g0 + i === selG) { g.fillStyle = 'rgba(10,132,255,0.13)'; g.fillRect(x, Y, bw, geo.H); }
+    var cell = part.cells[b0 + i], clip = cell ? sbClip(cell.c) : null;
+    if (clip) {
+      g.fillStyle = clip.color; sbRR(g, x + 1.5, Y + 2, bw - 3, SB_BAND - 4, 4); g.fill();
+      g.fillStyle = '#000'; g.font = 'bold 10px ' + font; g.textAlign = 'left'; g.textBaseline = 'middle';
+      sbFitText(g, cell.o > 0 ? '·· ' + (cell.o + 1) + '/' + clip.bars : clip.name + (clip.bars > 1 ? ' 1/' + clip.bars : ''), x + 5, Y + SB_BAND / 2, bw - 10);
+    } else {
+      g.strokeStyle = '#cfcfd4'; g.lineWidth = 1; if (g.setLineDash) g.setLineDash([3, 3]);
+      g.strokeRect(x + 1.5, Y + 2.5, bw - 3, SB_BAND - 5); if (g.setLineDash) g.setLineDash([]);
+    }
+    g.fillStyle = '#9a9aa0'; g.font = '9px ' + font; g.textAlign = 'right'; g.textBaseline = 'alphabetic';
+    g.fillText(String(b0 + i + 1), x + bw - 3, Y + geo.H - 3);
+  }
+  // staff (design units, line gap 9, scaled by K)
+  g.save();
+  g.translate(X, Y + SB_BAND); g.scale(K, K);
+  var top = SB_TOPM, bot = top + SB_LG * 4, xs = 2 / K, xe = (SB_CLEF + n * bw) / K, s2;
+  g.strokeStyle = '#111'; g.fillStyle = '#111'; g.lineWidth = Math.max(0.9, 0.7 / K);
+  for (s2 = 0; s2 < 5; s2++) { g.beginPath(); g.moveTo(xs, top + s2 * SB_LG); g.lineTo(xe, top + s2 * SB_LG); g.stroke(); }
+  dpNClef(g, SB_CLEF / K * 0.3, top, SB_LG);
+  g.lineWidth = Math.max(1, 0.8 / K);
+  g.beginPath(); g.moveTo(SB_CLEF / K, top); g.lineTo(SB_CLEF / K, bot); g.stroke();
+  var tpbar = sbTpBar(), tpb = sbTpBeat();
+  for (i = 0; i < n; i++) {
+    var bxD = (SB_CLEF + i * bw) / K, spanD = bw / K - 14, d = drums[b0 + i];
+    if (!sbDrumsEmpty(d)) {
+      sbWithBar(d, function () {
+        var model = dpNotesModel()[0];
+        for (var be = 0; be < model.length; be++) dpNotesBeat(g, model[be], 0, bxD + 7, spanD, tpbar, tpb, top, bot, SB_LG);
+      });
+    }
+    var rx = (SB_CLEF + (i + 1) * bw) / K;
+    g.lineWidth = Math.max(1, 0.8 / K);
+    g.beginPath(); g.moveTo(rx, top); g.lineTo(rx, bot); g.stroke();
+    if (b0 + i === part.cells.length - 1) { g.beginPath(); g.moveTo(rx - 3.5, top); g.lineTo(rx - 3.5, bot); g.stroke(); }   // part end: double bar line
+  }
+  g.restore();
+  return geo.H;
+}
+function sbSelG() {
+  if (!sb.sel) return -1;
+  var parts = sbVer().parts, g = 0;
+  for (var i = 0; i < parts.length; i++) {
+    if (parts[i].id === sb.sel.pid) return sb.sel.b < parts[i].cells.length ? g + sb.sel.b : -1;
+    g += parts[i].cells.length;
+  }
+  return -1;
+}
+function sbSelPart() { if (!sb.sel) return null; var p = sbPart(sb.sel.pid); return (p && sb.sel.b < p.cells.length) ? p : null; }
 function sbUpdPos(barG) {
   var el = document.getElementById('sbPos'), flat = sbFlat(), bd = sbBarDur();
   var total = flat.length * bd;
@@ -6319,7 +6531,7 @@ function sbAddPart(i) {
     bars = isNaN(nb) ? 4 : Math.max(1, Math.min(128, nb));
   } else { name = SB_PART_PRESETS[i][0]; bars = SB_PART_PRESETS[i][1]; }
   sbPush();
-  sbVer().parts.push({ id: sbUid('p'), name: sbUniqueName(name.substring(0, 30)), cells: sbEmptyCells(bars) });
+  sbVer().parts.push({ id: sbUid('p'), name: sbUniqueName(name.substring(0, 30)), cells: sbEmptyCells(bars), drums: sbEmptyCells(bars) });
   sbAfterChange(false);
   setTimeout(function () { var b = document.getElementById('sbBody'); b.scrollTop = b.scrollHeight; }, 30);
 }
@@ -6332,7 +6544,8 @@ function sbPartBars(p, d) {
   var part = sbVer().parts[p], n = part.cells.length + d;
   if (n < 1 || n > 128) return;
   sbPush();
-  if (d > 0) part.cells.push(null); else part.cells.pop();
+  var dr = sbDrums(part);
+  if (d > 0) { part.cells.push(null); dr.push(null); } else { part.cells.pop(); dr.pop(); }
   sbAfterChange(false);
 }
 function sbPartBarsPrompt(p) {
@@ -6341,6 +6554,7 @@ function sbPartBarsPrompt(p) {
   sbPush();
   while (part.cells.length < n) part.cells.push(null);
   part.cells.length = n;
+  sbDrums(part);
   sbAfterChange(false);
 }
 function sbPartSheet(p) {
@@ -6349,27 +6563,33 @@ function sbPartSheet(p) {
     { label: '&#8635; Loop this part', fn: function () { sbPlayPart(p); } },
     { label: 'Duplicate part (adds a copy below)', fn: function () { sbPush(); var cp = JSON.parse(JSON.stringify(part)); cp.id = sbUid('p'); cp.name = sbUniqueName(part.name.replace(/ \d+$/, '')); v.parts.splice(p + 1, 0, cp); sbAfterChange(false); } },
     { label: 'Repeat content to fill the part', fn: function () { sbFillPart(p); } },
-    { label: 'Double length (repeat all bars once)', fn: function () { sbPush(); part.cells = part.cells.concat(JSON.parse(JSON.stringify(part.cells))).slice(0, 128); sbAfterChange(false); } },
+    { label: 'Double length (repeat all bars once)', fn: function () { sbPush(); var dr = sbDrums(part); part.drums = dr.concat(JSON.parse(JSON.stringify(dr))).slice(0, 128); part.cells = part.cells.concat(JSON.parse(JSON.stringify(part.cells))).slice(0, 128); sbAfterChange(false); } },
     { label: 'Move up', fn: function () { if (p > 0) { sbPush(); v.parts.splice(p - 1, 0, v.parts.splice(p, 1)[0]); sbAfterChange(false); } } },
     { label: 'Move down', fn: function () { if (p < v.parts.length - 1) { sbPush(); v.parts.splice(p + 1, 0, v.parts.splice(p, 1)[0]); sbAfterChange(false); } } },
-    { label: 'Clear all bars', fn: function () { sbPush(); part.cells = sbEmptyCells(part.cells.length); sbAfterChange(false); } },
+    { label: 'Remove all audio snippets', fn: function () { sbPush(); part.cells = sbEmptyCells(part.cells.length); sbAfterChange(false); } },
+    { label: 'Clear all drum notes', fn: function () { sbPush(); part.drums = sbEmptyCells(part.cells.length); sbAfterChange(false); } },
     { label: 'Delete part', cls: 'danger', fn: function () { if (!confirm('Delete part "' + part.name + '"?')) return; sbPush(); if (sb.partId === part.id) sb.partId = null; v.parts.splice(p, 1); sbAfterChange(false); } }
   ]);
 }
 // repeat bars 0..last-filled across the whole part (e.g. a 2-bar groove fills 8 bars)
 function sbFillPart(p) {
-  var part = sbVer().parts[p], last = -1, i;
-  for (i = 0; i < part.cells.length; i++) if (part.cells[i]) last = i;
-  if (last < 0) { alert('Place at least one snippet in this part first.'); return; }
-  var pat = part.cells.slice(0, last + 1);
+  var part = sbVer().parts[p], dr = sbDrums(part), last = -1, i;
+  for (i = 0; i < part.cells.length; i++) if (part.cells[i] || !sbDrumsEmpty(dr[i])) last = i;
+  if (last < 0) { alert('Place a snippet or drum notes in this part first.'); return; }
+  var pat = part.cells.slice(0, last + 1), patD = dr.slice(0, last + 1);
   sbPush();
-  for (i = last + 1; i < part.cells.length; i++) { var c = pat[i % pat.length]; part.cells[i] = c ? { c: c.c, o: c.o } : null; }
+  for (i = last + 1; i < part.cells.length; i++) {
+    var c = pat[i % pat.length], d = patD[i % patD.length];
+    part.cells[i] = c ? { c: c.c, o: c.o } : null;
+    dr[i] = d ? JSON.parse(JSON.stringify(d)) : null;
+  }
   sbAfterChange(false);
 }
 
 // ── cells ────────────────────────────────────────────────────────────────────
-function sbCellTap(p, b) {
-  var part = sbVer().parts[p], cell = part.cells[b];
+function sbBarTap(p, b) {
+  var part = sbVer().parts[p]; if (!part) return;
+  var cell = part.cells[b];
   if (sb.erase) { if (cell) { sbPush(); part.cells[b] = null; sbAfterChange(false); } return; }
   if (sb.brush) {
     var clip = sbClip(sb.brush); if (!clip) return;
@@ -6379,17 +6599,14 @@ function sbCellTap(p, b) {
     sbAfterChange(false);
     return;
   }
-  var g = sbGlobalIndex(p, b), items = [{ label: '&#9654; Play from here', fn: function () { sbPlay(g); } }];
-  if (cell) {
-    var c = sbClip(cell.c);
-    items.push({ label: 'Repeat to the end of the part', fn: function () { sbRepeatFrom(p, b); } });
-    if (c) items.push({ label: 'Use "' + esc(c.name) + '" as brush', fn: function () { sbPickBrush(c.id); } });
-    if (c) items.push({ label: 'Edit snippet "' + esc(c.name) + '"', fn: function () { sbCutOpen(c.id); } });
-    items.push({ label: 'Clear this bar', cls: 'danger', fn: function () { sbPush(); part.cells[b] = null; sbAfterChange(false); } });
-  } else if (sb.cur.clips.length) {
-    items.push({ label: 'Pick a snippet to place&hellip;', fn: function () { sbHint('Pick a snippet above, then tap bars.'); } });
+  if (sb.sel && sb.sel.pid === part.id && sb.sel.b === b) sb.sel = null;
+  else sb.sel = { pid: part.id, b: b };
+  sbRenderParts();
+  var bp = document.getElementById('sbBarPanel');
+  if (bp) {
+    var body = document.getElementById('sbBody'), br = body.getBoundingClientRect(), r = bp.getBoundingClientRect();
+    if (r.bottom > br.bottom) body.scrollTop += Math.min(r.bottom - br.bottom + 10, r.top - br.top - 60);
   }
-  sbSheet(esc(part.name) + ' &middot; bar ' + (b + 1), items);
 }
 function sbGlobalIndex(p, b) {
   var parts = sbVer().parts, g = 0;
@@ -6437,7 +6654,7 @@ function sbPreviewClip(id) {
 }
 
 // ── versions & songs ─────────────────────────────────────────────────────────
-function sbPickVersion(id) { sb.cur.ver = id; sb.partId = null; sbAfterChange(false); }
+function sbPickVersion(id) { sb.cur.ver = id; sb.partId = null; sb.sel = null; sbAfterChange(false); }
 function sbVersionSheet() {
   var s = sb.cur, v = sbVer();
   sbSheet('Version: ' + esc(v.name), [
@@ -6476,13 +6693,14 @@ function sbSongsSheet() {
 }
 function sbSwitchSong(id) {
   if (!sb.songs[id] || id === sb.cur.id) return;
-  sbStop(); sb.cur = sb.songs[id]; sb.undo = []; sb.redo = []; sb.brush = null; sb.partId = null;
+  sbStop(); sb.sel = null; sb.cur = sb.songs[id]; sb.undo = []; sb.redo = []; sb.brush = null; sb.partId = null;
   sbSave(); sbRender(); sbLoadBufs().then(sbRenderPal);
 }
 function sbMoreSheet() {
   sbSheet('More', [
-    { label: 'Export song as WAV (this version)', fn: sbExport },
-    { label: 'Export song as WAV with click', fn: function () { sbExport(true); } }
+    { label: 'Export song as WAV (current mix: audio/drums on/off + volumes)', fn: sbExport },
+    { label: 'Export song as WAV with click', fn: function () { sbExport(true); } },
+    { label: 'Export drum notation as PNG', fn: sbExportPng }
   ]);
 }
 
@@ -6506,16 +6724,23 @@ function sbSheetDo(i) { var f = sbSheetFns[i]; sbSheetClose(); if (f) f(); }
 function sbOut() {
   if (!sb.master || sb.ctxOf !== audioCtx) {
     sb.ctxOf = audioCtx;
-    sb.master = audioCtx.createGain(); sb.master.gain.value = 0.9;
-    if (audioCtx.createDynamicsCompressor) {
-      var lim = audioCtx.createDynamicsCompressor();
-      lim.threshold.value = -3; lim.knee.value = 3; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.15;
-      sb.master.connect(lim).connect(audioCtx.destination);
-    } else sb.master.connect(audioCtx.destination);
-    sb.clickBus = audioCtx.createGain(); sb.clickBus.gain.value = 0.55;
-    sb.clickBus.connect(audioCtx.destination);
+    var b = sbMakeBuses(audioCtx);
+    sb.master = b.master; sb.audioBus = b.audio; sb.drumBus = b.drums; sb.clickBus = b.click;
   }
   return sb.master;
+}
+// bars -> audio bus / drums -> drum bus, both -> master -> limiter; click bypasses the limiter
+function sbMakeBuses(ctx) {
+  var m = ctx.createGain(); m.gain.value = 0.9;
+  if (ctx.createDynamicsCompressor) {
+    var lim = ctx.createDynamicsCompressor();
+    lim.threshold.value = -3; lim.knee.value = 3; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.15;
+    m.connect(lim).connect(ctx.destination);
+  } else m.connect(ctx.destination);
+  var a = ctx.createGain(); a.gain.value = sb.audioOn ? sb.audioVol : 0; a.connect(m);
+  var d = ctx.createGain(); d.gain.value = sb.drumsOn ? sb.drumsVol : 0; d.connect(m);
+  var c = ctx.createGain(); c.gain.value = 0.55; c.connect(ctx.destination);
+  return { master: m, audio: a, drums: d, click: c };
 }
 function sbClickAt(ctx, out, when, accent) {
   var o = ctx.createOscillator(), g = ctx.createGain(), dec = accent ? 0.05 : 0.035;
@@ -6528,13 +6753,27 @@ function sbClickAt(ctx, out, when, accent) {
 // Schedule one bar. `prev`/`next` are the cells around it in play order, so a
 // snippet that runs over several bars plays seamlessly; fades only at run edges.
 var SB_FADE = 0.004;
-function sbSchedBar(ctx, out, clickOut, cell, prev, next, when, bd, withClick, nodes) {
-  var now = ctx.currentTime;
-  if (withClick && clickOut) {
+function sbSchedBar(ctx, outs, cell, drums, prev, next, when, bd, withClick, nodes) {
+  var now = ctx.currentTime, i;
+  if (withClick && outs.click) {
     var n = sb.cur.tsNum;
-    for (var i = 0; i < n; i++) { var tc = when + i * bd / n; if (tc >= now) sbClickAt(ctx, clickOut, tc, i === 0); }
+    for (i = 0; i < n; i++) { var tc = when + i * bd / n; if (tc >= now) sbClickAt(ctx, outs.click, tc, i === 0); }
   }
-  if (!cell) return;
+  if (drums && sb.drumsOn) {
+    var tpbar = sbTpBar();
+    for (var id in drums) {
+      if (!drums.hasOwnProperty(id)) continue;
+      var m = drums[id];
+      for (var k in m) {
+        if (!m.hasOwnProperty(k) || !(m[k] > 0)) continue;
+        var th = when + parseInt(k, 10) / tpbar * bd;
+        if (nodes && th < now) continue;
+        var keep = db2.master; db2.master = outs.drums;
+        try { dpTrigger(id, th, dpVelGain(m[k])); } finally { db2.master = keep; }
+      }
+    }
+  }
+  if (!cell || !sb.audioOn) return;
   var clip = sbClip(cell.c), buf = clip ? sb.bufs[clip.id] : null;
   if (!buf) return;
   var seg = buf.duration / clip.bars, rate = seg / bd, off = cell.o * seg;
@@ -6550,7 +6789,7 @@ function sbSchedBar(ctx, out, clickOut, cell, prev, next, when, bd, withClick, n
   if (contIn) g.gain.setValueAtTime(gv, t0);
   else { g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(gv, t0 + SB_FADE); }
   if (!contOut) { g.gain.setValueAtTime(gv, end - SB_FADE); g.gain.linearRampToValueAtTime(0, end); }
-  src.connect(g).connect(out);
+  src.connect(g).connect(outs.audio);
   src.start(t0, Math.min(off, buf.duration - 0.001));
   src.stop(end);
   if (nodes) { nodes.push(src); src.onended = function () { var ix = nodes.indexOf(src); if (ix >= 0) nodes.splice(ix, 1); }; }
@@ -6584,6 +6823,7 @@ function sbStartAt(pos) {
   sb.prevSched = null;
   if (sb.timer) clearInterval(sb.timer);
   sb.timer = setInterval(sbTick, 25);
+  sbApplyMix();
   sbTick();
   if (!sb.raf) sb.raf = requestAnimationFrame(sbAnim);
   document.getElementById('sbPlayBtn').innerHTML = '&#10074;&#10074;';
@@ -6601,7 +6841,7 @@ function sbTick() {
     var i = r.start + (sb.k % r.len), ni = sb.k + 1;
     var next = (!r.loop && ni >= r.len) ? null : flat[r.start + (ni % r.len)];
     var cell = flat[i].cell;
-    sbSchedBar(audioCtx, sb.master, sb.clickBus, cell, sb.prevSched, next ? next.cell : null, sb.startCtx + sb.k * bd, bd, sb.click, sb.nodes);
+    sbSchedBar(audioCtx, { audio: sb.audioBus, drums: sb.drumBus, click: sb.clickBus }, cell, flat[i].drums, sb.prevSched, next ? next.cell : null, sb.startCtx + sb.k * bd, bd, sb.click, sb.nodes);
     sb.prevSched = cell;
     sb.k++;
   }
@@ -6620,6 +6860,7 @@ function sbStop() {
   sb.bgActive = false;
   if (sbPrevNode) { try { sbPrevNode.stop(); } catch (e) {} sbPrevNode = null; }
   var pb = document.getElementById('sbPlayBtn'); if (pb) pb.innerHTML = '&#9654;';
+  if (sb.phEl) sb.phEl.style.display = 'none';
   if (was) { sbRenderParts(); sbUpdPos(); }
 }
 function sbRestart() {
@@ -6643,28 +6884,33 @@ function sbAnim() {
   var kf = sbPosSec() / bd;
   if (kf < 0 || !r.len) return;
   if (!r.loop && kf >= r.len) return;
-  var g = r.start + (Math.floor(kf) % r.len), frac = kf - Math.floor(kf);
-  var body = document.getElementById('sbBody');
+  var g = r.start + (Math.floor(kf) % r.len), frac = kf - Math.floor(kf), i, L = null;
+  for (i = 0; i < sb.lines.length; i++) if (g >= sb.lines[i].g0 && g < sb.lines[i].g0 + sb.lines[i].n) { L = sb.lines[i]; break; }
+  if (!sb.phEl) { sb.phEl = document.createElement('div'); sb.phEl.className = 'sb-ph'; }
+  if (L) {
+    if (sb.phEl.parentNode !== L.el) L.el.appendChild(sb.phEl);
+    sb.phEl.style.display = 'block';
+    sb.phEl.style.left = (SB_CLEF + (g - L.g0 + frac) * L.geo.barW).toFixed(1) + 'px';
+  } else sb.phEl.style.display = 'none';
   if (g !== sb.lastBar) {
-    var old = body.querySelector('.sb-cell.ph');
-    if (old) { old.classList.remove('ph'); var op = old.querySelector('.pr'); if (op) op.parentNode.removeChild(op); }
-    var el = body.querySelector('.sb-cell[data-g="' + g + '"]');
-    if (el) {
-      el.classList.add('ph');
-      var pr = document.createElement('div'); pr.className = 'pr'; el.appendChild(pr);
-      if (sb.follow) sbFollowTo(el);
-    }
     sb.lastBar = g;
+    if (L && sb.follow) sbFollowTo(L.el);
     sbUpdPos(g);
   }
-  var cur = body.querySelector('.sb-cell.ph .pr');
-  if (cur) cur.style.width = (frac * 100).toFixed(1) + '%';
+  // step highlight in the open bar editor
+  var grid = document.getElementById('sbDGrid'), step = -1;
+  if (grid && g === sbSelG()) step = Math.floor(frac * Math.round(sbTpBar() / sbStepTicks()));
+  if (step !== sb.lastStep && grid) {
+    var old = grid.querySelectorAll('.sb-dc.ph'); for (i = 0; i < old.length; i++) old[i].classList.remove('ph');
+    if (step >= 0) { var cs = grid.querySelectorAll('.sb-dc[data-s="' + step + '"]'); for (i = 0; i < cs.length; i++) cs[i].classList.add('ph'); }
+    sb.lastStep = step;
+  }
 }
 var sbTouchAt = 0;
 function sbFollowTo(el) {
   if (Date.now() - sbTouchAt < 2500) return;   // user is scrolling — leave the view alone
   var body = document.getElementById('sbBody'), br = body.getBoundingClientRect(), er = el.getBoundingClientRect();
-  if (er.top < br.top + 10 || er.bottom > br.bottom - 30) body.scrollTop += (er.top - br.top) - br.height * 0.3;
+  if (er.top < br.top + 10 || er.bottom > br.bottom - 20) body.scrollTop += (er.top - br.top) - br.height * 0.25;
 }
 
 // ── background playback (pre-rendered WAV, like the Beat Builder) ─────────────
@@ -6701,20 +6947,22 @@ function sbRenderRange(range, flat, withClick, maxSec) {
   if (once * sr * nCh > maxSamp && nCh === 2) nCh = 1;
   var total = Math.min(reps * once, maxSec || 1e9, maxSamp / (sr * nCh));
   var off = new OAC(nCh, Math.ceil((total + 0.05) * sr), sr);
-  var out = off.createGain(); out.gain.value = 0.9;
-  if (off.createDynamicsCompressor) {
-    var lim = off.createDynamicsCompressor();
-    lim.threshold.value = -3; lim.knee.value = 3; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.15;
-    out.connect(lim).connect(off.destination);
-  } else out.connect(off.destination);
-  var cb = off.createGain(); cb.gain.value = 0.55; cb.connect(off.destination);
+  var outs = sbMakeBuses(off);
   var prev = null, nBars = Math.ceil(total / bd);
-  for (var k = 0; k < nBars; k++) {
-    var idx = range.start + (k % range.len), nk = k + 1;
-    var next = (!range.loop && nk >= range.len) ? null : flat[range.start + (nk % range.len)];
-    if (!range.loop && k >= range.len) break;
-    sbSchedBar(off, out, cb, flat[idx].cell, prev, next ? next.cell : null, k * bd + 0.0001, bd, withClick, null);
-    prev = flat[idx].cell;
+  // the Beat Builder voices build their nodes on the global audioCtx / db2 buses:
+  // point those at the offline context while scheduling (all synchronous), then restore
+  var keep = { ctx: audioCtx, m: db2.master, nb: db2.noiseBuf, lim: db2.limiter, mg: db2.metroGain, oh: db2.openHatGain };
+  audioCtx = off; db2.master = outs.drums; db2.noiseBuf = null; db2.limiter = null; db2.metroGain = null; db2.openHatGain = null;
+  try {
+    for (var k = 0; k < nBars; k++) {
+      var idx = range.start + (k % range.len), nk = k + 1;
+      var next = (!range.loop && nk >= range.len) ? null : flat[range.start + (nk % range.len)];
+      if (!range.loop && k >= range.len) break;
+      sbSchedBar(off, outs, flat[idx].cell, flat[idx].drums, prev, next ? next.cell : null, k * bd + 0.0001, bd, withClick, null);
+      prev = flat[idx].cell;
+    }
+  } finally {
+    audioCtx = keep.ctx; db2.master = keep.m; db2.noiseBuf = keep.nb; db2.limiter = keep.lim; db2.metroGain = keep.mg; db2.openHatGain = keep.oh;
   }
   return off.startRendering().then(function (buf) { return { buf: buf, reps: reps, once: once, bd: bd }; });
 }
@@ -6800,10 +7048,11 @@ function sbExport(withClick) {
     log('SB export ' + res.buf.duration.toFixed(1) + 's');
   }, function (e) { sbHint(''); alert('Export failed: ' + e.message); });
 }
-function sbDownload(blob, filename) {
+function sbDownload(blob, filename, mime) {
+  mime = mime || 'audio/wav';
   try {
     if (navigator.canShare && window.File) {
-      var f = new File([blob], filename, { type: 'audio/wav' });
+      var f = new File([blob], filename, { type: mime });
       if (navigator.canShare({ files: [f] })) { navigator.share({ files: [f], title: filename }).then(null, function () {}); return; }
     }
   } catch (e) {}
@@ -6819,7 +7068,7 @@ function sbDownload(blob, filename) {
 var sbc = {
   editId: null, srcId: null, srcName: '', buf: null, bins: null, BIN: 256,
   t0: null, t1: null, cursor: 0, vS: 0, vE: 10,
-  srcBpm: 0, srcOff: 0, snap: true, loop: true, tempo: false,
+  srcBpm: 0, srcOff: 0, detBpm: 0, detOff: 0, snap: false, loop: true, tempo: false, gridEdit: false, taps: [], scrubAt: 0,
   bars: 1, barsManual: false, gain: 1, changed: false,
   playing: false, node: null, gainNode: null, pStartCtx: 0, pStartPos: 0, rate: 1, raf: 0,
   ptrs: {}, drag: null, cache: null
@@ -6856,6 +7105,7 @@ function sbCutOpen(clipId) {
 function sbCutClose() {
   sbCutStopPlay();
   document.getElementById('sbCut').classList.remove('show');
+  sbRender();
 }
 function sbLibHas(id) { var l = getLibrary(); for (var i = 0; i < l.length; i++) if (l[i].id === id) return true; return false; }
 function sbCutFillSrcSel(sel) {
@@ -6886,14 +7136,16 @@ function sbCutDecode(id, name, arrayBuf, clip) {
 function sbCutUseBuf(id, name, buf, clip) {
   sbc.srcId = id; sbc.srcName = name; sbc.buf = buf;
   sbCutBins();
-  // tempo of the recording: the Loop Function grid if saved there, else detect
+  // the grid is shared with the Loop Function (grid__<name>); detect only if none is saved
   var g = null; try { g = JSON.parse(localStorage.getItem('grid__' + name) || 'null'); } catch (e) {}
-  if (clip && clip.srcBpm) { sbc.srcBpm = clip.srcBpm; sbc.srcOff = clip.srcOff || 0; }
-  else if (g && g.bpm) { sbc.srcBpm = g.bpm; sbc.srcOff = g.offset || 0; }
-  else {
-    var keep = duration; duration = buf.duration;
-    try { var d = detectBPM(buf, 60, 200); sbc.srcBpm = d.bpm; sbc.srcOff = d.offset; } catch (e) { sbc.srcBpm = 0; sbc.srcOff = 0; }
-    duration = keep;
+  if (g && g.bpm) {
+    sbc.srcBpm = g.bpm; sbc.srcOff = g.offset || 0;
+    sbc.detBpm = g.detBpm || g.bpm; sbc.detOff = g.detOff !== undefined ? g.detOff : sbc.srcOff;
+  } else if (clip && clip.srcBpm && clip.srcId === id) {
+    sbc.srcBpm = clip.srcBpm; sbc.srcOff = clip.srcOff || 0; sbc.detBpm = sbc.srcBpm; sbc.detOff = sbc.srcOff;
+  } else {
+    sbCutDetect();
+    sbc.srcBpm = sbc.detBpm; sbc.srcOff = sbc.detOff;
   }
   if (clip && clip.srcId === id) { sbc.t0 = clip.t0; sbc.t1 = clip.t1; }
   else if (!clip) { sbc.t0 = null; sbc.t1 = null; }
@@ -6902,7 +7154,27 @@ function sbCutUseBuf(id, name, buf, clip) {
   sbCutMsg('');
   sbCutResize();
   if (sbc.t0 !== null && sbc.t1 !== null) sbCutZoomSel(); else sbCutZoomAll();
+  sbCutUpdButtons();
   sbCutUpd();
+}
+function sbCutDetect() {
+  var keep = duration; duration = sbc.buf.duration;   // detectBPM reads the global duration
+  try { var d = detectBPM(sbc.buf, 60, 200); sbc.detBpm = d.bpm; sbc.detOff = d.offset; } catch (e) { sbc.detBpm = 0; sbc.detOff = 0; }
+  duration = keep;
+}
+// write the grid where the Loop Function keeps it, and update it live if that track is loaded there
+function sbCutSaveGrid() {
+  if (!sbc.srcName || !(sbc.srcBpm > 0)) return;
+  var g = null; try { g = JSON.parse(localStorage.getItem('grid__' + sbc.srcName) || 'null'); } catch (e) {}
+  g = g || { tsTop: sb.cur.tsNum, tsBot: sb.cur.tsDen };
+  g.bpm = sbc.srcBpm; g.offset = sbc.srcOff;
+  g.detBpm = sbc.detBpm || sbc.srcBpm; g.detOff = sbc.detOff;
+  try { localStorage.setItem('grid__' + sbc.srcName, JSON.stringify(g)); } catch (e) {}
+  try {
+    if (typeof trkName !== 'undefined' && trkName === sbc.srcName && audioBuf) {
+      gridBPM = sbc.srcBpm; gridOffset = sbc.srcOff; updateGridDisplay();
+    }
+  } catch (e) {}
 }
 function sbCutLoadFile(inp) {
   var f = inp.files && inp.files[0]; if (!f) return;
@@ -7014,6 +7286,7 @@ function sbCutUpd() {
   document.getElementById('sbInDisp').textContent = f3(sbc.t0);
   document.getElementById('sbOutDisp').textContent = f3(sbc.t1);
   document.getElementById('sbSrcBpm').value = sbc.srcBpm ? sbc.srcBpm : '';
+  document.getElementById('sbGridBpmDisp').textContent = sbc.srcBpm ? sbc.srcBpm.toFixed(2) + ' BPM' : '-- BPM';
   document.getElementById('sbCutBarsDisp').textContent = sbc.bars;
   var info = '', ts = sb.cur.tsNum;
   if (sbc.t0 !== null && sbc.t1 !== null && sbc.t1 > sbc.t0) {
@@ -7023,6 +7296,7 @@ function sbCutUpd() {
       var st = (songBpm / nat - 1) * 100;
       info += ' &middot; song ' + songBpm + ' BPM &rarr; ' + (Math.abs(st) < 0.05 ? 'no stretch' : 'stretch <b style="color:' + (Math.abs(st) > 8 ? 'var(--red)' : 'var(--txt)') + '">' + (st > 0 ? '+' : '') + st.toFixed(1) + '%</b>');
       if (Math.abs(st) > 8) info += '<br>Large stretch: check the bar count or the In/Out points.';
+      else if (Math.abs(st) >= 0.3) info += '<br>If the song BPM is right, a stretch away from 0 % means the loop is not exactly ' + sbc.bars + ' bar' + (sbc.bars === 1 ? '' : 's') + ' long &mdash; move IN/OUT a little.';
     } else info += ' &middot; the song takes this tempo (first snippet).';
   } else info = 'Set IN and OUT to mark the snippet.';
   document.getElementById('sbCutInfo').innerHTML = info;
@@ -7033,6 +7307,8 @@ function sbCutUpdButtons() {
   document.getElementById('sbSnapBtn').classList.toggle('on', sbc.snap);
   document.getElementById('sbCutLoopBtn').classList.toggle('on', sbc.loop);
   document.getElementById('sbCutTempoBtn').classList.toggle('on', sbc.tempo);
+  document.getElementById('sbGridEditBtn').classList.toggle('on', sbc.gridEdit);
+  document.getElementById('sbGridPanel').classList.toggle('show', sbc.gridEdit);
   document.getElementById('sbCutPlayBtn').innerHTML = sbc.playing ? '&#10074;&#10074;' : '&#9654;';
 }
 function sbCutSnapT(t) {
@@ -7081,13 +7357,64 @@ function sbCutOutFromBars() {
   sbc.barsManual = true;
   sbCutSetPoint('out', sbc.t0 + sbc.bars * sb.cur.tsNum * 60 / sbc.srcBpm);
 }
-function sbCutSetSrcBpm(v) { var n = parseFloat(v); if (isNaN(n) || n < 20 || n > 300) { sbCutUpd(); return; } sbc.srcBpm = Math.round(n * 100) / 100; sbCutAutoBars(); sbCutUpd(); }
-function sbCutSrcBpmMul(f) { if (!(sbc.srcBpm > 0)) return; var n = sbc.srcBpm * f; if (n < 20 || n > 300) return; sbc.srcBpm = Math.round(n * 100) / 100; sbCutAutoBars(); sbCutUpd(); }
+function sbCutSetSrcBpm(v) { var n = parseFloat(v); if (isNaN(n) || n < 20 || n > 300) { sbCutUpd(); return; } sbc.srcBpm = Math.round(n * 100) / 100; sbCutGridChanged(); }
+function sbCutGridChanged() { sbCutAutoBars(); sbCutSaveGrid(); sbCutUpd(); }
+function sbCutNudgeBpm(d) { if (!(sbc.srcBpm > 0)) return; var n = Math.round((sbc.srcBpm + d) * 100) / 100; if (n < 20 || n > 300) return; sbc.srcBpm = n; sbCutGridChanged(); }
+function sbCutNudgeGrid(d) { if (!sbc.buf) return; sbc.srcOff += d * 0.01; sbCutGridChanged(); }
+function sbCutShiftBeat(d) { if (!(sbc.srcBpm > 0)) return; sbc.srcOff += d * 60 / sbc.srcBpm; sbCutGridChanged(); }
+function sbCutToggleGridEdit() { sbc.gridEdit = !sbc.gridEdit; sbCutUpdButtons(); }
+function sbCutTap() {
+  var now = performance.now();
+  if (sbc.taps.length && now - sbc.taps[sbc.taps.length - 1] > 2500) sbc.taps = [];
+  sbc.taps.push(now); if (sbc.taps.length > 8) sbc.taps.shift();
+  var el = document.getElementById('sbTapVal');
+  if (sbc.taps.length < 2) { el.textContent = 'tap...'; return; }
+  var tot = 0; for (var i = 1; i < sbc.taps.length; i++) tot += sbc.taps[i] - sbc.taps[i - 1];
+  sbc.tapBpm = Math.round(60000 / (tot / (sbc.taps.length - 1)) * 10) / 10;
+  el.textContent = sbc.tapBpm.toFixed(1) + ' BPM';
+}
+function sbCutApplyTap() { if (!sbc.tapBpm) return; sbc.srcBpm = sbc.tapBpm; sbc.taps = []; sbc.tapBpm = 0; document.getElementById('sbTapVal').textContent = '--'; sbCutGridChanged(); }
+function sbCutResetGrid() {
+  if (!sbc.buf) return;
+  if (!(sbc.detBpm > 0)) sbCutDetect();
+  sbc.srcBpm = sbc.detBpm; sbc.srcOff = sbc.detOff; sbCutGridChanged();
+}
+function sbCutUseSongBpm() {
+  if (!(sbc.srcBpm > 0)) return;
+  sbPush(); sb.cur.bpm = sbc.srcBpm; sbSave(); sbCutUpd();
+  sbCutMsg('Song tempo set to ' + sbc.srcBpm + ' BPM.');
+}
+function sbCutMoveLoop(d, byBar) {
+  if (sbc.t0 === null || sbc.t1 === null || !sbc.buf) return;
+  var delta = byBar ? (sbc.srcBpm > 0 ? d * sb.cur.tsNum * 60 / sbc.srcBpm : d * (sbc.t1 - sbc.t0)) : d * 0.01;
+  if (sbc.t0 + delta < 0) delta = -sbc.t0;
+  if (sbc.t1 + delta > sbCutDur()) delta = sbCutDur() - sbc.t1;
+  sbc.t0 += delta; sbc.t1 += delta; sbc.changed = true;
+  var span = sbc.vE - sbc.vS;
+  if (sbc.t0 < sbc.vS || sbc.t1 > sbc.vE) { sbc.vS = Math.max(0, sbc.t0 - span * 0.1); sbc.vE = sbc.vS + span; }
+  sbCutUpd();
+  if (sbc.playing && sbc.loop) sbCutStartPlay(sbc.t0);
+}
+// short audible snippet at t while dragging (like the Loop Function's scratch scrub)
+var sbcScrubNode = null;
+function sbCutScrub(t) {
+  if (!sbc.buf || sbc.playing) return;
+  var now = Date.now(); if (now - sbc.scrubAt < 45) return; sbc.scrubAt = now;
+  try {
+    if (sbcScrubNode) { try { sbcScrubNode.stop(); } catch (e) {} }
+    var s = audioCtx.createBufferSource(), g = audioCtx.createGain(), w = audioCtx.currentTime;
+    s.buffer = sbc.buf; g.gain.setValueAtTime(0, w); g.gain.linearRampToValueAtTime(sbc.gain, w + 0.005);
+    g.gain.setValueAtTime(sbc.gain, w + 0.07); g.gain.linearRampToValueAtTime(0, w + 0.08);
+    s.connect(g).connect(audioCtx.destination); s.start(w, Math.max(0, Math.min(sbCutDur() - 0.1, t)), 0.09);
+    sbcScrubNode = s;
+  } catch (e) {}
+}
+function sbCutSrcBpmMul(f) { if (!(sbc.srcBpm > 0)) return; var n = sbc.srcBpm * f; if (n < 20 || n > 300) return; sbc.srcBpm = Math.round(n * 100) / 100; sbCutGridChanged(); }
 function sbCutAlignGrid() {
   if (!sbc.buf || !(sbc.srcBpm > 0)) return;
   var t = sbc.playing ? sbCutPlayPos() : sbc.cursor, bar = sb.cur.tsNum * 60 / sbc.srcBpm;
   sbc.srcOff = ((t % bar) + bar) % bar;
-  sbCutUpd();
+  sbCutGridChanged();
 }
 function sbCutToggleSnap() { sbc.snap = !sbc.snap; sbCutUpdButtons(); }
 function sbCutToggleLoop() { sbc.loop = !sbc.loop; sbCutUpdButtons(); if (sbc.playing) sbCutStartPlay(sbCutPlayPos()); }
@@ -7168,9 +7495,10 @@ function sbCutAttach() {
       sbc.drag = { type: 'pinch', d0: Math.max(10, Math.abs(a - b)), span0: sbc.vE - sbc.vS, c: sbCutX2T((a + b) / 2) };
       return;
     }
-    var x = lx(e), hit = 16;
+    var x = lx(e), hit = 16, y = e.clientY - cv.getBoundingClientRect().top, hh = cv.getBoundingClientRect().height;
     if (sbc.t0 !== null && Math.abs(x - sbCutT2X(sbc.t0)) < hit) sbc.drag = { type: 'in' };
     else if (sbc.t1 !== null && Math.abs(x - sbCutT2X(sbc.t1)) < hit) sbc.drag = { type: 'out' };
+    else if (sbc.gridEdit && y < hh * 0.5) sbc.drag = { type: 'grid', x0: x, off0: sbc.srcOff, moved: false };
     else sbc.drag = { type: 'pan', x0: x, vS0: sbc.vS, vE0: sbc.vE, moved: false };
   });
   cv.addEventListener('pointermove', function (e) {
@@ -7186,12 +7514,20 @@ function sbCutAttach() {
       if (d.type === 'in' && (sbc.t1 === null || t < sbc.t1 - 0.01)) sbc.t0 = t;
       if (d.type === 'out' && (sbc.t0 === null || t > sbc.t0 + 0.01)) sbc.t1 = t;
       sbc.changed = true; sbCutAutoBars(); sbCutUpd();
+      sbCutScrub(t);
+    } else if (d.type === 'grid') {
+      if (Math.abs(x - d.x0) > 3) d.moved = true;
+      if (!d.moved) return;
+      var wg = cv.getBoundingClientRect().width;
+      sbc.srcOff = d.off0 + (x - d.x0) / wg * (sbc.vE - sbc.vS);
+      sbCutUpd();
     } else if (d.type === 'pan') {
       if (Math.abs(x - d.x0) > 6) d.moved = true;
       if (!d.moved) return;
       var w = cv.getBoundingClientRect().width, span = d.vE0 - d.vS0, dt = (x - d.x0) / w * span;
       var s = Math.max(0, Math.min(sbCutDur() - span, d.vS0 - dt));
       sbc.vS = s; sbc.vE = s + span; sbCutDraw();
+      sbCutScrub(sbCutX2T(x));
     }
   });
   function up(e) {
@@ -7199,6 +7535,7 @@ function sbCutAttach() {
     if (!d) return;
     if (d.type === 'pinch') { if (!Object.keys(sbc.ptrs).length) sbc.drag = null; return; }
     sbc.drag = null;
+    if (d.type === 'grid') { if (d.moved) sbCutGridChanged(); return; }
     if (d.type === 'pan' && !d.moved && e.type === 'pointerup') {
       sbc.cursor = sbCutClampT(sbCutX2T(lx(e)));
       if (sbc.playing) sbCutStartPlay(sbc.cursor); else sbCutUpd();
@@ -7258,8 +7595,251 @@ function sbCutSave() {
   done.then(function () { sbHint('Saved. Tap bars to place "' + c.name + '".'); });
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+//  v56: drum part — bar editor (Beat Builder style grid), copy/paste, grooves,
+//  mixer, zoom (bars per line), notation PNG export
+// ══════════════════════════════════════════════════════════════════════════════
+function sbBarPanelHtml(p, b) {
+  var part = sbVer().parts[p], cell = part.cells[b], clip = cell ? sbClip(cell.c) : null;
+  var h = '<div class="sb-barpanel" id="sbBarPanel">'
+    + '<div class="sb-row"><span class="sb-bp-title">' + esc(part.name) + ' &middot; bar ' + (b + 1) + '</span>'
+    + '<button class="bb-pill" onclick="sbPlay(' + sbGlobalIndex(p, b) + ')">&#9654; from here</button>'
+    + '<span style="flex:1"></span><button class="bb-pill" onclick="sbCloseBar()">&#10005;</button></div>';
+  h += '<div class="sb-row"><span class="sb-lbl">Audio</span>';
+  if (clip) {
+    h += '<span class="sb-chip" style="background:' + clip.color + ';padding:3px 7px;font-size:11px"><span>' + esc(clip.name) + (clip.bars > 1 ? ' ' + (cell.o + 1) + '/' + clip.bars : '') + '</span></span>'
+      + '<button class="bb-pill" onclick="sbRepeatFrom(' + p + ',' + b + ')">Repeat &#8594; end</button>'
+      + '<button class="bb-pill" onclick="sbCutOpen(\'' + clip.id + '\')">Edit</button>'
+      + '<button class="bb-pill" onclick="sbClearAudio(' + p + ',' + b + ')" style="color:var(--red)">Remove</button>';
+  } else h += '<span class="sb-info">none &mdash; pick a snippet above, then tap the bar</span>';
+  h += '</div><div class="sb-row"><span class="sb-lbl">Drums</span>'
+    + '<button class="bb-pill" onclick="sbDrumCopy()">Copy</button>'
+    + '<button class="bb-pill" onclick="sbDrumPaste()"' + (sb.drumClip ? '' : ' style="opacity:.4"') + '>Paste</button>'
+    + '<button class="bb-pill" onclick="sbDrumRepeat()">Repeat &#8594; end</button>'
+    + '<button class="bb-pill" onclick="sbGrooveSheet()">Groove&hellip;</button>'
+    + '<button class="bb-pill" onclick="sbDrumClear()" style="color:var(--red)">Clear</button></div>';
+  var modes = [['cycle', 'Cycle'], ['normal', 'Normal'], ['accent', 'Accent'], ['ghost', 'Ghost']];
+  h += '<div class="sb-row"><span class="sb-lbl">Tap</span>';
+  for (var i = 0; i < modes.length; i++) h += '<button class="bb-pill' + (sb.hitMode === modes[i][0] ? ' on' : '') + '" onclick="sbSetHitMode(\'' + modes[i][0] + '\')">' + modes[i][1] + '</button>';
+  h += '<span class="sb-lbl" style="margin-left:4px">Grid</span><button class="bb-pill" onclick="sbCpbStep(-1)">&minus;</button>'
+    + '<span style="font-size:11px;font-weight:700;min-width:44px;text-align:center">' + dpNoteName(sbStepTicks()) + '</span>'
+    + '<button class="bb-pill" onclick="sbCpbStep(1)">+</button></div>';
+  h += '<div class="sb-dgrid" id="sbDGrid">' + sbDrumGridHtml(part, b) + '</div></div>';
+  return h;
+}
+function sbDrumGridHtml(part, b) {
+  var d = sbDrums(part)[b] || {}, INS = dpInsts(), st = sbStepTicks(), tpb = sbTpBeat(), steps = Math.round(sbTpBar() / st), h = '';
+  for (var r = 0; r < INS.length; r++) {
+    var id = INS[r].id, m = d[id] || {};
+    h += '<div class="sb-drow"><div class="sb-dlabel" onclick="sbAudition(\'' + id + '\')">' + esc(INS[r].name) + '</div><div class="sb-dcells">';
+    for (var s = 0; s < steps; s++) {
+      var t = s * st, v = m[t] || 0, cls = 'sb-dc';
+      if (t % tpb === 0) cls += ' q' + (s > 0 ? ' bl' : '');
+      if (v) cls += ' v' + v;
+      else { for (var k in m) if (m.hasOwnProperty(k)) { var kt = +k; if (kt > t && kt < t + st && m[k] > 0) { cls += ' og'; break; } } }
+      h += '<div class="' + cls + '" data-i="' + id + '" data-t="' + t + '" data-s="' + s + '" onclick="sbDrumTap(this)"></div>';
+    }
+    h += '</div></div>';
+  }
+  return h;
+}
+function sbCloseBar() { sb.sel = null; sbRenderParts(); }
+function sbClearAudio(p, b) { sbPush(); sbVer().parts[p].cells[b] = null; sbAfterChange(false); }
+function sbSetHitMode(m) { sb.hitMode = m; sbPref('sb_hit_mode', m); sbRenderParts(); }
+function sbCpbStep(d) {
+  var L = sbLadder(), i = L.indexOf(sb.cpb); if (i < 0) i = 0;
+  i = Math.max(0, Math.min(L.length - 1, i + d)); sb.cpb = L[i]; sbRenderParts();
+}
+function sbTrig(id, when, gain) {   // a Beat Builder voice, routed into the song's drum bus
+  var keep = db2.master; db2.master = sb.drumBus;
+  try { dpTrigger(id, when, gain); } finally { db2.master = keep; }
+}
+function sbAudition(id) {
+  dpUnlockAudio(); sbOut(); sbApplyMix();
+  sbTrig(id, audioCtx.currentTime + 0.01, dpVelGain(2));
+}
+function sbDrumTap(el) {
+  var part = sbSelPart(); if (!part) return;
+  var id = el.getAttribute('data-i'), t = +el.getAttribute('data-t'), b = sb.sel.b;
+  var dr = sbDrums(part), d = dr[b] ? JSON.parse(JSON.stringify(dr[b])) : {}, m = d[id] || {}, cur = m[t] || 0, nv;
+  if (sb.hitMode === 'cycle') nv = cur === 0 ? 2 : cur === 2 ? 3 : cur === 3 ? 1 : 0;
+  else { var want = sb.hitMode === 'accent' ? 3 : sb.hitMode === 'ghost' ? 1 : 2; nv = cur === want ? 0 : want; }
+  sbPush();
+  if (nv) m[t] = nv; else delete m[t];
+  var any = false; for (var k in m) if (m.hasOwnProperty(k)) { any = true; break; }
+  if (any) d[id] = m; else delete d[id];
+  dr[b] = sbDrumsEmpty(d) ? null : d;
+  el.className = el.className.replace(/ v\d/g, '').replace(/ og/g, '') + (nv ? ' v' + nv : '');
+  sbSave();
+  sbRepaintBar(sbSelG());
+  if (nv && !sb.playing) { dpUnlockAudio(); sbOut(); sbApplyMix(); sbTrig(id, audioCtx.currentTime + 0.01, dpVelGain(nv)); }
+  if (sb.playing) sbScheduleBg();
+}
+function sbDrumCopy() {
+  var part = sbSelPart(); if (!part) return;
+  var d = sbDrums(part)[sb.sel.b];
+  sb.drumClip = d ? JSON.parse(JSON.stringify(d)) : {};
+  sbHint('Drums of this bar copied.'); sbRenderParts();
+}
+function sbDrumPaste() {
+  var part = sbSelPart(); if (!part || !sb.drumClip) return;
+  sbPush(); sbDrums(part)[sb.sel.b] = sbDrumsEmpty(sb.drumClip) ? null : JSON.parse(JSON.stringify(sb.drumClip));
+  sbAfterChange(false);
+}
+function sbDrumRepeat() {
+  var part = sbSelPart(); if (!part) return;
+  var dr = sbDrums(part), d = dr[sb.sel.b];
+  sbPush();
+  for (var i = sb.sel.b + 1; i < dr.length; i++) dr[i] = d ? JSON.parse(JSON.stringify(d)) : null;
+  sbAfterChange(false);
+}
+function sbDrumClear() {
+  var part = sbSelPart(); if (!part) return;
+  sbPush(); sbDrums(part)[sb.sel.b] = null; sbAfterChange(false);
+}
+function sbGrooveSheet() {
+  var all = dpGrooves(), names = [];
+  for (var k in all) if (all.hasOwnProperty(k)) names.push(k);
+  names.sort();
+  if (!names.length) { alert('No saved Beat Builder grooves yet.'); return; }
+  var items = [];
+  names.forEach(function (nm) {
+    var g = all[nm];
+    items.push({ label: esc(nm) + ' <span style="color:var(--dim);font-size:11px">' + (g.bars || 1) + ' bar' + ((g.bars || 1) === 1 ? '' : 's') + ' &middot; ' + g.tsNum + '/' + g.tsDen + '</span>', fn: function () { sbImportGroove(nm); } });
+  });
+  sbSheet('Insert groove from this bar on', items);
+}
+function sbImportGroove(name) {
+  var part = sbSelPart(); if (!part) return;
+  var g = dpGrooves()[name]; if (!g) return;
+  g = dpMigrateV1(JSON.parse(JSON.stringify(g)));
+  if (g.tsNum !== sb.cur.tsNum || g.tsDen !== sb.cur.tsDen) { alert('The groove is in ' + g.tsNum + '/' + g.tsDen + ', the song in ' + sb.cur.tsNum + '/' + sb.cur.tsDen + '.'); return; }
+  var tpbar = sbTpBar(), dr = sbDrums(part), bars = g.bars || 1, b0 = sb.sel.b, cut = false;
+  sbPush();
+  for (var k = 0; k < bars; k++) {
+    if (b0 + k >= dr.length) { cut = true; break; }
+    var d = {};
+    for (var id in (g.cells || {})) {
+      if (!g.cells.hasOwnProperty(id) || (g.mutes && g.mutes[id])) continue;
+      var m = g.cells[id];
+      for (var t in m) {
+        if (!m.hasOwnProperty(t) || !(m[t] > 0)) continue;
+        var tt = parseInt(t, 10);
+        if (tt >= k * tpbar && tt < (k + 1) * tpbar) { if (!d[id]) d[id] = {}; d[id][tt - k * tpbar] = m[t]; }
+      }
+    }
+    dr[b0 + k] = sbDrumsEmpty(d) ? null : d;
+  }
+  if (cut) sbHint('Groove cut off at the end of the part.');
+  sbAfterChange(false);
+}
+// ── mixer ──
+function sbApplyMix() {
+  if (!sb.audioBus) return;
+  var t = audioCtx.currentTime;
+  sb.audioBus.gain.setTargetAtTime(sb.audioOn ? sb.audioVol : 0, t, 0.015);
+  sb.drumBus.gain.setTargetAtTime(sb.drumsOn ? sb.drumsVol : 0, t, 0.015);
+}
+function sbToggleTrack(w) {
+  if (w === 'audio') { sb.audioOn = !sb.audioOn; sbPref('sb_audio_on', sb.audioOn ? '1' : '0'); }
+  else { sb.drumsOn = !sb.drumsOn; sbPref('sb_drums_on', sb.drumsOn ? '1' : '0'); }
+  sbApplyMix(); sbRender(); if (sb.playing) sbScheduleBg();
+}
+function sbSetVol(w, v) {
+  v = parseFloat(v);
+  if (w === 'audio') { sb.audioVol = v; sbPref('sb_audio_vol', v); } else { sb.drumsVol = v; sbPref('sb_drums_vol', v); }
+  sbApplyMix(); if (sb.playing) sbScheduleBg();
+}
+function sbToggleCtrls() { sb.ctrlHidden = !sb.ctrlHidden; sbPref('sb_ctrl_hidden', sb.ctrlHidden ? '1' : '0'); sbRender(); }
+// ── zoom: bars per line (pinch, Ctrl+wheel, + / −) ──
+function sbSetPerLine(n) {
+  n = Math.max(1, Math.min(16, n));
+  if (n === sb.perLine) return;
+  sb.perLine = n; sbPref('sb_perline', n);
+  document.getElementById('sbZoomBtn').textContent = n + '/line';
+  sbRenderParts();
+}
+function sbZoomStep(d) { sbSetPerLine(sb.perLine - d); }
+function sbZoomReset() { sbSetPerLine(4); }
+var sbPinch = null, sbPinchEnd = 0, sbWheelAt = 0;
+function sbAttachBody() {
+  if (sb.bodyHooked) return;
+  sb.bodyHooked = true;
+  var body = document.getElementById('sbBody');
+  function dist(e) { var a = e.touches[0], b = e.touches[1]; return Math.max(10, Math.sqrt(Math.pow(a.clientX - b.clientX, 2) + Math.pow(a.clientY - b.clientY, 2))); }
+  body.addEventListener('touchstart', function (e) {
+    sbTouchAt = Date.now();
+    if (e.touches.length === 2) sbPinch = { d0: dist(e), pl0: sb.perLine };
+  }, { passive: true });
+  body.addEventListener('touchmove', function (e) {
+    if (!sbPinch || e.touches.length !== 2) return;
+    e.preventDefault();
+    sbSetPerLine(Math.round(sbPinch.pl0 * sbPinch.d0 / dist(e)));
+  }, { passive: false });
+  body.addEventListener('touchend', function (e) { if (sbPinch && e.touches.length < 2) { sbPinch = null; sbPinchEnd = Date.now(); } }, { passive: true });
+  body.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+  body.addEventListener('wheel', function (e) {
+    sbTouchAt = Date.now();
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    if (Date.now() - sbWheelAt < 120) return;
+    sbWheelAt = Date.now();
+    sbZoomStep(e.deltaY < 0 ? 1 : -1);
+  }, { passive: false });
+  body.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t || t.tagName !== 'CANVAS' || !t.parentNode || !t.parentNode.classList.contains('sb-line')) return;
+    if (Date.now() - sbPinchEnd < 400) return;
+    var el = t.parentNode, geo = el._geo; if (!geo) return;
+    var x = e.clientX - t.getBoundingClientRect().left, i = Math.floor((x - SB_CLEF) / geo.barW);
+    var n = +el.getAttribute('data-n');
+    if (i < 0) i = 0; if (i >= n) return;
+    sbBarTap(+el.getAttribute('data-p'), +el.getAttribute('data-b0') + i);
+  });
+  var rt = 0;
+  window.addEventListener('resize', function () {
+    if (!document.getElementById('songBuilder').classList.contains('show')) return;
+    clearTimeout(rt); rt = setTimeout(sbPaintAll, 150);
+  });
+}
+// ── notation PNG export (4 bars per line, white paper) ──
+function sbExportPng() {
+  var v = sbVer(), W = 1000, PAD = 20, perLine = 4, geo = sbLineGeom(W - 2 * PAD, perLine), H = 64, p, b0;
+  for (p = 0; p < v.parts.length; p++) H += 26 + Math.ceil(v.parts[p].cells.length / perLine) * (geo.H + 10);
+  H += 10;
+  var dpr = Math.max(0.5, Math.min(2, Math.sqrt(15e6 / (W * H))));
+  if (H * dpr > 32000) dpr = 32000 / H;
+  var cv = document.createElement('canvas');
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  var g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var font = '-apple-system,Helvetica,Arial,sans-serif';
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#111'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  g.font = 'bold 20px ' + font; g.fillText(sb.cur.name, PAD, 30);
+  g.font = '12px ' + font; g.fillStyle = '#555';
+  g.fillText(v.name + ' · ' + sbBpm() + ' BPM · ' + sb.cur.tsNum + '/' + sb.cur.tsDen, PAD, 50);
+  var y = 64, gIdx = 0;
+  for (p = 0; p < v.parts.length; p++) {
+    var part = v.parts[p];
+    g.fillStyle = '#111'; g.font = 'bold 14px ' + font; g.fillText(part.name, PAD, y + 18); y += 26;
+    for (b0 = 0; b0 < part.cells.length; b0 += perLine) {
+      var n = Math.min(perLine, part.cells.length - b0);
+      sbPaintLine(g, PAD, y, W - 2 * PAD, part, b0, n, gIdx + b0, perLine, -1);
+      y += geo.H + 10;
+    }
+    gIdx += part.cells.length;
+  }
+  var name = (sb.cur.name + ' - ' + v.name).replace(/[\\\/:*?"<>|]+/g, '_') + '.png';
+  if (cv.toBlob) { cv.toBlob(function (bl) { if (bl) sbDownload(bl, name, 'image/png'); }, 'image/png'); return; }
+  try {
+    var du = cv.toDataURL('image/png'), bin = atob(du.split(',')[1]), arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    sbDownload(new Blob([arr], { type: 'image/png' }), name, 'image/png');
+  } catch (e) { alert('PNG export failed: ' + e.message); }
+}
+
 renderLibrary();
-log('Boot OK v55 (Song Builder: arrange songs from bar-exact snippets of recordings, versions, click, background play, WAV export; Grid/Staff hide toggles; Follow scrolls the music: rows view centres the bar being played, long view moves bars right-to-left; Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
+log('Boot OK v56 (Song Builder: drum notation part with bar editor, audio/drums mixer, Loop-Function grid editing in the cutter, free loops; Song Builder: arrange songs from bar-exact snippets of recordings, versions, click, background play, WAV export; Grid/Staff hide toggles; Follow scrolls the music: rows view centres the bar being played, long view moves bars right-to-left; Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
 </script>
 </body>
 </html>
