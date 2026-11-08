@@ -295,6 +295,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .dp-fdot.v1{width:4px;height:4px;margin:-2px 0 0 -2px;opacity:.5}
 .dp-fdot.v3{background:var(--ora)}
 .dm-ruler-label{position:sticky;left:0;z-index:2;width:96px;flex-shrink:0;background:var(--sur2);border-right:1px solid var(--brd)}
+.dm-rcell.gov{background:rgba(191,90,242,.22)}
 .dm-rcell{width:var(--dpcw,26px);flex-shrink:0;font-size:9px;color:var(--dim);display:flex;align-items:center;padding-left:2px;font-variant-numeric:tabular-nums;overflow:hidden}
 .dp-sel-row{height:20px}
 .dp-sel-row .dm-row-label{background:var(--sur2)}
@@ -2896,6 +2897,7 @@ var db2 = {
   feel: 'auto',          // 'auto' | 'simple' | 'compound' — what one BPM beat is (see dpIsCompound)
   bars: 1,
   cpb: 4,                // grid cells per beat (− + walk DP_LADDER); 4 cells/quarter-beat = 16ths
+  barCpb: {},            // v57: per-bar grid override, bar index -> cells per beat (tap the bar in the ruler)
   swing: 50,             // 50 = straight … ~66 = triplet shuffle … 75 = hard
   loop: { on: false, inTick: 0, outTick: 0 },  // loop a bar/beat range (ticks); outTick exclusive
   tapTimes: [],          // tap-tempo timestamps
@@ -2949,7 +2951,47 @@ function dpTicksPerBar() { return db2.tsNum * dpNoteTicks(db2.tsDen); }
 function dpBeatsPerBar() { return Math.max(1, Math.round(dpTicksPerBar() / dpTicksPerBeat())); }
 function dpPatternTicks() { return db2.bars * dpTicksPerBar(); }
 function dpStepTicks() { return Math.max(1, Math.round(dpTicksPerBeat() / db2.cpb)); }  // ticks per grid cell
-function dpTotalSteps() { return Math.round(dpPatternTicks() / dpStepTicks()); }
+// v57 per-bar grid: dpStepTicks() stays the DEFAULT grid (db2.cpb) and the pixel scale
+// (x = 96 + tick / dpStepTicks() * dpCellW(), every bar equally wide); a bar with its own
+// grid has more/fewer, wider/narrower cells. Grid steps are listed in a table, so
+// step index <-> tick is a lookup (dpStepTick / dpTickStep), not a multiplication.
+function dpBarCpb(b) {
+  var c = db2.barCpb && db2.barCpb[b];
+  return (c && dpLadder().indexOf(c) >= 0) ? c : db2.cpb;
+}
+function dpBarStepTicks(b) { return Math.max(1, Math.round(dpTicksPerBeat() / dpBarCpb(b))); }
+var dpStepsCache = null;
+function dpSteps() {
+  var key = db2.bars + '|' + db2.tsNum + '|' + db2.tsDen + '|' + db2.feel + '|' + db2.cpb + '|' + JSON.stringify(db2.barCpb || {});
+  if (dpStepsCache && dpStepsCache.key === key) return dpStepsCache;
+  var tpbar = dpTicksPerBar(), ticks = [], barStart = [];
+  for (var b = 0; b < db2.bars; b++) {
+    var st = dpBarStepTicks(b), n = Math.max(1, Math.round(tpbar / st));
+    barStart.push(ticks.length);
+    for (var i = 0; i < n; i++) ticks.push(b * tpbar + i * st);
+  }
+  barStart.push(ticks.length);
+  dpStepsCache = { key: key, ticks: ticks, barStart: barStart };
+  return dpStepsCache;
+}
+function dpTotalSteps() { return dpSteps().ticks.length; }
+function dpStepTick(s) { var S = dpSteps(); return s >= S.ticks.length ? dpPatternTicks() : S.ticks[Math.max(0, s)]; }
+// step whose cell contains tick t ('round' = nearest cell boundary, may return the total)
+function dpTickStep(t, round) {
+  var S = dpSteps(), tpbar = dpTicksPerBar(), b = Math.floor(t / tpbar);
+  if (b < 0) return 0;
+  if (b >= db2.bars) return S.ticks.length;
+  var st = dpBarStepTicks(b), n = S.barStart[b + 1] - S.barStart[b], r = (t - b * tpbar) / st;
+  var i = round ? Math.round(r) : Math.floor(r);
+  return Math.min(S.barStart[b] + Math.min(i, n), S.ticks.length);
+}
+function dpSnapTick(t) { return dpStepTick(dpTickStep(t, true)); }
+function dpStepBar(s) { return Math.floor(dpStepTick(s) / dpTicksPerBar()); }
+// inline width for cells of a bar whose grid differs from the default ('' = default width)
+function dpCellWStyle(b) {
+  var r = dpBarStepTicks(b) / dpStepTicks();
+  return r === 1 ? '' : ' style="width:calc(var(--dpcw) * ' + r + ')"';
+}
 function dpTickToSec(t) { return t / dpTicksPerBeat() * 60 / db2.bpm; }
 function dpStepDur() { return dpTickToSec(dpStepTicks()); }
 // Name a duration in ticks: "1/8", "1/16T" (triplet), "1/4." (dotted). Used by the
@@ -2968,11 +3010,11 @@ function dpLoopActive() { return db2.loop.on && db2.loop.outTick > db2.loop.inTi
 function dpLoopDur() { return dpLoopActive() ? dpTickToSec(db2.loop.outTick - db2.loop.inTick) : dpTickToSec(dpPatternTicks()); }
 // bar / beat / cell (all 1-based) <-> tick.  cell = grid step inside the beat.
 function dpBarBeatToTick(bar, beat, cell) {
-  return (bar - 1) * dpTicksPerBar() + (beat - 1) * dpTicksPerBeat() + ((cell || 1) - 1) * dpStepTicks();
+  return (bar - 1) * dpTicksPerBar() + (beat - 1) * dpTicksPerBeat() + ((cell || 1) - 1) * dpBarStepTicks(bar - 1);
 }
 function dpTickToBarBeat(tick) {
-  var tpbar = dpTicksPerBar(), tpb = dpTicksPerBeat(), st = dpStepTicks();
-  var bar = Math.floor(tick / tpbar), rest = tick - bar * tpbar;
+  var tpbar = dpTicksPerBar(), tpb = dpTicksPerBeat();
+  var bar = Math.floor(tick / tpbar), rest = tick - bar * tpbar, st = dpBarStepTicks(bar);
   var beat = Math.floor(rest / tpb);
   var cell = Math.floor((rest - beat * tpb) / st);
   return { bar: bar + 1, beat: beat + 1, cell: cell + 1 };
@@ -3525,10 +3567,10 @@ function dpToggleLoop() {
 // Loop ranges work at GRID-CELL resolution, so a loop can be shorter than a beat
 // (e.g. two 16ths) — the minimum length is one cell of the current subdivision.
 function dpClampLoop() {
-  var p = dpPatternTicks(), st = dpStepTicks();
+  var p = dpPatternTicks();
   if (db2.loop.outTick <= 0 || db2.loop.outTick > p) db2.loop.outTick = p;
   if (db2.loop.inTick < 0) db2.loop.inTick = 0;
-  if (db2.loop.inTick >= db2.loop.outTick) db2.loop.inTick = Math.max(0, db2.loop.outTick - st);
+  if (db2.loop.inTick >= db2.loop.outTick) db2.loop.inTick = dpStepTick(Math.max(0, dpTickStep(db2.loop.outTick, true) - 1));
 }
 function dpLoopFull() {
   db2.loop.inTick = 0; db2.loop.outTick = dpPatternTicks();
@@ -3537,16 +3579,15 @@ function dpLoopFull() {
 // Loop exactly the region marked in the Select lane.
 function dpLoopFromSel() {
   if (db2.selEnd <= db2.selStart) { alert('Mark a region in the Select lane (top) first: tap a start cell, then an end cell.'); return; }
-  var st = dpStepTicks();
-  db2.loop.inTick = db2.selStart * st;
-  db2.loop.outTick = Math.max(db2.loop.inTick + st, db2.selEnd * st);
+  db2.loop.inTick = dpStepTick(db2.selStart);
+  db2.loop.outTick = Math.max(dpStepTick(db2.selStart + 1), dpStepTick(db2.selEnd));
   if (!db2.loop.on) { db2.loop.on = true; document.getElementById('dpLoopBtn').classList.add('on'); document.getElementById('dpLoopRow').style.display = 'flex'; }
   dpClampLoop(); dpSyncLoopInputs(); dpRender(); if (db2.playing) dpRestart();
 }
 function dpSyncLoopInputs() {
-  var st = dpStepTicks();
+  var sIn = dpTickStep(db2.loop.inTick, true), sOut = dpTickStep(db2.loop.outTick, true);
   var i = dpTickToBarBeat(db2.loop.inTick);
-  var o = dpTickToBarBeat(Math.max(db2.loop.inTick, db2.loop.outTick - st));  // show inclusive last cell
+  var o = dpTickToBarBeat(dpStepTick(Math.max(sIn, sOut - 1)));   // show inclusive last cell
   document.getElementById('dpLoopInBar').value = i.bar;
   document.getElementById('dpLoopInBeat').value = i.beat;
   document.getElementById('dpLoopInCell').value = i.cell;
@@ -3555,8 +3596,8 @@ function dpSyncLoopInputs() {
   document.getElementById('dpLoopOutCell').value = o.cell;
   var h = document.getElementById('dpLoopLenDisp');
   if (h) {
-    var nCells = Math.round((db2.loop.outTick - db2.loop.inTick) / st);
-    h.textContent = dpNoteName(Math.max(st, db2.loop.outTick - db2.loop.inTick))
+    var nCells = Math.max(1, sOut - sIn);
+    h.textContent = dpNoteName(Math.max(1, db2.loop.outTick - db2.loop.inTick))
                   + ' (' + nCells + ' cell' + (nCells === 1 ? '' : 's') + ')';
   }
 }
@@ -3565,11 +3606,11 @@ function dpLoopFromInputs() {
   var inBar = gv('dpLoopInBar'), inBeat = gv('dpLoopInBeat'), inCell = gv('dpLoopInCell');
   var outBar = gv('dpLoopOutBar'), outBeat = gv('dpLoopOutBeat'), outCell = gv('dpLoopOutCell');
   if (isNaN(inBar) || isNaN(inBeat) || isNaN(inCell) || isNaN(outBar) || isNaN(outBeat) || isNaN(outCell)) return;
-  var p = dpPatternTicks(), st = dpStepTicks();
-  var inTick = dpBarBeatToTick(inBar, inBeat, inCell);
-  var outTick = dpBarBeatToTick(outBar, outBeat, outCell) + st;   // out cell inclusive
-  inTick = Math.max(0, Math.min(Math.round(inTick / st) * st, p - st));
-  outTick = Math.max(inTick + st, Math.min(Math.round(outTick / st) * st, p));
+  var p = dpPatternTicks(), total = dpTotalSteps();
+  var sIn = Math.max(0, Math.min(dpTickStep(dpBarBeatToTick(inBar, inBeat, inCell), true), total - 1));
+  var sOut = dpTickStep(dpBarBeatToTick(outBar, outBeat, outCell), true) + 1;   // out cell inclusive
+  sOut = Math.max(sIn + 1, Math.min(sOut, total));
+  var inTick = dpStepTick(sIn), outTick = Math.min(p, dpStepTick(sOut));
   db2.loop.inTick = inTick; db2.loop.outTick = outTick;
   dpSyncLoopInputs(); dpRender(); if (db2.playing) dpRestart();
 }
@@ -3586,9 +3627,9 @@ function dpHandleDrag(el, which) {
     function move(ev) {
       var rect = wrap.getBoundingClientRect();
       var x = ev.clientX - rect.left + wrap.scrollLeft - 96;
-      var cellTick = Math.round(x / cw) * stepTicks;                 // snap to grid cell (sub-beat loops)
-      if (which === 'in') db2.loop.inTick = Math.max(0, Math.min(cellTick, db2.loop.outTick - stepTicks));
-      else db2.loop.outTick = Math.max(db2.loop.inTick + stepTicks, Math.min(cellTick, p));
+      var cs = dpTickStep(Math.max(0, x / cw * stepTicks), true);    // snap to a grid cell of that bar (sub-beat loops)
+      if (which === 'in') db2.loop.inTick = dpStepTick(Math.max(0, Math.min(cs, dpTickStep(db2.loop.outTick, true) - 1)));
+      else db2.loop.outTick = Math.min(p, dpStepTick(Math.max(dpTickStep(db2.loop.inTick, true) + 1, cs)));
       el.style.left = (96 + ((which === 'in' ? db2.loop.inTick : db2.loop.outTick) / stepTicks) * cw) + 'px';
       dpSyncLoopInputs();
     }
@@ -3606,7 +3647,7 @@ function dpGrooves() { try { return JSON.parse(localStorage.getItem('drumpluspat
 function dpSerialize() {
   var ui = [];
   for (var i = 0; i < db2.userInsts.length; i++) ui.push({ id: db2.userInsts[i].id, name: db2.userInsts[i].name });
-  return { v: 2, bpm: db2.bpm, tsNum: db2.tsNum, tsDen: db2.tsDen, feel: db2.feel, bars: db2.bars, cpb: db2.cpb, swing: db2.swing,
+  return { v: 2, bpm: db2.bpm, tsNum: db2.tsNum, tsDen: db2.tsDen, feel: db2.feel, bars: db2.bars, cpb: db2.cpb, barCpb: db2.barCpb, swing: db2.swing,
     metro: { on: db2.metro.on, sub: db2.metro.sub, shift: db2.metro.shift || 0 },
     loop: { on: db2.loop.on, inTick: db2.loop.inTick, outTick: db2.loop.outTick },
     cells: db2.cells, mutes: db2.mutes, hidden: db2.hidden, userInsts: ui };
@@ -3684,9 +3725,12 @@ function dpUpdateSelUI() {
 }
 function dpSelCopy() {
   if (db2.selEnd <= db2.selStart) { alert('In the Select lane (top), tap a start cell then an end cell to choose a region.'); return; }
-  var st = dpStepTicks();
-  var startTick = db2.selStart * st, endTick = db2.selEnd * st;
+  var startTick = dpStepTick(db2.selStart), endTick = dpStepTick(db2.selEnd), tpbarC = dpTicksPerBar();
   var clip = { span: endTick - startTick, data: [] };
+  if (startTick % tpbarC === 0 && clip.span % tpbarC === 0) {     // whole bars: carry their grids along
+    clip.grids = [];
+    for (var gb = startTick / tpbarC; gb < endTick / tpbarC; gb++) clip.grids.push(db2.barCpb[gb] || 0);
+  }
   var INS = dpInsts();
   for (var i = 0; i < INS.length; i++) {
     var id = INS[i].id, m = db2.cells[id]; if (!m) continue;
@@ -3699,8 +3743,7 @@ function dpSelCopy() {
 function dpSelPaste() {
   if (!db2.barClip) { alert('Copy a region first (Select a range, then Copy).'); return; }
   dpPushHistory();
-  var st = dpStepTicks();
-  var dst = db2.selStart * st;                  // paste anchor = selection start (tap one cell to move it)
+  var dst = dpStepTick(db2.selStart);           // paste anchor = selection start (tap one cell to move it)
   var span = db2.barClip.span, tpbar = dpTicksPerBar();
   var needBars = Math.ceil((dst + span) / tpbar);
   if (needBars > db2.bars) { db2.bars = Math.min(DP_MAX_BARS, needBars); document.getElementById('dpBarsDisp').textContent = db2.bars; }
@@ -3716,16 +3759,23 @@ function dpSelPaste() {
     var it = db2.barClip.data[c], nt = dst + it.off;
     if (nt >= 0 && nt < limit) { if (!db2.cells[it.id]) db2.cells[it.id] = {}; db2.cells[it.id][nt] = it.vel; }
   }
+  if (db2.barClip.grids && dst % tpbar === 0) {
+    for (var gi = 0; gi < db2.barClip.grids.length; gi++) {
+      var tb = dst / tpbar + gi; if (tb >= db2.bars) break;
+      if (db2.barClip.grids[gi]) db2.barCpb[tb] = db2.barClip.grids[gi]; else delete db2.barCpb[tb];
+    }
+  }
   if (db2.playing) dpRebuildEvents();
   dpRender();
   dpFlashSave('Pasted');
 }
 // ── Undo / redo (grid content) ──
-function dpStateSnap() { return JSON.stringify({ cells: db2.cells, mutes: db2.mutes, hidden: db2.hidden, bars: db2.bars }); }
+function dpStateSnap() { return JSON.stringify({ cells: db2.cells, mutes: db2.mutes, hidden: db2.hidden, bars: db2.bars, barCpb: db2.barCpb }); }
 function dpStateRestore(s) {
   var o = JSON.parse(s);
   db2.cells = o.cells || {}; db2.mutes = o.mutes || {}; db2.hidden = o.hidden || {};
   if (o.bars) db2.bars = o.bars;
+  db2.barCpb = o.barCpb || {};
 }
 function dpPushHistory() {
   db2.history.push(dpStateSnap());
@@ -3802,7 +3852,7 @@ function dpNewEmpty() {
   if (!confirm('Clear all hits and start an empty grid? (Tempo, time signature and other settings are kept.)')) return;
   dpPushHistory();
   dpStop();
-  db2.cells = {}; dpEnsureCells();
+  db2.cells = {}; db2.barCpb = {}; dpEnsureCells();
   db2.currentGroove = null; dpUpdateTitle();
   dpLibClose();
   dpStaffResetHW();
@@ -3846,6 +3896,7 @@ function dpLoadGroove(name) {
   db2.bpm = g.bpm; db2.tsNum = g.tsNum; db2.tsDen = g.tsDen; db2.bars = g.bars;
   db2.feel = g.feel || 'auto';
   db2.cpb = g.cpb || 4; db2.swing = g.swing || 50;
+  db2.barCpb = g.barCpb || {};
   db2.metro = g.metro || { on: false, sub: 'beat' };
   db2.loop = g.loop || { on: false, inTick: 0, outTick: 0 };
   db2.cells = g.cells || {}; db2.mutes = g.mutes || {}; db2.hidden = g.hidden || {};
@@ -3888,16 +3939,49 @@ function dpCellW() {
 function dpRenderRuler(total, stepTicks, ticksPerBar, s0, s1) {
   if (s0 === undefined) { s0 = 0; s1 = total; }
   var tpb = dpTicksPerBeat();
-  var html = '<div class="dm-ruler"><div class="dm-ruler-label"></div><div class="dm-steps">';
+  var html = '<div class="dm-ruler" onclick="dpRulerTap(event)"><div class="dm-ruler-label"></div><div class="dm-steps">';
   for (var s = s0; s < s1; s++) {
-    var tick = s * stepTicks, tickInBar = tick % ticksPerBar;
+    var tick = dpStepTick(s), tickInBar = tick % ticksPerBar, b = Math.floor(tick / ticksPerBar);
     var cls = 'dm-rcell', label = '';
-    if (tickInBar === 0) { cls += ' bar'; label = '<b>' + (Math.floor(tick / ticksPerBar) + 1) + '</b>'; }
+    if (tickInBar === 0) { cls += ' bar'; label = '<b>' + (b + 1) + '</b>'; }
     else { var lc = dpLineClass(tickInBar); cls += lc; if (lc === ' q') label = String(tickInBar / tpb + 1); }
+    if (db2.barCpb[b] && dpBarCpb(b) !== db2.cpb) cls += ' gov';
     if (dpLoopActive() && tick >= db2.loop.inTick && tick < db2.loop.outTick) cls += ' inloop';
-    html += '<div class="' + cls + '">' + label + '</div>';
+    html += '<div class="' + cls + '" data-step="' + s + '"' + dpCellWStyle(b) + '>' + label + '</div>';
   }
   return html + '</div></div>';
+}
+// v57: tap the ruler of a bar to give that bar its own grid
+function dpRulerTap(e) {
+  var t = e.target; while (t && !(t.getAttribute && t.getAttribute('data-step') !== null)) t = t.parentNode;
+  if (!t) return;
+  dpBarGridMenu(dpStepBar(parseInt(t.getAttribute('data-step'), 10)));
+}
+function dpCpbName(tpb, c, comp) {   // e.g. 4 -> "1/16", 3 -> "1/8T", 12 -> "1/16 + 1/8T (Both)"
+  if (!comp && c % 12 === 0) return dpNoteName(Math.round(tpb / (c / 3))) + ' + ' + dpNoteName(Math.round(tpb / (c / 4))) + ' (Both)';
+  return dpNoteName(Math.max(1, Math.round(tpb / c)));
+}
+function dpCpbLabel(c) { return dpCpbName(dpTicksPerBeat(), c, dpIsCompound()); }
+function dpBarGridMenu(b) {
+  var cur = dpBarCpb(b), items = [];
+  var L = dpLadder().filter(function (c) { return c <= 16 || c === cur || c === db2.cpb; });
+  L.forEach(function (c) {
+    items.push({ label: dpCpbLabel(c) + (c === db2.cpb ? ' <span style="color:var(--dim);font-size:11px">(default)</span>' : ''),
+                 cls: c === cur ? 'cur' : '', fn: function () { dpSetBarCpb(b, c); } });
+  });
+  items.push({ label: 'Use this grid for all bars from here on', fn: function () {
+    dpPushHistory(); for (var k = b + 1; k < db2.bars; k++) { if (cur === db2.cpb) delete db2.barCpb[k]; else db2.barCpb[k] = cur; } dpAfterGridChange(); } });
+  sbSheet('Grid of bar ' + (b + 1), items);
+}
+function dpSetBarCpb(b, c) {
+  dpPushHistory();
+  if (c === db2.cpb) delete db2.barCpb[b]; else db2.barCpb[b] = c;
+  dpAfterGridChange();
+}
+function dpAfterGridChange() {
+  dpClampLoop(); dpSyncLoopInputs();
+  if (dpUi.view === 'rows') dpUi.fitW = 0;
+  dpRender();
 }
 // Select lane (copy/paste) for grid steps s0..s1-1: tap to set start, tap again to set end.
 function dpSelLaneHtml(s0, s1) {
@@ -3906,7 +3990,7 @@ function dpSelLaneHtml(s0, s1) {
     var scl = 'dp-sel-cell';
     if (db2.selEnd > db2.selStart && sc >= db2.selStart && sc < db2.selEnd) scl += ' sel';
     if (sc === db2.selStart && db2.selEnd > db2.selStart) scl += ' selstart';
-    html += '<div class="' + scl + '" data-step="' + sc + '" onclick="dpSelTap(this)"></div>';
+    html += '<div class="' + scl + '" data-step="' + sc + '"' + dpCellWStyle(dpStepBar(sc)) + ' onclick="dpSelTap(this)"></div>';
   }
   return html + '</div></div>';
 }
@@ -3925,14 +4009,14 @@ function dpInstRowsHtml(s0, s1) {
           + '</div>';
     html += '<div class="dm-steps">';
     for (var s = s0; s < s1; s++) {
-      var tick = s * stepTicks;
+      var tick = dpStepTick(s);
       var tickInBar = tick % ticksPerBar;
       var cls = 'dm-cell';
       if (tickInBar === 0 && s !== 0) cls += ' bar';
       else cls += dpLineClass(tickInBar);
       cls += dpVelClass(m[tick] || 0);
       if (dpLoopActive() && tick >= db2.loop.inTick && tick < db2.loop.outTick) cls += ' inloop';
-      html += '<div class="' + cls + '" data-inst="' + inst.id + '" data-step="' + s + '" onclick="dpCellTap(this)"></div>';
+      html += '<div class="' + cls + '" data-inst="' + inst.id + '" data-step="' + s + '"' + dpCellWStyle(Math.floor(tick / ticksPerBar)) + ' onclick="dpCellTap(this)"></div>';
     }
     html += '</div></div>';
   }
@@ -3967,17 +4051,17 @@ function dpRender() {
 // kept internally; flag the nearest cell so the user knows there is a hidden hit.
 function dpMarkOffGrid() {
   var grid = document.getElementById('dpGrid');
-  var stepTicks = dpStepTicks();
-  var ptot = dpPatternTicks();
+  var ptot = dpPatternTicks(), tpbar = dpTicksPerBar(), total = dpTotalSteps();
   var INS = dpInsts();
   for (var i = 0; i < INS.length; i++) {
     var id = INS[i].id, m = db2.cells[id];
     if (!m) continue;
     for (var k in m) {
       if (!m.hasOwnProperty(k)) continue;
-      var t = parseInt(k, 10);
-      if (t >= ptot || t % stepTicks === 0) continue;
-      var ns = Math.min(dpTotalSteps() - 1, Math.round(t / stepTicks));
+      var t = parseInt(k, 10), b = Math.floor(t / tpbar);
+      if (t >= ptot || (t - b * tpbar) % dpBarStepTicks(b) === 0) continue;
+      var ns = Math.min(total - 1, dpTickStep(t, true));
+      if (dpStepBar(ns) !== b) ns = Math.max(0, ns - 1);   // stay inside the hit's own bar
       var cell = grid.querySelector('.dm-cell[data-inst="' + id + '"][data-step="' + ns + '"]');
       if (cell) cell.classList.add('offgrid');
     }
@@ -3988,7 +4072,7 @@ function dpCellTap(el) {
   if (Date.now() - dpPinchEndAt < 400) return;          // fingers lifting after a pinch are not a tap
   dpPushHistory();
   var id = el.getAttribute('data-inst');
-  var tick = parseInt(el.getAttribute('data-step'), 10) * dpStepTicks();
+  var tick = dpStepTick(parseInt(el.getAttribute('data-step'), 10));
   var m = db2.cells[id];
   var cur = m[tick] || 0;
   var next;
@@ -4024,7 +4108,7 @@ function dpAttachGridPress() {
 }
 function dpDeleteCell(cell) {
   var id = cell.getAttribute('data-inst');
-  var tick = parseInt(cell.getAttribute('data-step'), 10) * dpStepTicks();
+  var tick = dpStepTick(parseInt(cell.getAttribute('data-step'), 10));
   var m = db2.cells[id];
   if (m && m[tick]) {
     dpPushHistory();
@@ -4957,7 +5041,7 @@ function dpStaffBarPaint(cv, G, b) {
   dpStaffLines(g, G, 0, Wd + 1);
   var beats = G.model[b] || [];
   for (var be = 0; be < beats.length; be++) {
-    dpNotesBeat(g, beats[be], b, 0.5 * G.cw / G.K, Wd, G.tpbar, G.tpb, G.top, G.bottomY, G.LG);
+    dpNotesBeat(g, beats[be], b, 0.5 * G.cw * (dpBarStepTicks(b) / G.st) / G.K, Wd, G.tpbar, G.tpb, G.top, G.bottomY, G.LG);
   }
   g.lineWidth = 1;
   if (b === db2.bars - 1) {                         // final double bar line
@@ -5005,18 +5089,18 @@ function dpRowsFitW() {
   return Math.max(4, (w - 96 - 4) / cells);
 }
 function dpFlatDotsHtml(s0, s1) {
-  var st = dpStepTicks(), INS = dpInsts(), out = '';
+  var st = dpStepTicks(), INS = dpInsts(), out = '', t0 = dpStepTick(s0);
   for (var s = s0; s < s1; s++) {
-    var t = s * st, v = 0;
+    var t = dpStepTick(s), v = 0, w = (dpStepTick(s + 1) - t) / st;
     for (var i = 0; i < INS.length; i++) { var m = db2.cells[INS[i].id]; if (m && m[t] > v) v = m[t]; }
-    if (v) out += '<i class="dp-fdot v' + v + '" style="left:calc(var(--dpcw) * ' + (s - s0 + 0.5) + ')"></i>';
+    if (v) out += '<i class="dp-fdot v' + v + '" style="left:calc(var(--dpcw) * ' + ((t - t0) / st + w / 2) + ')"></i>';
   }
   return out;
 }
 function dpFlatBarHtml(b, s0, s1) {
   return '<div class="dp-flat" data-bar="' + b + '" onclick="dpOpenBar(' + b + ')">'
        + '<div class="dp-flat-lbl">Bar ' + (b + 1) + '</div>'
-       + '<div class="dp-flat-track" style="width:calc(var(--dpcw) * ' + (s1 - s0) + ')">'
+       + '<div class="dp-flat-track" style="width:calc(var(--dpcw) * ' + (dpTicksPerBar() / dpStepTicks()) + ')">'
        + '<span class="dp-fdots">' + dpFlatDotsHtml(s0, s1) + '</span><div class="dp-fph"></div></div></div>';
 }
 // After a tap only the open bar changes, but Undo/Paste re-render anyway; this keeps
@@ -5024,11 +5108,11 @@ function dpFlatBarHtml(b, s0, s1) {
 function dpFlatRefresh() {
   if (dpUi.view !== 'rows') return;
   var grid = document.getElementById('dpGrid'); if (!grid) return;
-  var n = Math.round(dpTicksPerBar() / dpStepTicks());
+  var S = dpSteps();
   var fl = grid.querySelectorAll('.dp-flat');
   for (var i = 0; i < fl.length; i++) {
     var b = parseInt(fl[i].getAttribute('data-bar'), 10), d = fl[i].querySelector('.dp-fdots');
-    if (d) d.innerHTML = dpFlatDotsHtml(b * n, b * n + n);
+    if (d) d.innerHTML = dpFlatDotsHtml(S.barStart[b], S.barStart[b + 1]);
   }
 }
 function dpRenderRows() {
@@ -5041,7 +5125,7 @@ function dpRenderRows() {
                wt: wrap.scrollTop, wl: wrap.scrollLeft };
   if (wasStack) keep.l = wrap.scrollLeft;
   dpUi.fitW = dpRowsFitW();
-  var st = dpStepTicks(), tpbar = dpTicksPerBar(), n = Math.round(tpbar / st), bars = db2.bars, b;
+  var st = dpStepTicks(), tpbar = dpTicksPerBar(), bars = db2.bars, b, SS = dpSteps();
   if (dpUi.openBar >= bars) dpUi.openBar = bars - 1;
   if (dpUi.openBar < 0) dpUi.openBar = 0;
   var html = '';
@@ -5056,7 +5140,7 @@ function dpRenderRows() {
   }
   if (dpUi.gridOn) html += '<div class="dp-pane-grid" id="dpPaneGrid"><div class="dp-pane-in">';
   for (b = 0; dpUi.gridOn && b < bars; b++) {
-    var s0 = b * n, s1 = s0 + n;
+    var s0 = SS.barStart[b], s1 = SS.barStart[b + 1];
     if (b === dpUi.openBar) {
       html += '<div class="dp-gopen" id="dpOpenBarEl"><div class="dp-gridhead">' + dpRenderRuler(dpTotalSteps(), st, tpbar, s0, s1) + '</div>'
             + dpSelLaneHtml(s0, s1) + dpInstRowsHtml(s0, s1) + '</div>';
@@ -6047,11 +6131,7 @@ function dpAnim() {
     var posTick = lo + ((elapsed % ld) / ld) * (hi - lo);
     dpFollow(posTick);                                   // Follow: scroll the music along (v54)
     dpPhUpdate(posTick);
-    var loStep = dpLoopActive() ? Math.round(db2.loop.inTick / stepTicks) : 0;
-    var rangeSteps = dpLoopActive() ? Math.round((db2.loop.outTick - db2.loop.inTick) / stepTicks) : dpTotalSteps();
-    if (rangeSteps < 1) rangeSteps = 1;
-    var posStep = Math.floor((elapsed % dpLoopDur()) / dpStepDur());
-    var vs = loStep + (posStep % rangeSteps);
+    var vs = Math.min(dpTotalSteps() - 1, dpTickStep(posTick, false));   // v57: lookup (bars may differ in grid)
     if (vs !== db2.lastVisualStep) {
       var dpGridEl = document.getElementById('dpGrid');
       if (dpGridEl) {
@@ -6277,12 +6357,23 @@ function sbLadder() {
   for (var i = 0; i < DP_LADDER.length; i++) if (tpb % DP_LADDER[i] === 0 && DP_LADDER[i] <= 16) out.push(DP_LADDER[i]);
   return out.length ? out : [1];
 }
-function sbFixCpb() {
-  var L = sbLadder(), want = sb.cpb || (sbIsComp() ? 6 : 4), best = L[0];
-  for (var i = 0; i < L.length; i++) if (Math.abs(L[i] - want) < Math.abs(best - want)) best = L[i];
-  sb.cpb = best;
+function sbDefCpb() { return sbIsComp() ? 6 : 4; }
+// grid resolution of one bar (v57: per bar, part.grids[] parallel to cells; null = 1/16)
+function sbGrids(part) {
+  if (!part.grids) part.grids = [];
+  while (part.grids.length < part.cells.length) part.grids.push(null);
+  if (part.grids.length > part.cells.length) part.grids.length = part.cells.length;
+  return part.grids;
 }
-function sbStepTicks() { return Math.max(1, Math.round(sbTpBeat() / sb.cpb)); }
+function sbBarCpb(part, b) {
+  var c = part ? sbGrids(part)[b] : null, L = sbLadder();
+  if (c && L.indexOf(c) >= 0) return c;
+  var want = c || sbDefCpb(), best = L[0];
+  for (var i = 0; i < L.length; i++) if (Math.abs(L[i] - want) < Math.abs(best - want)) best = L[i];
+  return best;
+}
+function sbCpbLabel(c) { return dpCpbName(sbTpBeat(), c, sbIsComp()); }
+function sbStepTicks(part, b) { return Math.max(1, Math.round(sbTpBeat() / sbBarCpb(part, b))); }
 function sbRange(flat) {
   if (sb.partId) {
     for (var i = 0; i < flat.length; i++) if (flat[i].pid === sb.partId) {
@@ -6349,7 +6440,6 @@ function sbRenderBrush() {
 }
 function sbRenderParts() {
   var v = sbVer(), h = '', g = 0, selG = sbSelG();
-  sbFixCpb();
   if (!v.parts.length) {
     h += '<div class="sb-empty">No parts yet. Add parts below (e.g. Intro, Verse, Chorus).<br>Cut snippets from a recording with <b>+ Snippet</b>, then tap bars to place them.<br>Tap a bar (without a snippet picked) to write drum notes for it.</div>';
   }
@@ -6531,7 +6621,7 @@ function sbAddPart(i) {
     bars = isNaN(nb) ? 4 : Math.max(1, Math.min(128, nb));
   } else { name = SB_PART_PRESETS[i][0]; bars = SB_PART_PRESETS[i][1]; }
   sbPush();
-  sbVer().parts.push({ id: sbUid('p'), name: sbUniqueName(name.substring(0, 30)), cells: sbEmptyCells(bars), drums: sbEmptyCells(bars) });
+  sbVer().parts.push({ id: sbUid('p'), name: sbUniqueName(name.substring(0, 30)), cells: sbEmptyCells(bars), drums: sbEmptyCells(bars), grids: sbEmptyCells(bars) });
   sbAfterChange(false);
   setTimeout(function () { var b = document.getElementById('sbBody'); b.scrollTop = b.scrollHeight; }, 30);
 }
@@ -6544,8 +6634,8 @@ function sbPartBars(p, d) {
   var part = sbVer().parts[p], n = part.cells.length + d;
   if (n < 1 || n > 128) return;
   sbPush();
-  var dr = sbDrums(part);
-  if (d > 0) { part.cells.push(null); dr.push(null); } else { part.cells.pop(); dr.pop(); }
+  var dr = sbDrums(part), gr = sbGrids(part);
+  if (d > 0) { part.cells.push(null); dr.push(null); gr.push(gr.length ? gr[gr.length - 1] : null); } else { part.cells.pop(); dr.pop(); gr.pop(); }
   sbAfterChange(false);
 }
 function sbPartBarsPrompt(p) {
@@ -6554,7 +6644,7 @@ function sbPartBarsPrompt(p) {
   sbPush();
   while (part.cells.length < n) part.cells.push(null);
   part.cells.length = n;
-  sbDrums(part);
+  sbDrums(part); sbGrids(part);
   sbAfterChange(false);
 }
 function sbPartSheet(p) {
@@ -6563,7 +6653,7 @@ function sbPartSheet(p) {
     { label: '&#8635; Loop this part', fn: function () { sbPlayPart(p); } },
     { label: 'Duplicate part (adds a copy below)', fn: function () { sbPush(); var cp = JSON.parse(JSON.stringify(part)); cp.id = sbUid('p'); cp.name = sbUniqueName(part.name.replace(/ \d+$/, '')); v.parts.splice(p + 1, 0, cp); sbAfterChange(false); } },
     { label: 'Repeat content to fill the part', fn: function () { sbFillPart(p); } },
-    { label: 'Double length (repeat all bars once)', fn: function () { sbPush(); var dr = sbDrums(part); part.drums = dr.concat(JSON.parse(JSON.stringify(dr))).slice(0, 128); part.cells = part.cells.concat(JSON.parse(JSON.stringify(part.cells))).slice(0, 128); sbAfterChange(false); } },
+    { label: 'Double length (repeat all bars once)', fn: function () { sbPush(); var dr = sbDrums(part), gr = sbGrids(part); part.drums = dr.concat(JSON.parse(JSON.stringify(dr))).slice(0, 128); part.grids = gr.concat(gr).slice(0, 128); part.cells = part.cells.concat(JSON.parse(JSON.stringify(part.cells))).slice(0, 128); sbAfterChange(false); } },
     { label: 'Move up', fn: function () { if (p > 0) { sbPush(); v.parts.splice(p - 1, 0, v.parts.splice(p, 1)[0]); sbAfterChange(false); } } },
     { label: 'Move down', fn: function () { if (p < v.parts.length - 1) { sbPush(); v.parts.splice(p + 1, 0, v.parts.splice(p, 1)[0]); sbAfterChange(false); } } },
     { label: 'Remove all audio snippets', fn: function () { sbPush(); part.cells = sbEmptyCells(part.cells.length); sbAfterChange(false); } },
@@ -6576,12 +6666,13 @@ function sbFillPart(p) {
   var part = sbVer().parts[p], dr = sbDrums(part), last = -1, i;
   for (i = 0; i < part.cells.length; i++) if (part.cells[i] || !sbDrumsEmpty(dr[i])) last = i;
   if (last < 0) { alert('Place a snippet or drum notes in this part first.'); return; }
-  var pat = part.cells.slice(0, last + 1), patD = dr.slice(0, last + 1);
+  var gr = sbGrids(part), pat = part.cells.slice(0, last + 1), patD = dr.slice(0, last + 1), patG = gr.slice(0, last + 1);
   sbPush();
   for (i = last + 1; i < part.cells.length; i++) {
     var c = pat[i % pat.length], d = patD[i % patD.length];
     part.cells[i] = c ? { c: c.c, o: c.o } : null;
     dr[i] = d ? JSON.parse(JSON.stringify(d)) : null;
+    gr[i] = patG[i % patG.length];
   }
   sbAfterChange(false);
 }
@@ -6899,7 +6990,7 @@ function sbAnim() {
   }
   // step highlight in the open bar editor
   var grid = document.getElementById('sbDGrid'), step = -1;
-  if (grid && g === sbSelG()) step = Math.floor(frac * Math.round(sbTpBar() / sbStepTicks()));
+  if (grid && g === sbSelG()) step = Math.floor(frac * Math.round(sbTpBar() / sbStepTicks(sbSelPart(), sb.sel.b)));
   if (step !== sb.lastStep && grid) {
     var old = grid.querySelectorAll('.sb-dc.ph'); for (i = 0; i < old.length; i++) old[i].classList.remove('ph');
     if (step >= 0) { var cs = grid.querySelectorAll('.sb-dc[data-s="' + step + '"]'); for (i = 0; i < cs.length; i++) cs[i].classList.add('ph'); }
@@ -7621,14 +7712,15 @@ function sbBarPanelHtml(p, b) {
   var modes = [['cycle', 'Cycle'], ['normal', 'Normal'], ['accent', 'Accent'], ['ghost', 'Ghost']];
   h += '<div class="sb-row"><span class="sb-lbl">Tap</span>';
   for (var i = 0; i < modes.length; i++) h += '<button class="bb-pill' + (sb.hitMode === modes[i][0] ? ' on' : '') + '" onclick="sbSetHitMode(\'' + modes[i][0] + '\')">' + modes[i][1] + '</button>';
-  h += '<span class="sb-lbl" style="margin-left:4px">Grid</span><button class="bb-pill" onclick="sbCpbStep(-1)">&minus;</button>'
-    + '<span style="font-size:11px;font-weight:700;min-width:44px;text-align:center">' + dpNoteName(sbStepTicks()) + '</span>'
-    + '<button class="bb-pill" onclick="sbCpbStep(1)">+</button></div>';
+  var L = sbLadder(), cur = sbBarCpb(part, b);
+  h += '</div><div class="sb-row"><span class="sb-lbl">Grid of this bar</span><select class="bb-mini-sel" onchange="sbSetBarGrid(+this.value)">';
+  for (i = 0; i < L.length; i++) h += '<option value="' + L[i] + '"' + (L[i] === cur ? ' selected' : '') + '>' + sbCpbLabel(L[i]) + '</option>';
+  h += '</select><button class="bb-pill" onclick="sbGridToPart()" title="Use this grid for every bar of the part">&#8594; whole part</button></div>';
   h += '<div class="sb-dgrid" id="sbDGrid">' + sbDrumGridHtml(part, b) + '</div></div>';
   return h;
 }
 function sbDrumGridHtml(part, b) {
-  var d = sbDrums(part)[b] || {}, INS = dpInsts(), st = sbStepTicks(), tpb = sbTpBeat(), steps = Math.round(sbTpBar() / st), h = '';
+  var d = sbDrums(part)[b] || {}, INS = dpInsts(), st = sbStepTicks(part, b), tpb = sbTpBeat(), steps = Math.round(sbTpBar() / st), h = '';
   for (var r = 0; r < INS.length; r++) {
     var id = INS[r].id, m = d[id] || {};
     h += '<div class="sb-drow"><div class="sb-dlabel" onclick="sbAudition(\'' + id + '\')">' + esc(INS[r].name) + '</div><div class="sb-dcells">';
@@ -7646,9 +7738,14 @@ function sbDrumGridHtml(part, b) {
 function sbCloseBar() { sb.sel = null; sbRenderParts(); }
 function sbClearAudio(p, b) { sbPush(); sbVer().parts[p].cells[b] = null; sbAfterChange(false); }
 function sbSetHitMode(m) { sb.hitMode = m; sbPref('sb_hit_mode', m); sbRenderParts(); }
-function sbCpbStep(d) {
-  var L = sbLadder(), i = L.indexOf(sb.cpb); if (i < 0) i = 0;
-  i = Math.max(0, Math.min(L.length - 1, i + d)); sb.cpb = L[i]; sbRenderParts();
+function sbSetBarGrid(c) {
+  var part = sbSelPart(); if (!part) return;
+  sbPush(); sbGrids(part)[sb.sel.b] = c; sbSave(); sbRenderParts();
+}
+function sbGridToPart() {
+  var part = sbSelPart(); if (!part) return;
+  var c = sbBarCpb(part, sb.sel.b), gr = sbGrids(part);
+  sbPush(); for (var i = 0; i < gr.length; i++) gr[i] = c; sbSave(); sbRenderParts();
 }
 function sbTrig(id, when, gain) {   // a Beat Builder voice, routed into the song's drum bus
   var keep = db2.master; db2.master = sb.drumBus;
@@ -7679,18 +7776,20 @@ function sbDrumCopy() {
   var part = sbSelPart(); if (!part) return;
   var d = sbDrums(part)[sb.sel.b];
   sb.drumClip = d ? JSON.parse(JSON.stringify(d)) : {};
+  sb.gridClip = sbGrids(part)[sb.sel.b];
   sbHint('Drums of this bar copied.'); sbRenderParts();
 }
 function sbDrumPaste() {
   var part = sbSelPart(); if (!part || !sb.drumClip) return;
   sbPush(); sbDrums(part)[sb.sel.b] = sbDrumsEmpty(sb.drumClip) ? null : JSON.parse(JSON.stringify(sb.drumClip));
+  sbGrids(part)[sb.sel.b] = sb.gridClip || null;
   sbAfterChange(false);
 }
 function sbDrumRepeat() {
   var part = sbSelPart(); if (!part) return;
-  var dr = sbDrums(part), d = dr[sb.sel.b];
+  var dr = sbDrums(part), gr = sbGrids(part), d = dr[sb.sel.b], c = gr[sb.sel.b];
   sbPush();
-  for (var i = sb.sel.b + 1; i < dr.length; i++) dr[i] = d ? JSON.parse(JSON.stringify(d)) : null;
+  for (var i = sb.sel.b + 1; i < dr.length; i++) { dr[i] = d ? JSON.parse(JSON.stringify(d)) : null; gr[i] = c; }
   sbAfterChange(false);
 }
 function sbDrumClear() {
@@ -7729,6 +7828,7 @@ function sbImportGroove(name) {
       }
     }
     dr[b0 + k] = sbDrumsEmpty(d) ? null : d;
+    sbGrids(part)[b0 + k] = (g.barCpb && g.barCpb[k]) || g.cpb || null;
   }
   if (cut) sbHint('Groove cut off at the end of the part.');
   sbAfterChange(false);
@@ -7839,7 +7939,7 @@ function sbExportPng() {
 }
 
 renderLibrary();
-log('Boot OK v56 (Song Builder: drum notation part with bar editor, audio/drums mixer, Loop-Function grid editing in the cutter, free loops; Song Builder: arrange songs from bar-exact snippets of recordings, versions, click, background play, WAV export; Grid/Staff hide toggles; Follow scrolls the music: rows view centres the bar being played, long view moves bars right-to-left; Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
+log('Boot OK v57 (grid per bar in Beat Builder (tap the ruler) and Song Builder; Song Builder: drum notation part with bar editor, audio/drums mixer, Loop-Function grid editing in the cutter, free loops; Song Builder: arrange songs from bar-exact snippets of recordings, versions, click, background play, WAV export; Grid/Staff hide toggles; Follow scrolls the music: rows view centres the bar being played, long view moves bars right-to-left; Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
 </script>
 </body>
 </html>
