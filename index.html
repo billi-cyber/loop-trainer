@@ -654,6 +654,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
   </div>
   <div class="sb-body" id="sbBody"></div>
 </div>
+<input type="file" id="sbImpInp" style="display:none" onchange="sbImportFile(this)">
 <!-- Song Builder: snippet cutter -->
 <div id="sbCut" class="sb-cut">
   <div class="bb-top">
@@ -6770,6 +6771,7 @@ function sbSongsSheet() {
   ids.forEach(function (id) {
     items.push({ label: esc(sb.songs[id].name), cls: id === sb.cur.id ? 'cur' : '', fn: function () { sbSwitchSong(id); } });
   });
+  items.push({ label: 'Open song file&hellip;', fn: sbImportPick });
   items.push({ label: '+ New song', fn: function () {
     var n = prompt('Song name:', 'New song'); if (!n) return;
     sbStop(); sb.cur = sbNewSongObj(n.substring(0, 40)); sb.undo = []; sb.redo = []; sb.brush = null; sb.partId = null; sbSave(); sbRender(); } });
@@ -6789,6 +6791,8 @@ function sbSwitchSong(id) {
 }
 function sbMoreSheet() {
   sbSheet('More', [
+    { label: 'Save song as file (backup / move to another device)', fn: sbExportSong },
+    { label: 'Open song file&hellip;', fn: sbImportPick },
     { label: 'Export song as WAV (current mix: audio/drums on/off + volumes)', fn: sbExport },
     { label: 'Export song as WAV with click', fn: function () { sbExport(true); } },
     { label: 'Export drum notation as PNG', fn: sbExportPng }
@@ -7938,8 +7942,137 @@ function sbExportPng() {
   } catch (e) { alert('PNG export failed: ' + e.message); }
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+//  v58: song file export / import (backup, phone <-> PC)
+//  Binary .ltsong: "LTSONG01" + uint32 LE header length + UTF-8 JSON header + data.
+//  Header: {app, kind, v, song, clips:[{id,sr,n,ch,off,len}], insts:[{id,name,mime,off,len}]}
+//  Snippet audio as planar 16-bit PCM; recorded Beat Builder instruments the drums
+//  use are carried as their original recorded bytes.
+// ══════════════════════════════════════════════════════════════════════════════
+var SB_MAGIC = 'LTSONG01';
+function sbUtf8(str) {
+  if (window.TextEncoder) return new TextEncoder().encode(str);
+  var s = unescape(encodeURIComponent(str)), a = new Uint8Array(s.length);
+  for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i);
+  return a;
+}
+function sbUtf8Dec(bytes) {
+  if (window.TextDecoder) return new TextDecoder('utf-8').decode(bytes);
+  var s = ''; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return decodeURIComponent(escape(s));
+}
+function sbUsedSampleInsts(song) {
+  var builtin = {}, used = {}, out = [], i, j, k;
+  for (i = 0; i < DM_INSTRUMENTS.length; i++) builtin[DM_INSTRUMENTS[i].id] = true;
+  for (i = 0; i < song.versions.length; i++) for (j = 0; j < song.versions[i].parts.length; j++) {
+    var dr = song.versions[i].parts[j].drums || [];
+    for (k = 0; k < dr.length; k++) if (dr[k]) for (var id in dr[k]) if (dr[k].hasOwnProperty(id) && !builtin[id]) used[id] = true;
+  }
+  for (var u in used) if (used.hasOwnProperty(u)) out.push(u);
+  return out;
+}
+function sbExportSong() {
+  var song = sb.cur;
+  sbHint('Preparing song file...');
+  ensureCtx();
+  var instIds = sbUsedSampleInsts(song);
+  sbLoadBufs().then(function () {
+    return instIds.length ? dpLoadAllSamplesFromDB() : [];
+  }).then(function (rows) {
+    var parts = [], off = 0, clips = [], insts = [], i, c, ch;
+    for (i = 0; i < song.clips.length; i++) {
+      var b = sb.bufs[song.clips[i].id];
+      if (!b) { log('SB export: snippet audio missing ' + song.clips[i].id); continue; }
+      var n = b.length, nc = b.numberOfChannels, pcm = new Int16Array(n * nc);
+      for (ch = 0; ch < nc; ch++) {
+        var d = b.getChannelData(ch), o = ch * n;
+        for (c = 0; c < n; c++) { var v = d[c]; v = v > 1 ? 1 : v < -1 ? -1 : v; pcm[o + c] = v < 0 ? v * 32768 : v * 32767; }
+      }
+      clips.push({ id: song.clips[i].id, sr: b.sampleRate, n: n, ch: nc, off: off, len: pcm.byteLength });
+      parts.push(pcm); off += pcm.byteLength;
+    }
+    var idx; try { idx = JSON.parse(localStorage.getItem('drumplus_insts') || '[]'); } catch (e) { idx = []; }
+    var names = {}; for (i = 0; i < idx.length; i++) names[idx[i].id] = idx[i];
+    for (i = 0; i < (rows || []).length; i++) {
+      var r = rows[i];
+      if (instIds.indexOf(r.id) < 0 || !r.data) continue;
+      var bytes = new Uint8Array(r.data);
+      insts.push({ id: r.id, name: names[r.id] ? names[r.id].name : r.id, mime: r.mime || '', off: off, len: bytes.byteLength });
+      parts.push(bytes); off += bytes.byteLength;
+    }
+    var head = sbUtf8(JSON.stringify({ app: 'loop-trainer', kind: 'songbuilder-song', v: 1, exportedAt: new Date().toISOString(), song: song, clips: clips, insts: insts }));
+    var len = new Uint8Array(4); new DataView(len.buffer).setUint32(0, head.byteLength, true);
+    var blob = new Blob([sbUtf8(SB_MAGIC), len, head].concat(parts), { type: 'application/octet-stream' });
+    sbHint('');
+    var name = song.name.replace(/[\\\/:*?"<>|]+/g, '_') + '_' + dpStamp() + '.ltsong';
+    log('SB song file: ' + (blob.size / 1048576).toFixed(1) + ' MB, ' + clips.length + ' snippets, ' + insts.length + ' instruments');
+    sbDownload(blob, name, 'application/octet-stream');
+  }).then(null, function (e) { sbHint(''); alert('Export failed: ' + e.message); });
+}
+function sbImportPick() { var i = document.getElementById('sbImpInp'); i.value = ''; i.click(); }
+function sbImportFile(inp) {
+  var f = inp.files && inp.files[0]; if (!f) return;
+  ensureCtx();
+  sbHint('Reading song file...');
+  var fr = new FileReader();
+  fr.onload = function () {
+    try { sbImportBuf(fr.result); } catch (e) { sbHint(''); alert('Could not read this file: ' + e.message); }
+  };
+  fr.onerror = function () { sbHint(''); alert('Could not read the file.'); };
+  fr.readAsArrayBuffer(f);
+}
+function sbImportBuf(ab) {
+  var u8 = new Uint8Array(ab);
+  if (u8.length < 12 || sbUtf8Dec(u8.subarray(0, 8)) !== SB_MAGIC) throw new Error('not a Song Builder file (.ltsong)');
+  var hl = new DataView(ab).getUint32(8, true);
+  var H = JSON.parse(sbUtf8Dec(u8.subarray(12, 12 + hl)));
+  if (!H || H.kind !== 'songbuilder-song' || !H.song) throw new Error('unexpected content');
+  var base = 12 + hl, song = H.song, map = {}, i;
+  if (sb.songs[song.id]) {
+    if (!confirm('"' + song.name + '" already exists here.\nOK = replace it with the file\nCancel = import as a copy')) {
+      song.id = sbUid('s'); song.name = song.name + ' (imported)';
+      for (i = 0; i < song.clips.length; i++) { var nid = sbUid('c'); map[song.clips[i].id] = nid; song.clips[i].id = nid; }
+      for (i = 0; i < song.versions.length; i++) for (var j = 0; j < song.versions[i].parts.length; j++) {
+        var cells = song.versions[i].parts[j].cells;
+        for (var k = 0; k < cells.length; k++) if (cells[k] && map[cells[k].c]) cells[k].c = map[cells[k].c];
+      }
+    }
+  }
+  var chain = Promise.resolve();
+  (H.clips || []).forEach(function (c) {
+    chain = chain.then(function () {
+      var id = map[c.id] || c.id;
+      var pcm = new Int16Array(ab.slice(base + c.off, base + c.off + c.len));
+      var b = audioCtx.createBuffer(c.ch, c.n, c.sr);
+      for (var ch = 0; ch < c.ch; ch++) {
+        var d = b.getChannelData(ch), o = ch * c.n;
+        for (var s = 0; s < c.n; s++) d[s] = pcm[o + s] / 32768;
+      }
+      sb.bufs[id] = b;
+      return sbSavePcm(id, b);
+    });
+  });
+  var idx; try { idx = JSON.parse(localStorage.getItem('drumplus_insts') || '[]'); } catch (e) { idx = []; }
+  var have = {}, added = 0; for (i = 0; i < idx.length; i++) have[idx[i].id] = true;
+  (H.insts || []).forEach(function (it) {
+    if (have[it.id]) return;
+    chain = chain.then(function () { return dpSaveSampleToDB(it.id, ab.slice(base + it.off, base + it.off + it.len), it.mime); });
+    idx.push({ id: it.id, name: it.name, mime: it.mime }); have[it.id] = true; added++;
+  });
+  chain.then(function () {
+    if (added) {
+      try { localStorage.setItem('drumplus_insts', JSON.stringify(idx)); } catch (e) {}
+      dpInstsLoaded = false; db2.userInsts = []; dpLoadUserInsts();
+    }
+    sbStop();
+    sb.songs[song.id] = song; sb.cur = song; sb.undo = []; sb.redo = []; sb.brush = null; sb.sel = null; sb.partId = null;
+    sbSave(); sbRender(); sbLoadBufs().then(sbRenderPal);
+    sbHint('Imported "' + song.name + '".');
+  }, function (e) { sbHint(''); alert('Import failed: ' + e.message); });
+}
+
 renderLibrary();
-log('Boot OK v57 (grid per bar in Beat Builder (tap the ruler) and Song Builder; Song Builder: drum notation part with bar editor, audio/drums mixer, Loop-Function grid editing in the cutter, free loops; Song Builder: arrange songs from bar-exact snippets of recordings, versions, click, background play, WAV export; Grid/Staff hide toggles; Follow scrolls the music: rows view centres the bar being played, long view moves bars right-to-left; Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
+log('Boot OK v58 (Song Builder: save/open song files (.ltsong); grid per bar in Beat Builder (tap the ruler) and Song Builder; Song Builder: drum notation part with bar editor, audio/drums mixer, Loop-Function grid editing in the cutter, free loops; Song Builder: arrange songs from bar-exact snippets of recordings, versions, click, background play, WAV export; Grid/Staff hide toggles; Follow scrolls the music: rows view centres the bar being played, long view moves bars right-to-left; Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
 </script>
 </body>
 </html>
