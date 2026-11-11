@@ -328,6 +328,26 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .dm-lib-item span:active{opacity:.6}
 .dm-lib-del{background:none;border:none;color:var(--red);font-size:14px;font-weight:800;cursor:pointer;padding:2px 6px}
 .dm-lib-empty{font-size:11px;color:var(--dim);text-align:center;padding:10px}
+.dm-lib-item.cur{box-shadow:inset 3px 0 0 var(--acc)}
+.dm-lib-meta{display:block;font-style:normal;font-size:10px;font-weight:500;color:var(--dim);margin-top:2px}
+/* v60: folders + sorting (library, grooves, songs) */
+.fld-bar{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.fld-sel{flex:1;min-width:0;background:var(--sur2);color:var(--txt);border:1px solid var(--brd);border-radius:9px;padding:9px 8px;font-size:13px;font-weight:600}
+.fld-add{background:var(--sur2);color:var(--txt);border:1px solid var(--brd);border-radius:9px;padding:9px 11px;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap}
+.fld-add:active{opacity:.6}
+.fld-head{display:flex;align-items:center;gap:8px;padding:9px 2px;margin-top:2px;border-bottom:1px solid var(--brd);cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.fld-head:active{opacity:.6}
+.fld-arrow{width:14px;color:var(--dim);font-size:13px;text-align:center;flex-shrink:0}
+.fld-icon{font-size:15px;flex-shrink:0}
+.fld-name{flex:1;min-width:0;font-size:14px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fld-count{font-size:11px;font-weight:700;color:var(--dim);background:var(--sur2);border-radius:8px;padding:2px 8px;flex-shrink:0}
+.fld-more{background:none;border:none;color:var(--dim);font-size:20px;font-weight:700;line-height:1;padding:6px 10px;cursor:pointer;touch-action:manipulation;flex-shrink:0}
+.fld-more:active{opacity:.5}
+.fld-body{margin-left:6px;padding:4px 0 4px 12px;border-left:2px solid var(--brd)}
+.fld-loose{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin:12px 0 4px}
+.fld-empty{font-size:11px;color:var(--dim);padding:8px 0}
+.fld-scroll{max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sb-sheet-h{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin:10px 4px 6px}
 .video-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 #videoEl{width:100%;max-height:42vh;border-radius:8px;background:#000;display:block}
 #videoCard.collapsed #videoEl{display:none}
@@ -757,6 +777,21 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
   </div>
   <div class="sb-info" style="margin-top:4px">Tap the waveform to place the cursor &middot; drag the green/red handles to move In/Out freely (you hear the spot while dragging) &middot; drag elsewhere to scroll &middot; pinch or mouse wheel to zoom. While playing, IN/OUT set the point at the play position (like the Loop Function). &#9664;/&#9654; nudge by 10 ms. Snap is off by default, so loops are not quantized.</div>
 </div>
+<!-- Song Builder: song list with folders (v60) -->
+<div class="bb-samed" id="sbSongsModal" onclick="if(event.target===this)sbSongsClose()">
+  <div class="bb-samed-card">
+    <div class="bb-samed-title">Songs</div>
+    <div class="bb-samed-name">Tap a song to open it &middot; &#8943; = rename, move to a folder, delete.</div>
+    <div id="sbSongsList" class="fld-scroll"></div>
+    <div class="bb-samed-row">
+      <button class="bb-samed-cancel" onclick="sbSongsNew()">+ New song</button>
+      <button class="bb-samed-cancel" onclick="sbSongsClose(); sbImportPick()">Open song file&hellip;</button>
+    </div>
+    <div class="bb-samed-row" style="margin-top:6px">
+      <button class="bb-samed-apply" onclick="sbSongsClose()">Done</button>
+    </div>
+  </div>
+</div>
 <!-- Song Builder: action sheet -->
 <div id="sbSheet" class="sb-sheet" onclick="if(event.target===this)sbSheetClose()">
   <div class="sb-sheet-card" id="sbSheetCard"></div>
@@ -899,8 +934,8 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 <div class="bb-samed" id="dpLibModal">
   <div class="bb-samed-card">
     <div class="bb-samed-title">Saved Grooves</div>
-    <div class="bb-samed-name">Tap a groove to load it.</div>
-    <div id="dpLibList"></div>
+    <div class="bb-samed-name">Tap a groove to load it &middot; &#8943; = move to a folder.</div>
+    <div id="dpLibList" class="fld-scroll"></div>
     <div class="bb-samed-row" style="margin-top:10px">
       <button class="bb-samed-cancel" onclick="dpNewEmpty()" style="background:var(--ora);color:#000">New empty grid</button>
       <button class="bb-samed-apply" onclick="dpLibClose()">Done</button>
@@ -1467,9 +1502,8 @@ function decodeAndLoad(name, size, arrayBuf, saveToLib, isVideo) {
     }, 50);
     if (saveToLib) {
       saveTrackToDB(trkId, name, arrayBuf, duration).then(function() {
-        var lib = getLibrary().filter(function(x) { return x.id !== trkId; });
-        lib.unshift({ id:trkId, name:name, size:size, duration:duration, lastPlayed:Date.now() });
-        saveLibrary(lib); renderLibrary();
+        libUpsert({ id:trkId, name:name, size:size, duration:duration, lastPlayed:Date.now() });
+        renderLibrary();
       }).catch(function(err) { log('DB save err: ' + err.message); });
     } else {
       var lib = getLibrary();
@@ -1490,6 +1524,7 @@ function loadFromLibrary(id) {
   ensureCtx(); setStatus('Loading from library...');
   loadTrackFromDB(id).then(function(r) {
     if (!r) { setStatus('Track not found.', 'err'); return; }
+    libFixCreated(id, r.savedAt);
     decodeAndLoad(r.name, r.data.byteLength, r.data, false);
   }).catch(function(err) { setStatus('Load error.', 'err'); });
 }
@@ -1510,20 +1545,309 @@ function deleteFromLibrary(id, e) {
 }
 
 function renderLibrary() {
-  var lib = getLibrary(), el = document.getElementById('libList');
-  if (!lib.length) { el.innerHTML = '<div class="lib-empty">No saved tracks</div>'; return; }
-  el.innerHTML = lib.map(function(t) {
-    var date = new Date(t.lastPlayed || 0).toLocaleDateString();
-    var loops = []; try { loops = JSON.parse(localStorage.getItem('loops__'+t.name)||'[]'); } catch(ex) {}
-    var ls = loops.length ? loops.length + ' loop' + (loops.length>1?'s':'') : '';
-    return '<div class="lib-item" onclick="loadFromLibrary(\''+esc(t.id).replace(/'/g,"\\'")+'\')">' +
-      '<div class="lib-icon">&#9835;</div><div class="lib-info">' +
-      '<div class="lib-name">'+esc(t.name)+'</div>' +
-      '<div class="lib-meta">'+fmt(t.duration)+' &middot; '+date+(ls?' &middot; '+ls:'')+'</div>' +
-      '</div><button class="lib-del" onclick="deleteFromLibrary(\''+esc(t.id).replace(/'/g,"\\'") +
-      '\', event)">Del</button></div>';
-  }).join('');
+  var el = document.getElementById('libList'); if (!el) return;
+  el.innerHTML = fldHtml('lib');
 }
+function libLoadAt(i) { var id = fldKeys.lib && fldKeys.lib[i]; if (id !== undefined) loadFromLibrary(id); }
+function libDeleteAt(i, e) { var id = fldKeys.lib && fldKeys.lib[i]; if (id !== undefined) deleteFromLibrary(id, e); else if (e) e.stopPropagation(); }
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Folders + sorting (v60) - one engine for three lists:
+//    'lib'  = Loop Function library (recordings)      -> renderLibrary()
+//    'grv'  = Beat Builder saved grooves               -> dpLibRender()
+//    'song' = Song Builder songs                       -> sbSongsRender()
+//  Folders are separate per area and one level deep. An item stores its folder
+//  NAME in a `folder` field ('' / missing = no folder). The folder list itself is
+//  kept in localStorage fld_<area> so empty folders survive. Sort + collapsed
+//  folders are per device: fld_sort_<area>, fld_closed_<area>.
+// ══════════════════════════════════════════════════════════════════════════════
+var FLD_SORTS = [
+  { v: 'name:asc', t: 'Name A-Z' }, { v: 'name:desc', t: 'Name Z-A' },
+  { v: 'created:desc', t: 'Created: newest first' }, { v: 'created:asc', t: 'Created: oldest first' },
+  { v: 'modified:desc', t: 'Changed: newest first' }, { v: 'modified:asc', t: 'Changed: oldest first' }
+];
+var fldKeys = {}, fldFolders = {};   // area -> keys / folder names of the rendered list (onclick passes an index, never user text)
+function fldLs(k, def) { try { var v = localStorage.getItem(k); if (v === null) return def; var o = JSON.parse(v); return o === null ? def : o; } catch (e) { return def; } }
+function fldLsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { log('Folder pref save err: ' + e.message); } }
+function fldCfg(area) { return FLD_AREAS[area]; }
+function fldNames(area) { var a = fldLs('fld_' + area, []); return (a && typeof a.length === 'number') ? a.slice(0) : []; }
+function fldSort(area) {
+  var s = fldLs('fld_sort_' + area, null), d = fldCfg(area).defSort;
+  if (!s || typeof s !== 'string' || s.indexOf(':') < 0) s = d;
+  var p = s.split(':');
+  if (p[0] !== 'name' && p[0] !== 'created' && p[0] !== 'modified') p = d.split(':');
+  return { by: p[0], dir: p[1] === 'desc' ? 'desc' : 'asc', v: p[0] + ':' + (p[1] === 'desc' ? 'desc' : 'asc') };
+}
+function fldSetSort(area, v) { fldLsSet('fld_sort_' + area, v); fldCfg(area).render(); }
+function fldClean(n) { return String(n || '').replace(/["'<>\\]/g, '').replace(/^\s+|\s+$/g, '').substring(0, 30); }
+function fldCmp(s) {
+  return function (a, b) {
+    var x = (a.name || '').toLowerCase(), y = (b.name || '').toLowerCase();
+    var byName = x < y ? -1 : x > y ? 1 : 0, r;
+    if (s.by === 'name') r = byName;
+    else { r = (a[s.by] || 0) - (b[s.by] || 0); if (!r) r = byName; }
+    return s.dir === 'desc' ? -r : r;
+  };
+}
+// All folder names of an area: the stored list plus any folder an item refers to
+// (e.g. an imported song from another device). Unknown ones are added to the list.
+function fldAll(area, items) {
+  var names = fldNames(area), have = {}, i, changed = false;
+  for (i = 0; i < names.length; i++) have[names[i]] = true;
+  for (i = 0; i < items.length; i++) { var f = items[i].folder; if (f && !have[f]) { names.push(f); have[f] = true; changed = true; } }
+  if (changed) fldLsSet('fld_' + area, names);
+  names.sort(function (a, b) { a = a.toLowerCase(); b = b.toLowerCase(); return a < b ? -1 : a > b ? 1 : 0; });
+  return names;
+}
+function fldFmtDate(ms) { if (!ms) return ''; var d = new Date(ms); return d.toLocaleDateString(); }
+// A date to show next to an item: the one the list is sorted by, else `fallback`.
+function fldDateLabel(area, it, fallback) {
+  var s = fldSort(area);
+  if (s.by === 'created' && it.created) return 'added ' + fldFmtDate(it.created);
+  if (s.by === 'modified' && it.modified) return 'changed ' + fldFmtDate(it.modified);
+  return fallback;
+}
+function fldMoreBtn(area, i) {
+  return '<button class="fld-more" title="Move to folder / more" onclick="fldItemMenu(\'' + area + '\',' + i + ',event)">&#8943;</button>';
+}
+// Builds sort bar + collapsible folders + loose items. cfg.row(item, index) gives a row.
+function fldHtml(area) {
+  var cfg = fldCfg(area), items = cfg.items(), s = fldSort(area), folders = fldAll(area, items);
+  var closed = fldLs('fld_closed_' + area, {}) || {}, i, j;
+  items.sort(fldCmp(s));
+  fldKeys[area] = []; fldFolders[area] = folders.slice(0);
+  var h = '<div class="fld-bar"><select class="fld-sel" onchange="fldSetSort(\'' + area + '\', this.value)">';
+  for (i = 0; i < FLD_SORTS.length; i++) h += '<option value="' + FLD_SORTS[i].v + '"' + (FLD_SORTS[i].v === s.v ? ' selected' : '') + '>' + FLD_SORTS[i].t + '</option>';
+  h += '</select><button class="fld-add" onclick="fldNew(\'' + area + '\')">+ Folder</button></div>';
+  if (!items.length && !folders.length) return h + cfg.empty;
+  function row(it) { var k = fldKeys[area].length; fldKeys[area].push(it.key); return cfg.row(it, k); }
+  for (j = 0; j < folders.length; j++) {
+    var f = folders[j], inF = [];
+    for (i = 0; i < items.length; i++) if (items[i].folder === f) inF.push(items[i]);
+    var isClosed = !!closed[f];
+    h += '<div class="fld-head' + (isClosed ? ' closed' : '') + '" onclick="fldToggle(\'' + area + '\',' + j + ')">'
+       + '<span class="fld-arrow">' + (isClosed ? '&#9656;' : '&#9662;') + '</span>'
+       + '<span class="fld-icon">&#128193;</span><span class="fld-name">' + esc(f) + '</span>'
+       + '<span class="fld-count">' + inF.length + '</span>'
+       + '<button class="fld-more" title="Rename / delete folder" onclick="fldFolderMenu(\'' + area + '\',' + j + ',event)">&#8943;</button></div>';
+    if (!isClosed) {
+      h += '<div class="fld-body">';
+      if (!inF.length) h += '<div class="fld-empty">Empty &ndash; use &#8943; on an item to move it here.</div>';
+      for (i = 0; i < inF.length; i++) h += row(inF[i]);
+      h += '</div>';
+    }
+  }
+  var loose = [];
+  for (i = 0; i < items.length; i++) if (!items[i].folder) loose.push(items[i]);
+  if (folders.length && loose.length) h += '<div class="fld-loose">No folder</div>';
+  for (i = 0; i < loose.length; i++) h += row(loose[i]);
+  return h;
+}
+function fldToggle(area, j) {
+  var f = fldFolders[area] && fldFolders[area][j]; if (f === undefined) return;
+  var closed = fldLs('fld_closed_' + area, {}) || {};
+  if (closed[f]) delete closed[f]; else closed[f] = 1;
+  fldLsSet('fld_closed_' + area, closed);
+  fldCfg(area).render();
+}
+function fldNew(area, thenMoveKey) {
+  var n = fldClean(prompt('New folder name:', ''));
+  if (!n) return;
+  var names = fldNames(area);
+  if (names.indexOf(n) < 0) { names.push(n); fldLsSet('fld_' + area, names); }
+  if (thenMoveKey !== undefined) fldCfg(area).move([thenMoveKey], n);
+  fldCfg(area).render();
+}
+function fldItemMenu(area, i, ev) {
+  if (ev) ev.stopPropagation();
+  var cfg = fldCfg(area), key = fldKeys[area] && fldKeys[area][i]; if (key === undefined) return;
+  var items = cfg.items(), it = null, k;
+  for (k = 0; k < items.length; k++) if (items[k].key === key) { it = items[k]; break; }
+  if (!it) return;
+  var sheet = cfg.extra ? cfg.extra(it) : [];
+  var folders = fldAll(area, items);
+  sheet.push({ header: true, label: 'Move to folder' });
+  folders.forEach(function (f) {
+    sheet.push({ label: '&#128193; ' + esc(f), cls: it.folder === f ? 'cur' : '', fn: function () { if (it.folder !== f) { cfg.move([key], f); cfg.render(); } } });
+  });
+  sheet.push({ label: 'No folder', cls: it.folder ? '' : 'cur', fn: function () { if (it.folder) { cfg.move([key], ''); cfg.render(); } } });
+  sheet.push({ label: '+ New folder&hellip;', fn: function () { fldNew(area, key); } });
+  sbSheet(esc(it.name), sheet);
+}
+function fldFolderMenu(area, j, ev) {
+  if (ev) ev.stopPropagation();
+  var f = fldFolders[area] && fldFolders[area][j]; if (f === undefined) return;
+  sbSheet('&#128193; ' + esc(f), [
+    { label: 'Rename folder', fn: function () { fldRename(area, f); } },
+    { label: 'Delete folder (its items move to "No folder")', cls: 'danger', fn: function () { fldDelete(area, f); } }
+  ]);
+}
+function fldKeysIn(area, f) {
+  var items = fldCfg(area).items(), out = [];
+  for (var i = 0; i < items.length; i++) if (items[i].folder === f) out.push(items[i].key);
+  return out;
+}
+function fldRename(area, f) {
+  var n = fldClean(prompt('Rename folder:', f));
+  if (!n || n === f) return;
+  var names = fldNames(area);
+  if (names.indexOf(n) >= 0 && !confirm('A folder "' + n + '" already exists. Merge both folders?')) return;
+  var keys = fldKeysIn(area, f);
+  if (keys.length) fldCfg(area).move(keys, n);
+  names = names.filter(function (x) { return x !== f && x !== n; }); names.push(n);
+  fldLsSet('fld_' + area, names);
+  var closed = fldLs('fld_closed_' + area, {}) || {};
+  if (closed[f]) { delete closed[f]; closed[n] = 1; fldLsSet('fld_closed_' + area, closed); }
+  fldCfg(area).render();
+}
+function fldDelete(area, f) {
+  var keys = fldKeysIn(area, f);
+  if (keys.length && !confirm('Delete folder "' + f + '"? Its ' + keys.length + ' item(s) are kept and move to "No folder".')) return;
+  if (keys.length) fldCfg(area).move(keys, '');
+  fldLsSet('fld_' + area, fldNames(area).filter(function (x) { return x !== f; }));
+  var closed = fldLs('fld_closed_' + area, {}) || {};
+  if (closed[f]) { delete closed[f]; fldLsSet('fld_closed_' + area, closed); }
+  fldCfg(area).render();
+}
+function fldKeySet(keys) { var o = {}; for (var i = 0; i < keys.length; i++) o[keys[i]] = true; return o; }
+
+// ── Library (Loop Function) dates ──
+// Old entries get createdAt = lastPlayed (= when it was saved, unless replayed);
+// createdGuess marks them so loadFromLibrary can correct it from the DB's savedAt.
+function libEnsureDates(lib) {
+  var changed = false, now = Date.now();
+  for (var i = 0; i < lib.length; i++) {
+    var t = lib[i];
+    if (!t.createdAt) { t.createdAt = t.lastPlayed || now; t.createdGuess = 1; changed = true; }
+    if (!t.modifiedAt) { t.modifiedAt = t.createdAt; changed = true; }
+  }
+  if (changed) { try { saveLibrary(lib); } catch (e) {} }
+  return lib;
+}
+// Add or replace a library entry, keeping its created date and folder.
+function libUpsert(e) {
+  var old = null, now = Date.now();
+  var lib = getLibrary().filter(function (x) { if (x.id === e.id) { old = x; return false; } return true; });
+  e.createdAt = (old && old.createdAt) || now;
+  e.modifiedAt = (old && old.modifiedAt) || e.createdAt;
+  if (old && old.createdGuess) e.createdGuess = 1;
+  if (old && old.folder) e.folder = old.folder;
+  lib.unshift(e);
+  saveLibrary(lib);
+}
+// Loops / grid / cue / hot cues of a recording changed -> its "changed" date.
+function libTouch(name) {
+  if (!name) return;
+  var lib = getLibrary(), hit = false, now = Date.now();
+  for (var i = 0; i < lib.length; i++) if (lib[i].name === name) { lib[i].modifiedAt = now; hit = true; }
+  if (!hit) return;
+  try { saveLibrary(lib); } catch (e) { return; }
+  renderLibrary();
+}
+function libFixCreated(id, savedAt) {
+  if (!savedAt) return;
+  var lib = getLibrary(), hit = false;
+  for (var i = 0; i < lib.length; i++) if (lib[i].id === id && lib[i].createdGuess) {
+    lib[i].createdAt = savedAt; delete lib[i].createdGuess;
+    if (!lib[i].modifiedAt || lib[i].modifiedAt < savedAt) lib[i].modifiedAt = savedAt;
+    hit = true;
+  }
+  if (hit) { try { saveLibrary(lib); } catch (e) {} renderLibrary(); }
+}
+
+// ── Beat Builder grooves dates ──
+function dpGroovesDated() {
+  var all = dpGrooves(), changed = false, now = Date.now();
+  for (var k in all) {
+    if (!all.hasOwnProperty(k) || !all[k]) continue;
+    if (!all[k].createdAt) { all[k].createdAt = all[k].modifiedAt || now; changed = true; }
+    if (!all[k].modifiedAt) { all[k].modifiedAt = all[k].createdAt; changed = true; }
+  }
+  if (changed) { try { localStorage.setItem('drumpluspatterns', JSON.stringify(all)); } catch (e) {} }
+  return all;
+}
+
+// ── Area definitions ──
+var FLD_AREAS = {
+  lib: {
+    defSort: 'created:desc',   // = the old order (newest saved on top)
+    empty: '<div class="lib-empty">No saved tracks</div>',
+    items: function () {
+      var lib = libEnsureDates(getLibrary()), out = [];
+      for (var i = 0; i < lib.length; i++) out.push({ key: lib[i].id, name: lib[i].name || '', created: lib[i].createdAt, modified: lib[i].modifiedAt, folder: lib[i].folder || '', t: lib[i] });
+      return out;
+    },
+    row: function (it, i) {
+      var t = it.t;
+      var date = fldDateLabel('lib', it, new Date(t.lastPlayed || 0).toLocaleDateString());
+      var loops = []; try { loops = JSON.parse(localStorage.getItem('loops__' + t.name) || '[]'); } catch (ex) {}
+      var ls = loops.length ? loops.length + ' loop' + (loops.length > 1 ? 's' : '') : '';
+      return '<div class="lib-item" onclick="libLoadAt(' + i + ')">' +
+        '<div class="lib-icon">&#9835;</div><div class="lib-info">' +
+        '<div class="lib-name">' + esc(t.name) + '</div>' +
+        '<div class="lib-meta">' + fmt(t.duration) + ' &middot; ' + date + (ls ? ' &middot; ' + ls : '') + '</div>' +
+        '</div>' + fldMoreBtn('lib', i) + '<button class="lib-del" onclick="libDeleteAt(' + i + ', event)">Del</button></div>';
+    },
+    move: function (keys, folder) {
+      var set = fldKeySet(keys), lib = getLibrary();
+      for (var i = 0; i < lib.length; i++) if (set[lib[i].id]) { if (folder) lib[i].folder = folder; else delete lib[i].folder; }
+      try { saveLibrary(lib); } catch (e) { alert('Could not save (storage full?).'); }
+    },
+    render: function () { renderLibrary(); }
+  },
+  grv: {
+    defSort: 'name:asc',
+    empty: '<div class="dm-lib-empty">No saved grooves yet</div>',
+    items: function () {
+      var all = dpGroovesDated(), out = [];
+      for (var k in all) if (all.hasOwnProperty(k) && all[k]) out.push({ key: k, name: k, created: all[k].createdAt, modified: all[k].modifiedAt, folder: all[k].folder || '', g: all[k] });
+      return out;
+    },
+    row: function (it, i) {
+      var g = it.g, bars = g.bars || 1;
+      var meta = bars + ' bar' + (bars === 1 ? '' : 's') + ' &middot; ' + g.tsNum + '/' + g.tsDen;
+      var d = fldDateLabel('grv', it, ''); if (d) meta += ' &middot; ' + d;
+      return '<div class="dm-lib-item' + (db2.currentGroove === it.key ? ' cur' : '') + '"><span onclick="dpLoadGrooveAt(' + i + ')">' + esc(it.name)
+        + '<em class="dm-lib-meta">' + meta + '</em></span>'
+        + fldMoreBtn('grv', i) + '<button class="dm-lib-del" onclick="dpDeleteGrooveAt(' + i + ',event)">&times;</button></div>';
+    },
+    move: function (keys, folder) {
+      var set = fldKeySet(keys), all = dpGrooves();
+      for (var k in all) if (all.hasOwnProperty(k) && set[k] && all[k]) { if (folder) all[k].folder = folder; else delete all[k].folder; }
+      try { localStorage.setItem('drumpluspatterns', JSON.stringify(all)); } catch (e) { alert('Could not save (storage full?).'); }
+    },
+    render: function () { dpLibRender(); }
+  },
+  song: {
+    defSort: 'name:asc',
+    empty: '<div class="dm-lib-empty">No songs yet</div>',
+    items: function () {
+      var out = [];
+      for (var k in sb.songs) if (sb.songs.hasOwnProperty(k)) { var s = sb.songs[k]; out.push({ key: k, name: s.name || '', created: s.createdAt, modified: s.modifiedAt, folder: s.folder || '', s: s }); }
+      return out;
+    },
+    row: function (it, i) {
+      var s = it.s, nv = (s.versions || []).length, nc = (s.clips || []).length;
+      var meta = nv + ' version' + (nv === 1 ? '' : 's') + ' &middot; ' + nc + ' snippet' + (nc === 1 ? '' : 's');
+      var d = fldDateLabel('song', it, ''); if (d) meta += ' &middot; ' + d;
+      return '<div class="dm-lib-item' + (sb.cur && sb.cur.id === it.key ? ' cur' : '') + '"><span onclick="sbSongPickAt(' + i + ')">' + esc(it.name)
+        + '<em class="dm-lib-meta">' + meta + '</em></span>' + fldMoreBtn('song', i) + '</div>';
+    },
+    extra: function (it) {
+      var id = it.key;
+      return [
+        { label: 'Open', fn: function () { sbSongsClose(); sbSwitchSong(id); } },
+        { label: 'Rename', fn: function () { sbRenameSong(id); } },
+        { label: 'Delete', cls: 'danger', fn: function () { sbDeleteSong(id); } }
+      ];
+    },
+    move: function (keys, folder) {
+      for (var i = 0; i < keys.length; i++) { var s = sb.songs[keys[i]]; if (!s) continue; if (folder) s.folder = folder; else delete s.folder; }
+      sbSave();
+    },
+    render: function () { sbSongsRender(); }
+  }
+};
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  Speed
@@ -1854,6 +2178,7 @@ function loadCuePoint() {
 }
 function saveCuePoint() {
   try { if (cuePoint !== null) localStorage.setItem(cueKey(), cuePoint); else localStorage.removeItem(cueKey()); } catch(e) {}
+  libTouch(trkName);
 }
 function updateCueDisplay() { drawWave(); }
 function setCue() {
@@ -1901,7 +2226,7 @@ function transferCueToHotCue() {
   var hcs = getHotCues();
   var name = 'Cue ' + (hcs.length + 1);
   hcs.push({ name: name, time: cuePoint });
-  localStorage.setItem(hcKey(), JSON.stringify(hcs));
+  localStorage.setItem(hcKey(), JSON.stringify(hcs)); libTouch(trkName);
   renderHotCues(); drawWave();
   // Scroll to hot cues so user can rename
   document.getElementById('hotcueCard').scrollIntoView({ behavior: 'smooth' });
@@ -1919,7 +2244,7 @@ function saveHotCue() {
   var hcs = getHotCues();
   var name = document.getElementById('hotcueName').value.trim() || ('Cue ' + (hcs.length + 1));
   hcs.push({ name: name, time: audTime() });
-  localStorage.setItem(hcKey(), JSON.stringify(hcs));
+  localStorage.setItem(hcKey(), JSON.stringify(hcs)); libTouch(trkName);
   document.getElementById('hotcueName').value = '';
   renderHotCues(); drawWave();
 }
@@ -1934,7 +2259,7 @@ function hotCueToCue(i) {
 }
 function deleteHotCue(i) {
   var hcs = getHotCues(); hcs.splice(i, 1);
-  localStorage.setItem(hcKey(), JSON.stringify(hcs));
+  localStorage.setItem(hcKey(), JSON.stringify(hcs)); libTouch(trkName);
   renderHotCues(); drawWave();
 }
 function renderHotCues() {
@@ -2074,6 +2399,7 @@ function saveGridSettings() {
       detBpm: detectedBPM, detOff: detectedOffset
     }));
   } catch(e) {}
+  libTouch(trkName);
 }
 function loadGridSettings() {
   try { var s = localStorage.getItem(gridKey()); return s ? JSON.parse(s) : null; } catch(e) { return null; }
@@ -2589,7 +2915,7 @@ function saveLoop() {
   var name = document.getElementById('loopName').value.trim() || ('Loop ' + (loops.length + 1));
   var entry = { name: name, i: loopIn, o: loopOut };
   if (editIdx >= 0 && editIdx < loops.length) loops[editIdx] = entry; else loops.push(entry);
-  localStorage.setItem(skey(), JSON.stringify(loops));
+  localStorage.setItem(skey(), JSON.stringify(loops)); libTouch(trkName);
   editIdx = -1; resetEditor(); renderLoops(); drawWave();
 }
 function loadLoop(i) {
@@ -2614,7 +2940,7 @@ function editLoop(i) {
 }
 function deleteLoop(i) {
   var loops = getLoops(); loops.splice(i, 1);
-  localStorage.setItem(skey(), JSON.stringify(loops));
+  localStorage.setItem(skey(), JSON.stringify(loops)); libTouch(trkName);
   if (editIdx === i) { editIdx = -1; resetEditor(); }
   renderLoops(); drawWave();
 }
@@ -3662,7 +3988,10 @@ function dpSerialize() {
     cells: db2.cells, mutes: db2.mutes, hidden: db2.hidden, userInsts: ui };
 }
 function dpStoreGroove(name) {
-  var all = dpGrooves(); all[name] = dpSerialize();
+  var all = dpGrooves(), old = all[name], g = dpSerialize(), now = Date.now();
+  g.createdAt = (old && old.createdAt) || now; g.modifiedAt = now;   // v60: dates + folder survive a re-save
+  if (old && old.folder) g.folder = old.folder;
+  all[name] = g;
   try { localStorage.setItem('drumpluspatterns', JSON.stringify(all)); return true; }
   catch (e) { alert('Save failed: ' + e.message); return false; }
 }
@@ -3698,16 +4027,17 @@ function dpToggleControls() {
   dpRowsLayout();
 }
 function dpGrooveNames() { var all = dpGrooves(), n = []; for (var k in all) { if (all.hasOwnProperty(k)) n.push(k); } return n; }
+function dpLibRender() { var el = document.getElementById('dpLibList'); if (el) el.innerHTML = fldHtml('grv'); }
 function dpLibOpen() {
-  var names = dpGrooveNames();
-  var h = names.length ? '' : '<div class="dm-lib-empty">No saved grooves yet</div>';
-  for (var i = 0; i < names.length; i++) {
-    var n = names[i];
-    h += '<div class="dm-lib-item"><span onclick="dpLoadGroove(\'' + n + '\')">' + n + '</span>'
-       + '<button class="dm-lib-del" onclick="dpDeleteGroove(\'' + n + '\',event)">&times;</button></div>';
-  }
-  document.getElementById('dpLibList').innerHTML = h;
+  dpLibRender();
   document.getElementById('dpLibModal').classList.add('show');
+}
+function dpLoadGrooveAt(i) { var n = fldKeys.grv && fldKeys.grv[i]; if (n !== undefined) dpLoadGroove(n); }
+function dpDeleteGrooveAt(i, ev) {
+  if (ev) ev.stopPropagation();
+  var n = fldKeys.grv && fldKeys.grv[i]; if (n === undefined) return;
+  if (!confirm('Delete groove "' + n + '"?')) return;
+  dpDeleteGroove(n);
 }
 function dpLibClose() { document.getElementById('dpLibModal').classList.remove('show'); }
 // ── Select lane + copy / paste (region across all instruments) ──
@@ -3839,7 +4169,12 @@ function dpImportGroovesFile(input) {
     var data; try { data = JSON.parse(fr.result); } catch (e) { alert('Could not read file (not valid JSON).'); return; }
     if (!data || !data.grooves) { alert('This does not look like a Beat Builder backup.'); return; }
     var cur = dpGrooves();
-    for (var k in data.grooves) { if (data.grooves.hasOwnProperty(k)) cur[k] = data.grooves[k]; }
+    for (var k in data.grooves) {
+      if (!data.grooves.hasOwnProperty(k)) continue;
+      var keepF = cur[k] && cur[k].folder;          // v60: an imported groove keeps the local folder
+      cur[k] = data.grooves[k];
+      if (keepF && cur[k] && !cur[k].folder) cur[k].folder = keepF;
+    }
     try { localStorage.setItem('drumpluspatterns', JSON.stringify(cur)); } catch (e) { alert('Import failed (storage full?).'); return; }
     var samples = data.samples || [];   // present only in full backups
     var chain = Promise.resolve();
@@ -6195,6 +6530,7 @@ function sbLoadSongs() {
   sb.cur = (curId && sb.songs[curId]) || null;
   if (!sb.cur) { for (var k in sb.songs) { if (sb.songs.hasOwnProperty(k)) { sb.cur = sb.songs[k]; break; } } }
   if (!sb.cur) sb.cur = sbNewSongObj('My song');
+  for (var sk in sb.songs) if (sb.songs.hasOwnProperty(sk)) sbSongDates(sb.songs[sk]);
   try {
     sb.click = localStorage.getItem('sb_click') === '1'; sb.follow = localStorage.getItem('sb_follow') !== '0';
     var pl = parseInt(localStorage.getItem('sb_perline') || '4', 10); if (pl >= 1 && pl <= 16) sb.perLine = pl;
@@ -6207,8 +6543,34 @@ function sbLoadSongs() {
   sbSave();
 }
 function sbPref(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+// v60: created/changed dates. Old songs: the id starts with Date.now() in base 36.
+function sbSongDates(s) {
+  if (!s) return;
+  if (!s.createdAt) {
+    var t = parseInt(String(s.id || '').substring(1, 9), 36), now = Date.now();
+    s.createdAt = (t > 1577836800000 && t <= now) ? t : now;    // between 2020 and now, else now
+  }
+  if (!s.modifiedAt) s.modifiedAt = s.createdAt;
+}
+// "Changed" = the song content differs from the last save (dates and folder don't count).
+var sbSavedSig = {};
+function sbSongSig(s) {
+  var c = s.createdAt, m = s.modifiedAt, f = s.folder;
+  delete s.createdAt; delete s.modifiedAt; delete s.folder;
+  var j = JSON.stringify(s);
+  if (c !== undefined) s.createdAt = c;
+  if (m !== undefined) s.modifiedAt = m;
+  if (f !== undefined) s.folder = f;
+  return j;
+}
+function sbMarkModified(s) {
+  sbSongDates(s);
+  var sig = sbSongSig(s);
+  if (sbSavedSig[s.id] !== undefined && sbSavedSig[s.id] !== sig) s.modifiedAt = Date.now();
+  sbSavedSig[s.id] = sig;
+}
 function sbSave() {
-  if (sb.cur) sb.songs[sb.cur.id] = sb.cur;
+  if (sb.cur) { sb.songs[sb.cur.id] = sb.cur; sbMarkModified(sb.cur); }
   try {
     localStorage.setItem('sb_songs', JSON.stringify(sb.songs));
     if (sb.cur) localStorage.setItem('sb_cur', sb.cur.id);
@@ -6216,8 +6578,9 @@ function sbSave() {
 }
 function sbNewSongObj(name) {
   var vid = sbUid('v');
+  var now = Date.now();
   var s = { id: sbUid('s'), v: 1, name: name, bpm: 0, tsNum: 4, tsDen: 4, clips: [],
-            versions: [{ id: vid, name: 'Version 1', parts: [] }], ver: vid };
+            versions: [{ id: vid, name: 'Version 1', parts: [] }], ver: vid, createdAt: now, modifiedAt: now };
   sb.songs[s.id] = s;
   return s;
 }
@@ -6783,25 +7146,39 @@ function sbVersionSheet() {
         sbPush(); s.versions = s.versions.filter(function (x) { return x.id !== v.id; }); s.ver = s.versions[0].id; sb.partId = null; sbAfterChange(false); } }
   ]);
 }
+// v60: the song list is a real list view with folders + sorting (was an action sheet).
 function sbSongsSheet() {
-  var items = [], ids = [];
-  for (var k in sb.songs) if (sb.songs.hasOwnProperty(k)) ids.push(k);
-  ids.sort(function (a, b) { return sb.songs[a].name.toLowerCase() < sb.songs[b].name.toLowerCase() ? -1 : 1; });
-  ids.forEach(function (id) {
-    items.push({ label: esc(sb.songs[id].name), cls: id === sb.cur.id ? 'cur' : '', fn: function () { sbSwitchSong(id); } });
-  });
-  items.push({ label: 'Open song file&hellip;', fn: sbImportPick });
-  items.push({ label: '+ New song', fn: function () {
-    var n = prompt('Song name:', 'New song'); if (!n) return;
-    sbStop(); sb.at = null; sb.paused = false; sb.sel = null; sb.cur = sbNewSongObj(n.substring(0, 40)); sb.undo = []; sb.redo = []; sb.brush = null; sb.partId = null; sbSave(); sbRender(); } });
-  items.push({ label: 'Rename "' + esc(sb.cur.name) + '"', fn: function () { var n = prompt('Rename song:', sb.cur.name); if (!n) return; sbPush(); sb.cur.name = n.substring(0, 40); sbAfterChange(false); } });
-  items.push({ label: 'Delete "' + esc(sb.cur.name) + '"', cls: 'danger', fn: function () {
-    if (!confirm('Delete song "' + sb.cur.name + '" with all versions and snippets?')) return;
+  sbSongsRender();
+  document.getElementById('sbSongsModal').classList.add('show');
+}
+function sbSongsClose() { document.getElementById('sbSongsModal').classList.remove('show'); }
+function sbSongsRender() { var el = document.getElementById('sbSongsList'); if (el) el.innerHTML = fldHtml('song'); }
+function sbSongPickAt(i) { var id = fldKeys.song && fldKeys.song[i]; if (!id) return; sbSongsClose(); sbSwitchSong(id); }
+function sbSongsNew() {
+  var n = prompt('Song name:', 'New song'); if (!n) return;
+  sbSongsClose();
+  sbStop(); sb.at = null; sb.paused = false; sb.sel = null; sb.cur = sbNewSongObj(n.substring(0, 40)); sb.undo = []; sb.redo = []; sb.brush = null; sb.partId = null; sbSave(); sbRender();
+}
+function sbRenameSong(id) {
+  var s = sb.songs[id]; if (!s) return;
+  var n = prompt('Rename song:', s.name); if (!n) return;
+  if (sb.cur && id === sb.cur.id) { sbPush(); sb.cur.name = n.substring(0, 40); sbAfterChange(false); }
+  else { s.name = n.substring(0, 40); s.modifiedAt = Date.now(); sbSave(); }
+  sbSongsRender();
+}
+function sbDeleteSong(id) {
+  var s = sb.songs[id]; if (!s) return;
+  if (!confirm('Delete song "' + s.name + '" with all versions and snippets?')) return;
+  if (sb.cur && id === sb.cur.id) {
     sbStop(); sb.at = null; sb.paused = false; sb.sel = null; delete sb.songs[sb.cur.id];
     var next = null; for (var k2 in sb.songs) if (sb.songs.hasOwnProperty(k2)) { next = sb.songs[k2]; break; }
     sb.cur = next || sbNewSongObj('My song'); sb.undo = []; sb.redo = []; sb.brush = null; sb.partId = null;
-    sbSave(); sbRender(); sbLoadBufs(); sbGcPcm(); } });
-  sbSheet('Songs', items);
+    sbSave(); sbRender(); sbLoadBufs(); sbGcPcm();
+  } else {
+    delete sb.songs[id]; sbSave(); sbGcPcm();
+  }
+  delete sbSavedSig[id];
+  sbSongsRender();
 }
 function sbSwitchSong(id) {
   if (!sb.songs[id] || id === sb.cur.id) return;
@@ -6824,7 +7201,8 @@ function sbSheet(title, items) {
   sbSheetFns = [];
   var h = '<div class="sb-sheet-title">' + title + '</div>';
   for (var i = 0; i < items.length; i++) {
-    sbSheetFns.push(items[i].fn);
+    sbSheetFns.push(items[i].fn || null);
+    if (items[i].header) { h += '<div class="sb-sheet-h">' + items[i].label + '</div>'; continue; }
     h += '<button class="' + (items[i].cls || '') + '" onclick="sbSheetDo(' + i + ')">' + items[i].label + '</button>';
   }
   h += '<button class="cancel" onclick="sbSheetClose()">Cancel</button>';
@@ -7331,8 +7709,18 @@ function sbCutClose() {
 }
 function sbLibHas(id) { var l = getLibrary(); for (var i = 0; i < l.length; i++) if (l[i].id === id) return true; return false; }
 function sbCutFillSrcSel(sel) {
-  var l = getLibrary(), h = '<option value="">' + (l.length ? '&mdash; choose recording &mdash;' : '(library empty)') + '</option>';
-  for (var i = 0; i < l.length; i++) h += '<option value="' + esc(l[i].id) + '"' + (l[i].id === sel ? ' selected' : '') + '>' + esc(l[i].name) + '</option>';
+  var l = FLD_AREAS.lib.items(), h = '<option value="">' + (l.length ? '&mdash; choose recording &mdash;' : '(library empty)') + '</option>';
+  l.sort(fldCmp(fldSort('lib')));                 // v60: same order + folders as the library
+  var folders = fldAll('lib', l), i, j;
+  function opt(it) { return '<option value="' + esc(it.key) + '"' + (it.key === sel ? ' selected' : '') + '>' + esc(it.name) + '</option>'; }
+  for (j = 0; j < folders.length; j++) {
+    var g = '';
+    for (i = 0; i < l.length; i++) if (l[i].folder === folders[j]) g += opt(l[i]);
+    if (g) h += '<optgroup label="' + esc(folders[j]) + '">' + g + '</optgroup>';
+  }
+  var loose = '';
+  for (i = 0; i < l.length; i++) if (!l[i].folder) loose += opt(l[i]);
+  h += (folders.length && loose) ? '<optgroup label="No folder">' + loose + '</optgroup>' : loose;
   document.getElementById('sbSrcSel').innerHTML = h;
 }
 function sbCutPickSrc(id) {
@@ -7392,6 +7780,7 @@ function sbCutSaveGrid() {
   g.bpm = sbc.srcBpm; g.offset = sbc.srcOff;
   g.detBpm = sbc.detBpm || sbc.srcBpm; g.detOff = sbc.detOff;
   try { localStorage.setItem('grid__' + sbc.srcName, JSON.stringify(g)); } catch (e) {}
+  libTouch(sbc.srcName);
   try {
     if (typeof trkName !== 'undefined' && trkName === sbc.srcName && audioBuf) {
       gridBPM = sbc.srcBpm; gridOffset = sbc.srcOff; updateGridDisplay();
@@ -7408,9 +7797,8 @@ function sbCutLoadFile(inp) {
     var ab = fr.result, id = trackId(f.name, f.size);
     audioCtx.decodeAudioData(ab.slice(0), function (buf) {
       saveTrackToDB(id, f.name, ab, buf.duration).then(function () {
-        var lib = getLibrary().filter(function (x) { return x.id !== id; });
-        lib.unshift({ id: id, name: f.name, size: f.size, duration: buf.duration, lastPlayed: Date.now() });
-        saveLibrary(lib); renderLibrary(); sbCutFillSrcSel(id);
+        libUpsert({ id: id, name: f.name, size: f.size, duration: buf.duration, lastPlayed: Date.now() });
+        renderLibrary(); sbCutFillSrcSel(id);
       }).then(null, function (e) { log('SB lib save err: ' + e.message); });
       sbc.cache = { id: id, name: f.name, buf: buf };
       sbCutUseBuf(id, f.name, buf, null);
@@ -7928,15 +8316,24 @@ function sbDrumClear() {
   sbPush(); sbDrums(part)[sb.sel.b] = null; sbAfterChange(false);
 }
 function sbGrooveSheet() {
-  var all = dpGrooves(), names = [];
-  for (var k in all) if (all.hasOwnProperty(k)) names.push(k);
-  names.sort();
-  if (!names.length) { alert('No saved Beat Builder grooves yet.'); return; }
-  var items = [];
-  names.forEach(function (nm) {
-    var g = all[nm];
+  var list = FLD_AREAS.grv.items();
+  if (!list.length) { alert('No saved Beat Builder grooves yet.'); return; }
+  list.sort(fldCmp(fldSort('grv')));
+  var folders = fldAll('grv', list), items = [];
+  function add(it) {
+    var nm = it.key, g = it.g;
     items.push({ label: esc(nm) + ' <span style="color:var(--dim);font-size:11px">' + (g.bars || 1) + ' bar' + ((g.bars || 1) === 1 ? '' : 's') + ' &middot; ' + g.tsNum + '/' + g.tsDen + '</span>', fn: function () { sbImportGroove(nm); } });
-  });
+  }
+  var i, j;
+  for (j = 0; j < folders.length; j++) {
+    var inF = list.filter(function (x) { return x.folder === folders[j]; });
+    if (!inF.length) continue;
+    items.push({ header: true, label: '&#128193; ' + esc(folders[j]) });
+    for (i = 0; i < inF.length; i++) add(inF[i]);
+  }
+  var loose = list.filter(function (x) { return !x.folder; });
+  if (folders.length && loose.length) items.push({ header: true, label: 'No folder' });
+  for (i = 0; i < loose.length; i++) add(loose[i]);
   sbSheet('Insert groove from this bar on', items);
 }
 function sbImportGroove(name) {
@@ -8156,8 +8553,11 @@ function sbImportBuf(ab) {
   if (!H || H.kind !== 'songbuilder-song' || !H.song) throw new Error('unexpected content');
   var base = 12 + hl, song = H.song, map = {}, i;
   if (sb.songs[song.id]) {
+    var localF = sb.songs[song.id].folder;            // v60: the local folder wins
+    if (localF) song.folder = localF; else delete song.folder;
     if (!confirm('"' + song.name + '" already exists here.\nOK = replace it with the file\nCancel = import as a copy')) {
       song.id = sbUid('s'); song.name = song.name + ' (imported)';
+      song.createdAt = song.modifiedAt = Date.now();
       for (i = 0; i < song.clips.length; i++) { var nid = sbUid('c'); map[song.clips[i].id] = nid; song.clips[i].id = nid; }
       for (i = 0; i < song.versions.length; i++) for (var j = 0; j < song.versions[i].parts.length; j++) {
         var cells = song.versions[i].parts[j].cells;
@@ -8192,6 +8592,7 @@ function sbImportBuf(ab) {
       dpInstsLoaded = false; db2.userInsts = []; dpLoadUserInsts();
     }
     sbStop();
+    sbSongDates(song); delete sbSavedSig[song.id];   // keep the file's dates
     sb.songs[song.id] = song; sb.cur = song; sb.undo = []; sb.redo = []; sb.brush = null; sb.sel = null; sb.partId = null;
     sbSave(); sbRender(); sbLoadBufs().then(sbRenderPal);
     sbHint('Imported "' + song.name + '".');
@@ -8199,7 +8600,7 @@ function sbImportBuf(ab) {
 }
 
 renderLibrary();
-log('Boot OK v59 (Song Builder: drums stop instantly, real pause, jump (tap bar / part / bar buttons); new ghost/accent levels; Song Builder: save/open song files (.ltsong); grid per bar in Beat Builder (tap the ruler) and Song Builder; Song Builder: drum notation part with bar editor, audio/drums mixer, Loop-Function grid editing in the cutter, free loops; Song Builder: arrange songs from bar-exact snippets of recordings, versions, click, background play, WAV export; Grid/Staff hide toggles; Follow scrolls the music: rows view centres the bar being played, long view moves bars right-to-left; Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
+log('Boot OK v60 (Folders + sorting for library, grooves and songs; Song Builder: drums stop instantly, real pause, jump (tap bar / part / bar buttons); new ghost/accent levels; Song Builder: save/open song files (.ltsong); grid per bar in Beat Builder (tap the ruler) and Song Builder; Song Builder: drum notation part with bar editor, audio/drums mixer, Loop-Function grid editing in the cutter, free loops; Song Builder: arrange songs from bar-exact snippets of recordings, versions, click, background play, WAV export; Grid/Staff hide toggles; Follow scrolls the music: rows view centres the bar being played, long view moves bars right-to-left; Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
 </script>
 </body>
 </html>
