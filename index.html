@@ -347,6 +347,14 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
 .fld-loose{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin:12px 0 4px}
 .fld-empty{font-size:11px;color:var(--dim);padding:8px 0}
 .fld-scroll{max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.menu-btn-sec{font-size:15px;padding:13px 16px;color:var(--dim);margin-top:6px}
+.bk-msg{font-size:12px;color:var(--dim);text-align:center;min-height:16px;margin-top:10px;line-height:1.4}
+.bk-msg.ok{color:var(--grn)}.bk-msg.err{color:var(--red)}
+.bk-info{font-size:12px;color:var(--dim);line-height:1.45;margin:6px 0 2px}
+.lib-item.missing{cursor:default;opacity:.85}
+.lib-item.missing .lib-icon{color:var(--ora)}
+.lib-item.missing .lib-meta{color:var(--ora)}
+.lib-relink{background:var(--ora);color:#000;border-radius:9px;padding:7px 10px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;flex-shrink:0;white-space:nowrap}
 .sb-sheet-h{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin:10px 4px 6px}
 .video-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 #videoEl{width:100%;max-height:42vh;border-radius:8px;background:#000;display:block}
@@ -455,6 +463,7 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
     <button class="menu-btn" onclick="dpOpen()">Beat Builder</button>
     <button class="menu-btn" onclick="padOpen()">Drum Pad</button>
     <button class="menu-btn" onclick="sbOpen()">Song Builder</button>
+    <button class="menu-btn menu-btn-sec" onclick="bkOpen()">Backup / Restore</button>
   </div>
 </div>
 <!-- Loop Function view (original main player) -->
@@ -777,6 +786,25 @@ input[type=number]{-webkit-appearance:none;-moz-appearance:textfield}
   </div>
   <div class="sb-info" style="margin-top:4px">Tap the waveform to place the cursor &middot; drag the green/red handles to move In/Out freely (you hear the spot while dragging) &middot; drag elsewhere to scroll &middot; pinch or mouse wheel to zoom. While playing, IN/OUT set the point at the play position (like the Loop Function). &#9664;/&#9654; nudge by 10 ms. Snap is off by default, so loops are not quantized.</div>
 </div>
+<!-- App backup / restore (v61) -->
+<div class="bb-samed" id="bkModal" onclick="if(event.target===this)bkClose()">
+  <div class="bb-samed-card">
+    <div class="bb-samed-title">Backup / Restore</div>
+    <div class="bk-info">A backup file holds all app data: grooves, songs with their snippets, recorded instruments, loops, grids, cues, folders and settings.
+      Your recordings themselves are <b>not</b> in it (keeps the file small) &ndash; only their names. After a restore, load the same audio file again and it is linked automatically.</div>
+    <div class="bb-samed-row">
+      <button class="bb-samed-apply" onclick="bkMake()">Save backup file</button>
+    </div>
+    <div class="bb-samed-row" style="margin-top:6px">
+      <button class="bb-samed-cancel" onclick="bkPick()">Restore from file&hellip;</button>
+    </div>
+    <div class="bk-msg" id="bkMsg"></div>
+    <div class="bb-samed-row">
+      <button class="bb-samed-cancel" onclick="bkClose()">Close</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="bkInp" style="display:none" onchange="bkFile(this)">
 <!-- Song Builder: song list with folders (v60) -->
 <div class="bb-samed" id="sbSongsModal" onclick="if(event.target===this)sbSongsClose()">
   <div class="bb-samed-card">
@@ -1546,6 +1574,7 @@ function deleteFromLibrary(id, e) {
 
 function renderLibrary() {
   var el = document.getElementById('libList'); if (!el) return;
+  if (libTrackKeys === null) libRefreshKeys();      // v61: which recordings are really on this device
   el.innerHTML = fldHtml('lib');
 }
 function libLoadAt(i) { var id = fldKeys.lib && fldKeys.lib[i]; if (id !== undefined) loadFromLibrary(id); }
@@ -1734,6 +1763,7 @@ function libUpsert(e) {
   if (old && old.folder) e.folder = old.folder;
   lib.unshift(e);
   saveLibrary(lib);
+  if (libTrackKeys) libTrackKeys[e.id] = true;     // the audio was just stored (re-link of a missing entry)
 }
 // Loops / grid / cue / hot cues of a recording changed -> its "changed" date.
 function libTouch(name) {
@@ -1782,6 +1812,14 @@ var FLD_AREAS = {
       var date = fldDateLabel('lib', it, new Date(t.lastPlayed || 0).toLocaleDateString());
       var loops = []; try { loops = JSON.parse(localStorage.getItem('loops__' + t.name) || '[]'); } catch (ex) {}
       var ls = loops.length ? loops.length + ' loop' + (loops.length > 1 ? 's' : '') : '';
+      if (libMissing(t.id)) {    // v61: entry restored from a backup, audio not on this device yet
+        return '<div class="lib-item missing">' +
+          '<div class="lib-icon">!</div><div class="lib-info">' +
+          '<div class="lib-name">' + esc(t.name) + '</div>' +
+          '<div class="lib-meta">missing on this device &middot; load the same file to link it' + (ls ? ' &middot; ' + ls : '') + '</div>' +
+          '</div><label for="fileInput" class="lib-relink" onclick="event.stopPropagation()">Load file</label>' +
+          fldMoreBtn('lib', i) + '<button class="lib-del" onclick="libDeleteAt(' + i + ', event)">Del</button></div>';
+      }
       return '<div class="lib-item" onclick="libLoadAt(' + i + ')">' +
         '<div class="lib-icon">&#9835;</div><div class="lib-info">' +
         '<div class="lib-name">' + esc(t.name) + '</div>' +
@@ -1848,6 +1886,343 @@ var FLD_AREAS = {
     render: function () { sbSongsRender(); }
   }
 };
+
+var BK_BUILD = 'v61';
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  App backup / restore (v61 — bk*()). Main menu -> "Backup / Restore" (#bkModal).
+//  File .ltbackup: ASCII "LTBACK01" + uint32 LE header length + UTF-8 JSON header
+//  {app, kind:'loop-trainer-backup', v:1, createdAt, ls:{every localStorage key},
+//   clips:[{id,sr,n,ch,off,len}], insts:[{id,mime,off,len}], tracks:[{id,name,size,duration,folder}]}
+//  + data (offsets relative to the end of the header). clips = Song Builder snippet
+//  PCM (IndexedDB sbclips, stored here as planar 16-bit like .ltsong), insts = the
+//  recorded Beat Builder instruments (dpsamples, original bytes). The raw recordings
+//  (IndexedDB tracks) are NOT included: the library entries are the reference
+//  (id = name__size), so loading the same file again re-links it (user decision D2).
+// ══════════════════════════════════════════════════════════════════════════════
+var BK_MAGIC = 'LTBACK01';
+var BK_TRACK_KEYS = ['loops__', 'grid__', 'cue__', 'hotcues__'];
+function bkOpen() { bkMsg(''); document.getElementById('bkModal').classList.add('show'); }
+function bkClose() { document.getElementById('bkModal').classList.remove('show'); }
+function bkMsg(t, cls) { var el = document.getElementById('bkMsg'); if (el) { el.textContent = t || ''; el.className = 'bk-msg' + (cls ? ' ' + cls : ''); } }
+function bkFmtMB(b) { return (b / 1048576).toFixed(1) + ' MB'; }
+function bkFmtDate(ms) { if (!ms) return '?'; var d = new Date(ms); return d.toLocaleDateString() + ' ' + d.toLocaleTimeString().replace(/:\d\d(\s|$)/, '$1'); }
+function bkJson(s, def) { try { var o = JSON.parse(s); return o === null || o === undefined ? def : o; } catch (e) { return def; } }
+
+// ── IndexedDB helpers ──
+function bkAll(store) {
+  return openDB().then(function (db) {
+    return new Promise(function (res, rej) {
+      var out = [], rq = db.transaction(store, 'readonly').objectStore(store).openCursor();
+      rq.onsuccess = function (e) { var c = e.target.result; if (c) { out.push(c.value); c['continue'](); } else res(out); };
+      rq.onerror = function (e) { rej(e.target.error); };
+    });
+  });
+}
+function bkKeys(store) {   // keys only — never loads the (large) recordings
+  return openDB().then(function (db) {
+    return new Promise(function (res, rej) {
+      var st = db.transaction(store, 'readonly').objectStore(store);
+      if (st.getAllKeys) { var rq = st.getAllKeys(); rq.onsuccess = function () { res(rq.result || []); }; rq.onerror = function (e) { rej(e.target.error); }; return; }
+      var out = [], kc = st.openKeyCursor ? st.openKeyCursor() : st.openCursor();
+      kc.onsuccess = function (e) { var c = e.target.result; if (c) { out.push(c.key); c['continue'](); } else res(out); };
+      kc.onerror = function (e) { rej(e.target.error); };
+    });
+  });
+}
+function bkPut(store, recs) {
+  if (!recs.length) return Promise.resolve();
+  return openDB().then(function (db) {
+    return new Promise(function (res, rej) {
+      var tx = db.transaction(store, 'readwrite'), st = tx.objectStore(store);
+      for (var i = 0; i < recs.length; i++) st.put(recs[i]);
+      tx.oncomplete = function () { res(); };
+      tx.onerror = function (e) { rej(e.target.error); };
+      tx.onabort = function (e) { rej((e.target && e.target.error) || new Error('storage full?')); };
+    });
+  });
+}
+function bkDel(store, keys) {
+  if (!keys.length) return Promise.resolve();
+  return openDB().then(function (db) {
+    return new Promise(function (res, rej) {
+      var tx = db.transaction(store, 'readwrite'), st = tx.objectStore(store);
+      for (var i = 0; i < keys.length; i++) st['delete'](keys[i]);
+      tx.oncomplete = function () { res(); };
+      tx.onerror = function (e) { rej(e.target.error); };
+    });
+  });
+}
+function bkSet(arr) { var o = {}; for (var i = 0; i < arr.length; i++) o[arr[i]] = true; return o; }
+
+// ── Make the backup ──
+function bkMake() {
+  bkMsg('Preparing backup...');
+  var ls = {}, i, k;
+  for (i = 0; i < localStorage.length; i++) { k = localStorage.key(i); if (k !== null) ls[k] = localStorage.getItem(k); }
+  var songs = bkJson(ls.sb_songs || '{}', {}), used = {};
+  for (k in songs) if (songs.hasOwnProperty(k) && songs[k]) { var cl = songs[k].clips || []; for (i = 0; i < cl.length; i++) used[cl[i].id] = true; }
+  var clipRows = [], instRows = [];
+  bkAll(SB_STORE).then(function (r) { clipRows = r; return bkAll(DP_SAMPLE_STORE); }).then(function (r) {
+    instRows = r;
+    var parts = [], off = 0, clips = [], insts = [], j, c;
+    for (i = 0; i < clipRows.length; i++) {
+      var rec = clipRows[i];
+      if (!used[rec.id] || !rec.ch || !rec.ch.length) continue;      // snippets no song uses are left out
+      var n = rec.n, nc = rec.ch.length, pcm = new Int16Array(n * nc);
+      for (c = 0; c < nc; c++) {
+        var d = new Float32Array(rec.ch[c]), o = c * n;
+        for (j = 0; j < n; j++) { var v = d[j]; v = v > 1 ? 1 : v < -1 ? -1 : v; pcm[o + j] = v < 0 ? v * 32768 : v * 32767; }
+      }
+      clips.push({ id: rec.id, sr: rec.sr, n: n, ch: nc, off: off, len: pcm.byteLength });
+      parts.push(pcm); off += pcm.byteLength;
+    }
+    for (i = 0; i < instRows.length; i++) {
+      var r2 = instRows[i]; if (!r2.data) continue;
+      var bytes = new Uint8Array(r2.data);
+      insts.push({ id: r2.id, mime: r2.mime || '', off: off, len: bytes.byteLength });
+      parts.push(bytes); off += bytes.byteLength;
+    }
+    var lib = bkJson(ls.library || '[]', []), tracks = [];
+    for (i = 0; i < lib.length; i++) tracks.push({ id: lib[i].id, name: lib[i].name, size: lib[i].size, duration: lib[i].duration, folder: lib[i].folder || '' });
+    var head = sbUtf8(JSON.stringify({ app: 'loop-trainer', kind: 'loop-trainer-backup', v: 1, build: BK_BUILD, createdAt: Date.now(),
+      ls: ls, clips: clips, insts: insts, tracks: tracks }));
+    var len = new Uint8Array(4); new DataView(len.buffer).setUint32(0, head.byteLength, true);
+    var blob = new Blob([sbUtf8(BK_MAGIC), len, head].concat(parts), { type: 'application/octet-stream' });
+    var nG = 0, nS = 0; for (k in bkJson(ls.drumpluspatterns || '{}', {})) nG++; for (k in songs) nS++;
+    var info = tracks.length + ' recordings (reference only), ' + nG + ' grooves, ' + nS + ' songs, ' + clips.length + ' snippets, ' + insts.length + ' recorded instruments';
+    log('Backup: ' + bkFmtMB(blob.size) + ' - ' + info);
+    bkMsg('Backup ready (' + bkFmtMB(blob.size) + '): ' + info + '.', 'ok');
+    sbDownload(blob, 'loop-trainer-backup_' + dpStamp() + '.ltbackup', 'application/octet-stream');
+  }).then(null, function (e) { bkMsg('Backup failed: ' + (e && e.message ? e.message : e), 'err'); });
+}
+
+// ── Read a backup file ──
+function bkPick() { var i = document.getElementById('bkInp'); i.value = ''; i.click(); }
+function bkFile(inp) {
+  var f = inp.files && inp.files[0]; if (!f) return;
+  bkMsg('Reading ' + f.name + '...');
+  var fr = new FileReader();
+  fr.onload = function () {
+    var B;
+    try { B = bkParse(fr.result); } catch (e) { bkMsg('This is not a valid Loop Trainer backup (' + e.message + ').', 'err'); return; }
+    bkMsg('');
+    bkAskMode(B);
+  };
+  fr.onerror = function () { bkMsg('Could not read the file.', 'err'); };
+  fr.readAsArrayBuffer(f);
+}
+function bkParse(ab) {
+  var u8 = new Uint8Array(ab);
+  if (u8.length < 12 || sbUtf8Dec(u8.subarray(0, 8)) !== BK_MAGIC) throw new Error('wrong file type - expected .ltbackup');
+  var hl = new DataView(ab).getUint32(8, true);
+  if (12 + hl > u8.length) throw new Error('file is cut off');
+  var H = JSON.parse(sbUtf8Dec(u8.subarray(12, 12 + hl)));
+  if (!H || H.kind !== 'loop-trainer-backup' || !H.ls || typeof H.ls !== 'object') throw new Error('unexpected content');
+  var base = 12 + hl, room = u8.length - base, i;
+  H.clips = H.clips || []; H.insts = H.insts || []; H.tracks = H.tracks || [];
+  for (i = 0; i < H.clips.length; i++) { var c = H.clips[i]; if (c.off < 0 || c.off + c.len > room || c.len !== c.n * c.ch * 2) throw new Error('damaged snippet data'); }
+  for (i = 0; i < H.insts.length; i++) { var t = H.insts[i]; if (t.off < 0 || t.off + t.len > room) throw new Error('damaged instrument data'); }
+  return { H: H, ab: ab, base: base };
+}
+function bkClipRec(B, c) {
+  var pcm = new Int16Array(B.ab.slice(B.base + c.off, B.base + c.off + c.len)), ch = [];
+  for (var k = 0; k < c.ch; k++) {
+    var f = new Float32Array(c.n), o = k * c.n;
+    for (var s = 0; s < c.n; s++) f[s] = pcm[o + s] / 32768;
+    ch.push(f.buffer);
+  }
+  return { id: c.id, sr: c.sr, n: c.n, ch: ch };
+}
+function bkInstRec(B, t) { return { id: t.id, data: B.ab.slice(B.base + t.off, B.base + t.off + t.len), mime: t.mime || '', savedAt: Date.now() }; }
+function bkCounts(ls) {
+  var g = 0, s = 0, k, lib = bkJson(ls.library || '[]', []);
+  var G = bkJson(ls.drumpluspatterns || '{}', {}), S = bkJson(ls.sb_songs || '{}', {});
+  for (k in G) if (G.hasOwnProperty(k)) g++;
+  for (k in S) if (S.hasOwnProperty(k)) s++;
+  return lib.length + ' recordings &middot; ' + g + ' grooves &middot; ' + s + ' songs';
+}
+function bkAskMode(B) {
+  sbSheet('Restore backup', [
+    { header: true, label: 'From ' + esc(bkFmtDate(B.H.createdAt)) + ': ' + bkCounts(B.H.ls) },
+    { header: true, label: 'On this device: ' + bkCounts((function () { var o = {}; o.library = localStorage.getItem('library'); o.drumpluspatterns = localStorage.getItem('drumpluspatterns'); o.sb_songs = localStorage.getItem('sb_songs'); return o; })()) },
+    { label: 'Merge into this device<br><span style="font-size:11px;color:var(--dim)">Adds what is missing. For items that exist on both sides and differ, you choose.</span>', fn: function () { bkMerge(B); } },
+    { label: 'Replace everything on this device<br><span style="font-size:11px;color:var(--dim)">Grooves, songs, loops, grids, folders and settings become the backup. Recordings stay on this device.</span>', cls: 'danger', fn: function () {
+        if (!confirm('Replace ALL app data on this device with the backup?\n\nGrooves, songs, loops, cues, grids, folders and settings on this device are overwritten. Recordings stored on this device are kept.')) return;
+        bkReplace(B); } }
+  ]);
+}
+
+// ── Replace everything ──
+function bkReplace(B) {
+  bkMsg('Restoring...');
+  var ls = {}, k, i;
+  for (k in B.H.ls) if (B.H.ls.hasOwnProperty(k)) ls[k] = B.H.ls[k];
+  bkKeys(STORE).then(function (trackKeys) {
+    // Recordings that are on this device but not in the backup stay visible in the library.
+    var have = bkSet(trackKeys), lib = bkJson(ls.library || '[]', []), inB = {}, cur = getLibrary();
+    for (i = 0; i < lib.length; i++) inB[lib[i].id] = true;
+    for (i = 0; i < cur.length; i++) if (!inB[cur[i].id] && have[cur[i].id]) {
+      lib.push(cur[i]);
+      for (var p = 0; p < BK_TRACK_KEYS.length; p++) { var tk = BK_TRACK_KEYS[p] + cur[i].name, v = localStorage.getItem(tk); if (v !== null && !(tk in ls)) ls[tk] = v; }
+    }
+    ls.library = JSON.stringify(lib);
+    var missing = 0; for (i = 0; i < lib.length; i++) if (!have[lib[i].id]) missing++;
+    var clipRecs = [], instRecs = [];
+    for (i = 0; i < B.H.clips.length; i++) clipRecs.push(bkClipRec(B, B.H.clips[i]));
+    for (i = 0; i < B.H.insts.length; i++) instRecs.push(bkInstRec(B, B.H.insts[i]));
+    // write the new audio first, then drop what the backup doesn't have, then swap localStorage
+    return bkPut(SB_STORE, clipRecs).then(function () { return bkPut(DP_SAMPLE_STORE, instRecs); })
+      .then(function () { return bkKeys(SB_STORE); })
+      .then(function (ks) { var keep = bkSet(clipRecs.map(function (r) { return r.id; })); return bkDel(SB_STORE, ks.filter(function (x) { return !keep[x]; })); })
+      .then(function () { return bkKeys(DP_SAMPLE_STORE); })
+      .then(function (ks) { var keep = bkSet(instRecs.map(function (r) { return r.id; })); return bkDel(DP_SAMPLE_STORE, ks.filter(function (x) { return !keep[x]; })); })
+      .then(function () {
+        localStorage.clear();
+        for (var key in ls) if (ls.hasOwnProperty(key)) localStorage.setItem(key, ls[key]);
+        bkDone('Restore complete (replaced).', missing);
+      });
+  }).then(null, function (e) { bkMsg('Restore failed: ' + (e && e.message ? e.message : e), 'err'); alert('Restore failed: ' + (e && e.message ? e.message : e)); });
+}
+function bkDone(msg, missing) {
+  log('Backup restore: ' + msg + ' missing recordings: ' + missing);
+  alert(msg + (missing ? '\n\n' + missing + ' recording(s) are not on this device. They are marked "missing" in the library - load the same file(s) again with "Open Audio/Video" and they are linked automatically (loops, grid and cues come back).' : '') + '\n\nThe app reloads now.');
+  location.reload();
+}
+
+// ── Merge (asks for every item that exists on both sides and differs — D5) ──
+function bkSig(o, drop) {
+  var c = {}, k; for (k in o) if (o.hasOwnProperty(k) && drop.indexOf(k) < 0) c[k] = o[k];
+  return JSON.stringify(c);
+}
+var BK_META = ['createdAt', 'modifiedAt', 'folder', 'lastPlayed', 'createdGuess'];
+function bkLibSig(e, lsObj) {
+  var s = bkSig(e, BK_META);
+  for (var p = 0; p < BK_TRACK_KEYS.length; p++) { var v = lsObj(BK_TRACK_KEYS[p] + e.name); s += '|' + (v === null || v === undefined ? '' : v); }
+  return s;
+}
+function bkMerge(B) {
+  var F = B.H.ls, i, k;
+  var fileGet = function (key) { return F.hasOwnProperty(key) ? F[key] : null; };
+  var devGet = function (key) { return localStorage.getItem(key); };
+  var conflicts = [];
+  // recordings (by id)
+  var dLib = getLibrary(), fLib = bkJson(F.library || '[]', []), dLibMap = {};
+  for (i = 0; i < dLib.length; i++) dLibMap[dLib[i].id] = dLib[i];
+  for (i = 0; i < fLib.length; i++) {
+    var d = dLibMap[fLib[i].id];
+    if (d && bkLibSig(d, devGet) !== bkLibSig(fLib[i], fileGet)) conflicts.push({ type: 'lib', key: fLib[i].id, label: 'Recording', name: fLib[i].name, dev: d.modifiedAt, file: fLib[i].modifiedAt });
+  }
+  // grooves (by name)
+  var dG = dpGrooves(), fG = bkJson(F.drumpluspatterns || '{}', {});
+  for (k in fG) if (fG.hasOwnProperty(k) && dG.hasOwnProperty(k) && dG[k] && fG[k] && bkSig(dG[k], BK_META) !== bkSig(fG[k], BK_META))
+    conflicts.push({ type: 'grv', key: k, label: 'Groove', name: k, dev: dG[k].modifiedAt, file: fG[k].modifiedAt });
+  // songs (by id)
+  var dS = bkJson(localStorage.getItem('sb_songs') || '{}', {}), fS = bkJson(F.sb_songs || '{}', {});
+  for (k in fS) if (fS.hasOwnProperty(k) && dS.hasOwnProperty(k) && dS[k] && fS[k] && bkSig(dS[k], BK_META) !== bkSig(fS[k], BK_META))
+    conflicts.push({ type: 'song', key: k, label: 'Song', name: fS[k].name, dev: dS[k].modifiedAt, file: fS[k].modifiedAt });
+  var take = {};   // type + '|' + key -> true = take the file's
+  var idx = 0, all = null;
+  function next() {
+    while (idx < conflicts.length && all !== null) { take[conflicts[idx].type + '|' + conflicts[idx].key] = all; idx++; }
+    if (idx >= conflicts.length) { bkMergeApply(B, take); return; }
+    var c = conflicts[idx], rest = conflicts.length - idx;
+    var items = [
+      { header: true, label: esc(c.label) + ' &bdquo;' + esc(c.name) + '&ldquo; exists on both and differs (' + (idx + 1) + ' of ' + conflicts.length + ')' },
+      { header: true, label: 'This device: changed ' + esc(bkFmtDate(c.dev)) + ' &middot; Backup: changed ' + esc(bkFmtDate(c.file)) },
+      { label: 'Keep this device&rsquo;s', fn: function () { take[c.type + '|' + c.key] = false; idx++; next(); } },
+      { label: 'Take the backup&rsquo;s', fn: function () { take[c.type + '|' + c.key] = true; idx++; next(); } }
+    ];
+    if (rest > 1) {
+      items.push({ label: 'Keep this device&rsquo;s for all ' + rest + ' remaining', fn: function () { all = false; next(); } });
+      items.push({ label: 'Take the backup&rsquo;s for all ' + rest + ' remaining', fn: function () { all = true; next(); } });
+    }
+    items.push({ header: true, label: 'Cancel = stop, nothing is changed' });
+    sbSheet('Restore: merge', items);
+  }
+  next();
+}
+function bkMergeApply(B, take) {
+  bkMsg('Restoring...');
+  var F = B.H.ls, i, k, p;
+  var out = {};                   // localStorage key -> new value (null = remove)
+  var fileHas = function (key) { return F.hasOwnProperty(key); };
+  var devGet = function (key) { return out.hasOwnProperty(key) ? out[key] : localStorage.getItem(key); };
+  var handled = { library: 1, drumpluspatterns: 1, sb_songs: 1, drumplus_insts: 1, fld_lib: 1, fld_grv: 1, fld_song: 1, sb_cur: 1 };
+  function keepFolder(dst, dev) { if (dev && dev.folder) dst.folder = dev.folder; return dst; }
+  // recordings
+  var dLib = getLibrary(), fLib = bkJson(F.library || '[]', []), pos = {};
+  for (i = 0; i < dLib.length; i++) pos[dLib[i].id] = i;
+  for (i = 0; i < fLib.length; i++) {
+    var fe = fLib[i], at = pos[fe.id];
+    for (p = 0; p < BK_TRACK_KEYS.length; p++) handled[BK_TRACK_KEYS[p] + fe.name] = 1;
+    if (at === undefined) {                                    // new: add with its loops/grid/cues
+      dLib.push(fe); pos[fe.id] = dLib.length - 1;
+      for (p = 0; p < BK_TRACK_KEYS.length; p++) { var tk = BK_TRACK_KEYS[p] + fe.name; if (fileHas(tk) && devGet(tk) === null) out[tk] = F[tk]; }
+    } else if (take['lib|' + fe.id]) {                         // conflict, user took the backup's
+      dLib[at] = keepFolder(JSON.parse(JSON.stringify(fe)), dLib[at]);
+      for (p = 0; p < BK_TRACK_KEYS.length; p++) { var tk2 = BK_TRACK_KEYS[p] + fe.name; out[tk2] = fileHas(tk2) ? F[tk2] : null; }
+    }
+  }
+  out.library = JSON.stringify(dLib);
+  // grooves
+  var dG = dpGrooves(), fG = bkJson(F.drumpluspatterns || '{}', {});
+  for (k in fG) if (fG.hasOwnProperty(k)) {
+    if (!dG.hasOwnProperty(k) || !dG[k]) dG[k] = fG[k];
+    else if (take['grv|' + k]) dG[k] = keepFolder(fG[k], dG[k]);
+  }
+  out.drumpluspatterns = JSON.stringify(dG);
+  // songs (+ which snippets to write)
+  var dS = bkJson(localStorage.getItem('sb_songs') || '{}', {}), fS = bkJson(F.sb_songs || '{}', {}), needClip = {};
+  function wantClips(s) { var cl = (s && s.clips) || []; for (var j = 0; j < cl.length; j++) needClip[cl[j].id] = true; }
+  for (k in fS) if (fS.hasOwnProperty(k)) {
+    if (!dS.hasOwnProperty(k) || !dS[k]) { dS[k] = fS[k]; wantClips(fS[k]); }
+    else if (take['song|' + k]) { dS[k] = keepFolder(fS[k], dS[k]); wantClips(fS[k]); }
+  }
+  out.sb_songs = JSON.stringify(dS);
+  if (localStorage.getItem('sb_cur') === null && fileHas('sb_cur')) out.sb_cur = F.sb_cur;
+  // recorded instruments: add the ones this device doesn't have
+  var dI = bkJson(localStorage.getItem('drumplus_insts') || '[]', []), fI = bkJson(F.drumplus_insts || '[]', []), haveI = {};
+  for (i = 0; i < dI.length; i++) haveI[dI[i].id] = true;
+  var newInst = {};
+  for (i = 0; i < fI.length; i++) if (!haveI[fI[i].id]) { dI.push(fI[i]); haveI[fI[i].id] = true; newInst[fI[i].id] = true; }
+  out.drumplus_insts = JSON.stringify(dI);
+  // folders: union
+  ['fld_lib', 'fld_grv', 'fld_song'].forEach(function (fk) {
+    var a = bkJson(localStorage.getItem(fk) || '[]', []), b = bkJson(F[fk] || '[]', []);
+    for (var j = 0; j < b.length; j++) if (a.indexOf(b[j]) < 0) a.push(b[j]);
+    out[fk] = JSON.stringify(a);
+  });
+  // everything else (prefs, custom time signatures, loops of other names...): only what this device lacks
+  for (k in F) if (F.hasOwnProperty(k) && !handled[k] && localStorage.getItem(k) === null && !out.hasOwnProperty(k)) out[k] = F[k];
+
+  var clipRecs = [], instRecs = [];
+  for (i = 0; i < B.H.clips.length; i++) if (needClip[B.H.clips[i].id]) clipRecs.push(bkClipRec(B, B.H.clips[i]));
+  bkKeys(DP_SAMPLE_STORE).then(function (ks) {
+    var haveS = bkSet(ks);
+    for (i = 0; i < B.H.insts.length; i++) if (newInst[B.H.insts[i].id] || !haveS[B.H.insts[i].id]) instRecs.push(bkInstRec(B, B.H.insts[i]));
+    return bkPut(SB_STORE, clipRecs);
+  }).then(function () { return bkPut(DP_SAMPLE_STORE, instRecs); })
+    .then(function () { return bkKeys(STORE); })
+    .then(function (trackKeys) {
+      for (var key in out) if (out.hasOwnProperty(key)) { if (out[key] === null) localStorage.removeItem(key); else localStorage.setItem(key, out[key]); }
+      var have = bkSet(trackKeys), lib = getLibrary(), missing = 0;
+      for (var m = 0; m < lib.length; m++) if (!have[lib[m].id]) missing++;
+      bkDone('Restore complete (merged).', missing);
+    }).then(null, function (e) { bkMsg('Restore failed: ' + (e && e.message ? e.message : e), 'err'); alert('Restore failed: ' + (e && e.message ? e.message : e)); });
+}
+
+// ── Library: recordings that are not on this device (restored from a backup) ──
+// Only the keys of the tracks store are read (cheap). Loading the same file again
+// (same name + size = same id) stores it and the entry is complete again.
+var libTrackKeys = null, libKeysBusy = false;
+function libRefreshKeys() {
+  if (libKeysBusy) return;
+  libKeysBusy = true;
+  bkKeys(STORE).then(function (ks) { libTrackKeys = bkSet(ks); libKeysBusy = false; renderLibrary(); },
+                     function () { libKeysBusy = false; libTrackKeys = null; });
+}
+function libMissing(id) { return !!(libTrackKeys && !libTrackKeys[id]); }
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  Speed
@@ -7712,7 +8087,7 @@ function sbCutFillSrcSel(sel) {
   var l = FLD_AREAS.lib.items(), h = '<option value="">' + (l.length ? '&mdash; choose recording &mdash;' : '(library empty)') + '</option>';
   l.sort(fldCmp(fldSort('lib')));                 // v60: same order + folders as the library
   var folders = fldAll('lib', l), i, j;
-  function opt(it) { return '<option value="' + esc(it.key) + '"' + (it.key === sel ? ' selected' : '') + '>' + esc(it.name) + '</option>'; }
+  function opt(it) { return '<option value="' + esc(it.key) + '"' + (it.key === sel ? ' selected' : '') + '>' + esc(it.name) + (libMissing(it.key) ? ' (missing - load file)' : '') + '</option>'; }
   for (j = 0; j < folders.length; j++) {
     var g = '';
     for (i = 0; i < l.length; i++) if (l[i].folder === folders[j]) g += opt(l[i]);
@@ -8600,7 +8975,7 @@ function sbImportBuf(ab) {
 }
 
 renderLibrary();
-log('Boot OK v60 (Folders + sorting for library, grooves and songs; Song Builder: drums stop instantly, real pause, jump (tap bar / part / bar buttons); new ghost/accent levels; Song Builder: save/open song files (.ltsong); grid per bar in Beat Builder (tap the ruler) and Song Builder; Song Builder: drum notation part with bar editor, audio/drums mixer, Loop-Function grid editing in the cutter, free loops; Song Builder: arrange songs from bar-exact snippets of recordings, versions, click, background play, WAV export; Grid/Staff hide toggles; Follow scrolls the music: rows view centres the bar being played, long view moves bars right-to-left; Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
+log('Boot OK v61 (Backup / Restore in the main menu; Folders + sorting for library, grooves and songs; Song Builder: drums stop instantly, real pause, jump (tap bar / part / bar buttons); new ghost/accent levels; Song Builder: save/open song files (.ltsong); grid per bar in Beat Builder (tap the ruler) and Song Builder; Song Builder: drum notation part with bar editor, audio/drums mixer, Loop-Function grid editing in the cutter, free loops; Song Builder: arrange songs from bar-exact snippets of recordings, versions, click, background play, WAV export; Grid/Staff hide toggles; Follow scrolls the music: rows view centres the bar being played, long view moves bars right-to-left; Beat Builder: pinch zoom, staff playhead, rows view with Follow, off-beat click shift; Drum Pad: 8 pads, handedness, long-press reassign)');
 </script>
 </body>
 </html>
